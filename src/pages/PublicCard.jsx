@@ -385,9 +385,11 @@ export default function PublicCard() {
                       {contact.tag === 'Other' ? contact.customTag : contact.tag}
                     </span>
                   </div>
-                  <p className="text-zinc-500 text-xs font-semibold mt-1 tracking-wide">{contact.phone}</p>
+                  {/* 🌟 NEW: Displays the Country Code visibly in the text next to the phone number */}
+                  <p className="text-zinc-500 text-xs font-semibold mt-1 tracking-wide">
+                    {contact.countryCode ? `${contact.countryCode} ` : ''}{contact.phone}
+                  </p>
                 </div>
-                {/* 🌟 NEW: Intelligently adds Country Code directly into the dial string */}
                 <a href={`tel:${contact.countryCode || ''}${contact.phone}`} className="bg-brandDark text-white p-3 rounded-full hover:bg-brandAccent transition shadow-sm">
                   <Phone size={16} fill="currentColor" />
                 </a>
@@ -409,7 +411,6 @@ export default function PublicCard() {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/85 backdrop-blur-xl border-t border-zinc-200 max-w-md mx-auto space-y-2 pb-8 shadow-[0_-15px_40px_rgba(0,0,0,0.08)] z-50">
-        {/* 🌟 NEW: Primary emergency button also uses Country Code safely */}
         <a href={`tel:${primaryContact.countryCode || ''}${primaryContact.phone}`} className="w-full flex items-center justify-center space-x-2 bg-brandDark text-white py-3.5 px-4 rounded-2xl font-bold text-base shadow-lg hover:bg-brandAccent transition-colors">
           <Phone size={20} />
           <span className="truncate">Call {primaryContact.name} (Emergency)</span>
