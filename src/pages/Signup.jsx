@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { auth } from '../firebase';
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getAdditionalUserInfo } from 'firebase/auth';
 import { useNavigate, Link } from 'react-router-dom';
@@ -12,13 +12,6 @@ export default function Signup() {
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // Reload Protection: Send to Home if refreshed
-  useEffect(() => {
-    const isReload = (window.performance.navigation && window.performance.navigation.type === 1) ||
-      window.performance.getEntriesByType('navigation').map((nav) => nav.type).includes('reload');
-    if (isReload) navigate('/', { replace: true });
-  }, [navigate]);
 
   const handleEmailSignup = async (e) => {
     e.preventDefault();
