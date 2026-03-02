@@ -243,21 +243,33 @@ export default function PublicCard() {
       </div>
 
       <div className="relative h-[45vh] w-full shrink-0">
-        <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent"></div>
+        {/* 🌟 NEW: Added drag and long-press blocks to hero image */}
+        <img 
+          src={profile.imageUrl} 
+          alt={profile.name} 
+          className="w-full h-full object-cover select-none" 
+          draggable="false"
+          style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent pointer-events-none"></div>
         
         <div 
           onClick={handleLogoClick}
           className={`absolute top-5 left-5 z-20 flex items-center bg-black/20 backdrop-blur-sm py-1.5 rounded-full border border-white/10 shadow-sm cursor-pointer transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isLogoExpanded ? 'px-3' : 'px-1.5'}`}
         >
-          <img src="/kintag-logo.png" alt="KinTag Logo" className="w-6 h-6 rounded-md shadow-sm shrink-0" />
+          <img src="/kintag-logo.png" alt="KinTag Logo" className="w-6 h-6 rounded-md shadow-sm shrink-0 select-none" draggable="false" />
           <span className={`text-white font-bold text-sm tracking-tight drop-shadow-sm overflow-hidden whitespace-nowrap transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isLogoExpanded ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
             KinTag
           </span>
         </div>
 
-        <button onClick={() => setIsImageEnlarged(true)} className="absolute top-4 right-4 bg-black/30 backdrop-blur-md border border-white/20 text-white p-2.5 rounded-full hover:bg-black/50 transition z-20" title="View Full Image">
-          <Maximize2 size={18} />
+        {/* 🌟 NEW: Updated Expand Button to perfectly match top-5 alignment and 36px exact height of the logo pill */}
+        <button 
+          onClick={() => setIsImageEnlarged(true)} 
+          className="absolute top-5 right-5 z-20 w-[36px] h-[36px] flex items-center justify-center bg-black/20 backdrop-blur-sm border border-white/10 text-white rounded-full hover:bg-black/40 transition shadow-sm" 
+          title="View Full Image"
+        >
+          <Maximize2 size={16} />
         </button>
       </div>
       
@@ -385,7 +397,6 @@ export default function PublicCard() {
                       {contact.tag === 'Other' ? contact.customTag : contact.tag}
                     </span>
                   </div>
-                  {/* 🌟 NEW: Displays the Country Code visibly in the text next to the phone number */}
                   <p className="text-zinc-500 text-xs font-semibold mt-1 tracking-wide">
                     {contact.countryCode ? `${contact.countryCode} ` : ''}{contact.phone}
                   </p>
@@ -429,10 +440,20 @@ export default function PublicCard() {
 
       {isImageEnlarged && (
         <div className="fixed inset-0 z-[100] bg-brandDark/95 flex items-center justify-center p-4 backdrop-blur-lg">
-          <button onClick={() => setIsImageEnlarged(false)} className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition">
-            <X size={24} />
+          <button 
+            onClick={() => setIsImageEnlarged(false)} 
+            className="absolute top-5 right-5 z-[110] w-[36px] h-[36px] flex items-center justify-center bg-black/20 backdrop-blur-sm border border-white/10 text-white rounded-full hover:bg-black/40 transition shadow-sm"
+          >
+            <X size={20} />
           </button>
-          <img src={profile.imageUrl} alt={profile.name} className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl" />
+          {/* 🌟 NEW: Added drag block, select-none, pointer-events-none, and css fixes to the expanded image */}
+          <img 
+            src={profile.imageUrl} 
+            alt={profile.name} 
+            className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl select-none pointer-events-none" 
+            draggable="false"
+            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
+          />
         </div>
       )}
     </div>
