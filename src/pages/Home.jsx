@@ -34,10 +34,9 @@ export default function Home() {
             <span className="text-xl font-extrabold text-brandDark tracking-tight">KinTag</span>
           </div>
           <div className="flex items-center space-x-4">
-            {/* 🌟 NEW: Passes isSignUp: false */}
-            <Link to="/login" state={{ isSignUp: false }} className="text-sm font-bold text-zinc-600 hover:text-brandDark transition-colors">Log In</Link>
-            {/* 🌟 NEW: Passes isSignUp: true */}
-            <Link to="/login" state={{ isSignUp: true }} className="bg-brandDark text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-brandAccent transition-all shadow-sm">
+            {/* 🌟 FIXED: Passes exact URL mode instruction */}
+            <Link to="/login?mode=login" className="text-sm font-bold text-zinc-600 hover:text-brandDark transition-colors">Log In</Link>
+            <Link to="/login?mode=signup" className="bg-brandDark text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-brandAccent transition-all shadow-sm">
               Get Started
             </Link>
           </div>
@@ -66,8 +65,8 @@ export default function Home() {
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
-            {/* 🌟 NEW: Passes isSignUp: true */}
-            <Link to="/login" state={{ isSignUp: true }} className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-brandDark text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-brandAccent transition-all shadow-lg hover:-translate-y-0.5">
+            {/* 🌟 FIXED: Passes exact URL mode instruction */}
+            <Link to="/login?mode=signup" className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-brandDark text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-brandAccent transition-all shadow-lg hover:-translate-y-0.5">
               <span>Try KinTag for Free</span>
               <ArrowRight size={18} />
             </Link>
@@ -82,15 +81,11 @@ export default function Home() {
             <span className="flex items-center gap-1.5"><Shield size={14} className="text-blue-500"/> No App Required</span>
           </div>
 
-          {/* 🌟 THE MISSING PIECE: Stunning 3D Phone Mockup */}
+          {/* 3D Phone Mockup */}
           <div className="relative max-w-[280px] md:max-w-xs mx-auto perspective-[1000px]">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[90%] bg-gradient-to-tr from-brandGold/40 to-emerald-400/30 blur-3xl -z-10 rounded-full animate-pulse"></div>
-            
             <div className="relative rounded-[3rem] border-[10px] border-zinc-900 bg-white aspect-[9/19] shadow-2xl overflow-hidden transform rotate-y-[-10deg] rotate-x-[5deg] hover:rotate-y-0 hover:rotate-x-0 transition-transform duration-700 ease-out group">
-              {/* Fake Phone Notch */}
               <div className="absolute top-0 inset-x-0 h-6 bg-zinc-900 rounded-b-2xl w-36 mx-auto z-20"></div>
-              
-              {/* Fake UI: Hero Image */}
               <div className="h-[45%] bg-zinc-800 relative overflow-hidden">
                 <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=600&auto=format&fit=crop" className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-1000" alt="Dog Hero" />
                 <div className="absolute inset-0 bg-gradient-to-t from-brandDark via-transparent to-transparent"></div>
@@ -99,8 +94,6 @@ export default function Home() {
                    <div className="h-3 w-1/2 bg-brandGold rounded backdrop-blur-sm"></div>
                 </div>
               </div>
-              
-              {/* Fake UI: Details Card */}
               <div className="p-5 space-y-4 bg-white relative z-10 -mt-6 rounded-t-3xl h-full flex flex-col shadow-[0_-10px_20px_rgba(0,0,0,0.1)]">
                  <div className="flex gap-3">
                    <div className="flex-1 h-16 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center justify-center"><Heart size={20} className="text-zinc-300"/></div>
@@ -263,7 +256,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 REWRITTEN: SOLO DEV & PARENT STORY */}
+      {/* SOLO DEV & PARENT STORY */}
       <section className="py-24 px-4 relative bg-zinc-50">
         <div className="max-w-4xl mx-auto bg-brandDark rounded-[3rem] p-8 md:p-16 text-center shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
@@ -342,8 +335,8 @@ export default function Home() {
       <section className="py-24 bg-zinc-50 text-center px-4">
         <h2 className="text-3xl md:text-5xl font-extrabold text-brandDark tracking-tight mb-6">Ready to secure your loved ones?</h2>
         <p className="text-zinc-500 font-medium text-lg mb-8">Join the platform and create your first tag in under 2 minutes.</p>
-        {/* 🌟 NEW: Passes isSignUp: true */}
-        <Link to="/login" state={{ isSignUp: true }} className="inline-flex items-center justify-center space-x-2 bg-brandGold text-white px-10 py-5 rounded-2xl font-bold text-xl hover:bg-amber-500 transition-all shadow-xl hover:-translate-y-1">
+        {/* 🌟 FIXED: Passes exact URL mode instruction */}
+        <Link to="/login?mode=signup" className="inline-flex items-center justify-center space-x-2 bg-brandGold text-white px-10 py-5 rounded-2xl font-bold text-xl hover:bg-amber-500 transition-all shadow-xl hover:-translate-y-1">
           <span>Get Started for Free</span>
           <ArrowRight size={20} />
         </Link>
