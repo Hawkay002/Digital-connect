@@ -159,7 +159,8 @@ export default function PublicCard() {
         }
       },
       (error) => {
-        setGpsError("Please allow location access so the owner can find you.");
+        // 🌟 NEW: Dynamic error text based on profile type
+        setGpsError(`Please allow location access so the ${profile.type === 'kid' ? 'parent' : 'owner'} can find you.`);
         setIsSendingAlert(false);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -220,7 +221,10 @@ export default function PublicCard() {
             
             {!activeAlertSent ? (
               <>
-                <p className="text-sm text-white/80 font-medium mb-5 leading-relaxed">Tap below to securely send your exact GPS location directly to the owner's phone.</p>
+                {/* 🌟 NEW: Dynamic "parent's" or "owner's" text */}
+                <p className="text-sm text-white/80 font-medium mb-5 leading-relaxed">
+                  Tap below to securely send your exact GPS location directly to the {profile.type === 'kid' ? "parent's" : "owner's"} phone.
+                </p>
                 <button 
                   onClick={handleActiveAlert} 
                   disabled={isSendingAlert}
@@ -234,7 +238,8 @@ export default function PublicCard() {
             ) : (
               <div className="flex flex-col items-center justify-center py-4 space-y-2">
                 <CheckCircle2 size={40} className="text-emerald-400" />
-                <h3 className="font-extrabold text-emerald-400 text-xl">Owner Notified!</h3>
+                {/* 🌟 NEW: Dynamic "Parent" or "Owner" Success message */}
+                <h3 className="font-extrabold text-emerald-400 text-xl">{profile.type === 'kid' ? 'Parent' : 'Owner'} Notified!</h3>
                 <p className="text-white/70 text-sm text-center">Your exact location has been sent to their phone. Please stay nearby.</p>
               </div>
             )}
@@ -243,7 +248,6 @@ export default function PublicCard() {
       </div>
 
       <div className="relative h-[45vh] w-full shrink-0">
-        {/* 🌟 NEW: Added drag and long-press blocks to hero image */}
         <img 
           src={profile.imageUrl} 
           alt={profile.name} 
@@ -263,7 +267,6 @@ export default function PublicCard() {
           </span>
         </div>
 
-        {/* 🌟 NEW: Updated Expand Button to perfectly match top-5 alignment and 36px exact height of the logo pill */}
         <button 
           onClick={() => setIsImageEnlarged(true)} 
           className="absolute top-5 right-5 z-20 w-[36px] h-[36px] flex items-center justify-center bg-black/20 backdrop-blur-sm border border-white/10 text-white rounded-full hover:bg-black/40 transition shadow-sm" 
@@ -446,7 +449,6 @@ export default function PublicCard() {
           >
             <X size={20} />
           </button>
-          {/* 🌟 NEW: Added drag block, select-none, pointer-events-none, and css fixes to the expanded image */}
           <img 
             src={profile.imageUrl} 
             alt={profile.name} 
