@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { auth } from '../firebase';
-// 🌟 NEW: Added getAdditionalUserInfo to check for new Google users
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, getAdditionalUserInfo } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
@@ -15,6 +14,38 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // 🌟 NEW: Injects Tawk.to Customer Service Widget
+  useEffect(() => {
+    window.Tawk_API = window.Tawk_API || {};
+    window.Tawk_LoadStart = new Date();
+    
+    const existingScript = document.getElementById('tawk-script');
+    
+    if (!existingScript) {
+      const s1 = document.createElement("script");
+      const s0 = document.getElementsByTagName("script")[0];
+      s1.async = true;
+      s1.src = 'https://embed.tawk.to/69a52099b326341c3a98af7b/1jimgeo39';
+      s1.charset = 'UTF-8';
+      s1.setAttribute('crossorigin', '*');
+      s1.id = 'tawk-script';
+      if (s0 && s0.parentNode) {
+        s0.parentNode.insertBefore(s1, s0);
+      } else {
+        document.head.appendChild(s1);
+      }
+    } else if (window.Tawk_API.showWidget) {
+      window.Tawk_API.showWidget();
+    }
+
+    // Cleanup: Hide widget when leaving this page so it doesn't show on Public Cards
+    return () => {
+      if (window.Tawk_API && window.Tawk_API.hideWidget) {
+        window.Tawk_API.hideWidget();
+      }
+    };
+  }, []);
+
   const handleEmailAuth = async (e) => {
     e.preventDefault();
     setError('');
@@ -28,13 +59,12 @@ export default function Login() {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // 🔥 NEW: Trigger Welcome Email silently in the background
         fetch('/api/welcome', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userEmail: user.email,
-            userName: '' // Email/Password doesn't collect name, backend falls back to "there"
+            userName: '' 
           })
         }).catch(err => console.log("Welcome email failed:", err));
       }
@@ -56,17 +86,15 @@ export default function Login() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // 🔥 NEW: Check if they are actually a brand new user!
       const details = getAdditionalUserInfo(result);
 
       if (details && details.isNewUser) {
-        // Only send the email if it's their very first time logging in
         fetch('/api/welcome', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userEmail: user.email,
-            userName: user.displayName // Google automatically provides their name!
+            userName: user.displayName 
           })
         }).catch(err => console.log("Welcome email failed:", err));
       }
