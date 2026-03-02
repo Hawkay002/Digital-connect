@@ -1,7 +1,25 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, MapPin, BellRing, Heart, QrCode, Smartphone, Github, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Shield, MapPin, BellRing, Heart, QrCode, Smartphone, Github, ArrowRight, CheckCircle2, PawPrint, User, Activity, Info } from 'lucide-react';
 
 export default function Home() {
+  const [showGithubTooltip, setShowGithubTooltip] = useState(false);
+
+  // Smooth scroll handler for "How it works"
+  const scrollToHowItWorks = (e) => {
+    e.preventDefault();
+    const element = document.getElementById('how-it-works');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleGithubClick = (e) => {
+    e.preventDefault();
+    setShowGithubTooltip(true);
+    setTimeout(() => setShowGithubTooltip(false), 2500);
+  };
+
   return (
     <div className="min-h-screen bg-zinc-50 font-sans selection:bg-brandGold selection:text-white">
       
@@ -47,19 +65,85 @@ export default function Home() {
               <span>Try KinTag for Free</span>
               <ArrowRight size={18} />
             </Link>
-            <a href="#how-it-works" className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-white text-brandDark border border-zinc-200 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-50 transition-all shadow-sm">
+            <button onClick={scrollToHowItWorks} className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-white text-brandDark border border-zinc-200 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-50 transition-all shadow-sm">
               How it works
-            </a>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS (STEP-BY-STEP) */}
+      <section id="how-it-works" className="py-24 bg-white border-t border-zinc-100 scroll-mt-16">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-4">How KinTag Works</h2>
+            <p className="text-zinc-500 font-medium text-lg">Three simple steps to ultimate peace of mind.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+            <div className="hidden md:block absolute top-12 left-[15%] right-[15%] h-0.5 bg-zinc-100 z-0"></div>
+            
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <div className="w-24 h-24 bg-zinc-50 border-4 border-white shadow-xl rounded-full flex items-center justify-center mb-6">
+                <span className="text-3xl font-extrabold text-brandDark">1</span>
+              </div>
+              <h3 className="text-xl font-extrabold text-brandDark mb-3">Create a Profile</h3>
+              <p className="text-zinc-500 font-medium leading-relaxed px-4">Sign up and build a detailed digital ID card containing emergency contacts, medical info, and behavioral details.</p>
+            </div>
+
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <div className="w-24 h-24 bg-zinc-50 border-4 border-white shadow-xl rounded-full flex items-center justify-center mb-6">
+                <span className="text-3xl font-extrabold text-brandDark">2</span>
+              </div>
+              <h3 className="text-xl font-extrabold text-brandDark mb-3">Generate & Attach</h3>
+              <p className="text-zinc-500 font-medium leading-relaxed px-4">Download your custom QR code or link an NFC tag. Attach it to a pet's collar, a kid's backpack, or a medical bracelet.</p>
+            </div>
+
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <div className="w-24 h-24 bg-zinc-50 border-4 border-white shadow-xl rounded-full flex items-center justify-center mb-6">
+                <span className="text-3xl font-extrabold text-brandDark">3</span>
+              </div>
+              <h3 className="text-xl font-extrabold text-brandDark mb-3">Get Scanned</h3>
+              <p className="text-zinc-500 font-medium leading-relaxed px-4">If they are lost, a Good Samaritan scans the tag. You instantly get an alert, and they can send you their exact GPS location.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* USE CASES / WHO IS IT FOR */}
+      <section className="py-24 bg-zinc-50 border-t border-zinc-100">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-4">Who is KinTag for?</h2>
+            <p className="text-zinc-500 font-medium text-lg">Designed for the most vulnerable members of your family.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white p-8 rounded-3xl shadow-sm border border-zinc-200">
+              <PawPrint size={32} className="text-amber-500 mb-5" />
+              <h3 className="text-xl font-extrabold text-brandDark mb-2">Pets & Animals</h3>
+              <p className="text-zinc-500 font-medium mb-4">Easily share their microchip number, temperament, and diet restrictions instantly if they escape the yard.</p>
+            </div>
+            <div className="bg-white p-8 rounded-3xl shadow-sm border border-zinc-200">
+              <User size={32} className="text-blue-500 mb-5" />
+              <h3 className="text-xl font-extrabold text-brandDark mb-2">Children</h3>
+              <p className="text-zinc-500 font-medium mb-4">Perfect for amusement parks or field trips. Alert finders to non-verbal behaviors or severe allergies.</p>
+            </div>
+            <div className="bg-white p-8 rounded-3xl shadow-sm border border-zinc-200">
+              <Activity size={32} className="text-pink-500 mb-5" />
+              <h3 className="text-xl font-extrabold text-brandDark mb-2">Seniors & Medical</h3>
+              <p className="text-zinc-500 font-medium mb-4">A critical safety net for elderly family members prone to wandering, detailing their medical conditions and primary caregivers.</p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* FEATURES GRID */}
-      <section id="how-it-works" className="py-20 bg-white border-y border-zinc-100">
+      <section className="py-20 bg-white border-y border-zinc-100">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-4">Smarter than a standard ID tag.</h2>
-            <p className="text-zinc-500 font-medium">Everything you need to bring them home safely, built right in.</p>
+            <p className="text-zinc-500 font-medium text-lg">Everything you need to bring them home safely, built right in.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -118,10 +202,35 @@ export default function Home() {
         </div>
       </section>
 
+      {/* FAQ SECTION */}
+      <section className="py-20 bg-zinc-50 border-t border-zinc-100">
+        <div className="max-w-4xl mx-auto px-4 md:px-8">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-10 text-center">Frequently Asked Questions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-200">
+              <h4 className="font-extrabold text-brandDark mb-2">Does the finder need the app?</h4>
+              <p className="text-zinc-500 text-sm font-medium leading-relaxed">No! That is the magic of KinTag. The finder simply opens their standard phone camera, points it at the QR code, and it opens a standard webpage.</p>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-200">
+              <h4 className="font-extrabold text-brandDark mb-2">Can it track them in real-time?</h4>
+              <p className="text-zinc-500 text-sm font-medium leading-relaxed">KinTag is not a battery-powered GPS collar (which are heavy and require charging). It uses the GPS of the *finder's* phone to securely send you the location when scanned.</p>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-200">
+              <h4 className="font-extrabold text-brandDark mb-2">Is my data secure?</h4>
+              <p className="text-zinc-500 text-sm font-medium leading-relaxed">Absolutely. Your account is secured by Google Firebase authentication, and you have complete control to edit or delete your profiles instantly.</p>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-200">
+              <h4 className="font-extrabold text-brandDark mb-2">Can I print the tags myself?</h4>
+              <p className="text-zinc-500 text-sm font-medium leading-relaxed">Yes! You can download your high-resolution QR code directly from your dashboard and print it, or link it to blank NFC tags bought online.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* SELF-HOST GUIDE */}
       <section className="py-20 bg-white border-t border-zinc-100">
         <div className="max-w-4xl mx-auto px-4 md:px-8 flex flex-col md:flex-row items-center gap-10">
-          <div className="flex-1">
+          <div className="flex-1 relative">
             <h2 className="text-3xl font-extrabold text-brandDark tracking-tight mb-4 flex items-center gap-3">
               <Github size={32} /> Open & Self-Hostable
             </h2>
@@ -133,9 +242,26 @@ export default function Home() {
               <li className="flex items-center text-sm font-bold text-zinc-700 gap-2"><CheckCircle2 size={18} className="text-emerald-500"/> Simple Firebase Integration</li>
               <li className="flex items-center text-sm font-bold text-zinc-700 gap-2"><CheckCircle2 size={18} className="text-emerald-500"/> Free to modify for personal use</li>
             </ul>
-            <a href="https://github.com/Hawkay002" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center space-x-2 bg-zinc-100 border border-zinc-200 text-brandDark px-6 py-3 rounded-xl font-bold hover:bg-zinc-200 transition-all">
-              <span>View GitHub Repository</span>
-            </a>
+            
+            {/* 🌟 FIXED: Disabled Button + Animated Tooltip */}
+            <div className="relative inline-block">
+              <button 
+                onClick={handleGithubClick}
+                className="inline-flex items-center justify-center space-x-2 bg-zinc-200 text-zinc-400 px-6 py-3 rounded-xl font-bold cursor-not-allowed transition-all"
+              >
+                <span>View GitHub Repository</span>
+              </button>
+              
+              {showGithubTooltip && (
+                <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-brandDark text-white text-xs font-bold px-3 py-2 rounded-lg shadow-xl animate-in fade-in zoom-in-95 duration-200 flex items-center gap-1.5 whitespace-nowrap z-10">
+                  <Info size={14} className="text-brandGold"/>
+                  Source code coming soon!
+                  {/* Small pointer triangle pointing down */}
+                  <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-brandDark"></div>
+                </div>
+              )}
+            </div>
+
           </div>
           <div className="flex-1 w-full bg-zinc-900 rounded-3xl p-6 shadow-2xl border border-zinc-800 text-left">
             <div className="flex gap-2 mb-4">
