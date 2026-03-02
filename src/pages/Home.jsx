@@ -79,35 +79,37 @@ export default function Home() {
             <span className="flex items-center gap-1.5"><Shield size={14} className="text-blue-500"/> No App Required</span>
           </div>
 
-          {/* 🌟 NEW: Dual 3D Phone Mockups (iPhone 17 Pro Max & Google Pixel 10) */}
+          {/* Dual 3D Phone Mockups (iPhone 17 Pro Max & Google Pixel 10) */}
           <div className="relative mx-auto mt-16 md:mt-24 flex justify-center items-center perspective-[1200px] h-[450px] sm:h-[550px] md:h-[700px] w-full max-w-4xl">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] h-[100%] bg-gradient-to-tr from-brandGold/20 via-emerald-400/20 to-blue-500/10 blur-3xl -z-10 rounded-full animate-pulse"></div>
 
-            {/* iPhone 17 Pro Max Mockup */}
+            {/* iPhone 17 Pro Max Mockup (Live Kid Profile) */}
             <div className="absolute left-[45%] md:left-[40%] top-0 -translate-x-1/2 w-[180px] sm:w-[240px] md:w-[320px] aspect-[9/19.5] rounded-[2.5rem] md:rounded-[3.5rem] border-[6px] md:border-[12px] border-zinc-900 bg-zinc-900 shadow-2xl overflow-hidden transform rotate-y-[-12deg] rotate-x-[5deg] z-20 hover:rotate-y-[-5deg] hover:scale-[1.02] transition-all duration-700 ease-out group">
               {/* Dynamic Island */}
-              <div className="absolute top-2 md:top-3 left-1/2 -translate-x-1/2 w-16 md:w-24 h-5 md:h-7 bg-black rounded-full z-20 flex justify-end items-center pr-1.5 md:pr-2 shadow-[inset_0_-1px_2px_rgba(255,255,255,0.15)]">
+              <div className="absolute top-2 md:top-3 left-1/2 -translate-x-1/2 w-16 md:w-24 h-5 md:h-7 bg-black rounded-full z-20 flex justify-end items-center pr-1.5 md:pr-2 shadow-[inset_0_-1px_2px_rgba(255,255,255,0.15)] pointer-events-none">
                 <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-indigo-900/50"></div>
               </div>
-              {/* Screenshot Image */}
+              {/* Live Iframe Embed */}
               <div className="relative w-full h-full bg-zinc-100 flex items-center justify-center">
-                 <img src="/iphone-screenshot.png" alt="iPhone 17 Pro Max Profile View" className="absolute inset-0 w-full h-full object-cover opacity-100 z-10" />
-                 <span className="text-zinc-400 text-[10px] md:text-sm font-bold px-4 text-center z-0">
-                   Upload <br/><code className="text-brandDark">iphone-screenshot.png</code><br/> to public folder
-                 </span>
+                 <iframe 
+                   src="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3" 
+                   className="absolute inset-0 w-full h-full border-0 pointer-events-none z-10" 
+                   title="Live Kid Profile View"
+                 />
               </div>
             </div>
 
-            {/* Google Pixel 10 Mockup */}
+            {/* Google Pixel 10 Mockup (Live Pet Profile) */}
             <div className="absolute left-[55%] md:left-[60%] top-[8%] md:top-[6%] -translate-x-1/2 w-[180px] sm:w-[240px] md:w-[310px] aspect-[9/20] rounded-[2rem] md:rounded-[3rem] border-[6px] md:border-[10px] border-zinc-800 bg-zinc-800 shadow-2xl overflow-hidden transform rotate-y-[12deg] rotate-x-[5deg] z-10 hover:rotate-y-[5deg] hover:scale-[1.02] hover:z-30 transition-all duration-700 ease-out group">
               {/* Hole Punch Camera */}
-              <div className="absolute top-3 md:top-4 left-1/2 -translate-x-1/2 w-3 h-3 md:w-4 md:h-4 bg-black rounded-full z-20 shadow-[inset_0_1px_2px_rgba(255,255,255,0.15)]"></div>
-              {/* Screenshot Image */}
+              <div className="absolute top-3 md:top-4 left-1/2 -translate-x-1/2 w-3 h-3 md:w-4 md:h-4 bg-black rounded-full z-20 shadow-[inset_0_1px_2px_rgba(255,255,255,0.15)] pointer-events-none"></div>
+              {/* Live Iframe Embed */}
               <div className="relative w-full h-full bg-zinc-100 flex items-center justify-center">
-                 <img src="/pixel-screenshot.png" alt="Google Pixel 10 Profile View" className="absolute inset-0 w-full h-full object-cover opacity-100 z-10" />
-                 <span className="text-zinc-400 text-[10px] md:text-sm font-bold px-4 text-center z-0">
-                   Upload <br/><code className="text-brandDark">pixel-screenshot.png</code><br/> to public folder
-                 </span>
+                 <iframe 
+                   src="https://kintag.vercel.app/#/id/OSCIDGkJXSIh9mTmOVtr" 
+                   className="absolute inset-0 w-full h-full border-0 pointer-events-none z-10" 
+                   title="Live Pet Profile View"
+                 />
               </div>
             </div>
 
