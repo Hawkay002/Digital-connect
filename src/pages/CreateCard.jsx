@@ -4,6 +4,8 @@ import { collection, addDoc } from 'firebase/firestore';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
 import { Download, Plus, X, MapPin, Loader2, Check } from 'lucide-react';
+// 🌟 NEW: Importing our optimized country codes list!
+import { sortedCountryCodes } from '../data/countryCodes';
 
 const QR_STYLES = {
   obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200', hexBorder: '#e4e4e7' },
@@ -23,13 +25,13 @@ export default function CreateCard() {
   const [generatedUrl, setGeneratedUrl] = useState('');
   const [error, setError] = useState('');
 
+  // 🌟 NEW: Defaulted to +1 (US) so it has a starting point
   const [contacts, setContacts] = useState([
-    { id: Date.now().toString(), name: '', phone: '', tag: 'Father', customTag: '' }
+    { id: Date.now().toString(), name: '', phone: '', countryCode: '+1', countryIso: 'us', tag: 'Father', customTag: '' }
   ]);
   const [primaryContactId, setPrimaryContactId] = useState(contacts[0].id);
 
   const [formData, setFormData] = useState({
-    // 🌟 NEW: Replaced static age with DOB
     name: '', dob: '', gender: 'Male', 
     heightUnit: 'ft', heightMain: '', heightSub: '', 
     weightUnit: 'kg', weightMain: '', 
@@ -49,7 +51,8 @@ export default function CreateCard() {
   };
 
   const addContact = () => {
-    setContacts([...contacts, { id: Date.now().toString(), name: '', phone: '', tag: 'Other', customTag: '' }]);
+    // 🌟 NEW: Fresh contacts also get the default flag
+    setContacts([...contacts, { id: Date.now().toString(), name: '', phone: '', countryCode: '+1', countryIso: 'us', tag: 'Other', customTag: '' }]);
   };
 
   const removeContact = (id) => {
@@ -187,7 +190,6 @@ export default function CreateCard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div><label className={labelStyles}>Name</label><input type="text" name="name" value={formData.name} onChange={handleInputChange} required className={inputStyles} /></div>
               
-              {/* 🌟 NEW: Auto-Calculating Date of Birth Picker */}
               <div>
                 <label className={labelStyles}>Date of Birth</label>
                 <input 
@@ -327,7 +329,31 @@ export default function CreateCard() {
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                     <input type="text" placeholder="Full Name" value={contact.name} onChange={(e) => handleContactChange(contact.id, 'name', e.target.value)} required className="w-full p-3 border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark" />
-                    <input type="tel" placeholder="Phone Number with Country Code i.e. +91 or +351" value={contact.phone} onChange={(e) => handleContactChange(contact.id, 'phone', e.target.value)} required className="w-full p-3 border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark" />
+                    
+                    {/* 🌟 NEW: Premium invisible FlagCDN Dropdown Row */}
+                    <div className="flex w-full border border-zinc-200 rounded-xl focus-within:border-brandDark focus-within:ring-1 focus-within:ring-brandDark bg-white overflow-hidden transition-all relative">
+                      <div className="relative flex items-center bg-zinc-50 hover:bg-zinc-100 border-r border-zinc-200 px-3 cursor-pointer shrink-0 transition-colors">
+                        <img src={`https://flagcdn.com/w20/${contact.countryIso || 'us'}.png`} alt="flag" className="w-5 h-auto rounded-sm shrink-0 shadow-[0_0_2px_rgba(0,0,0,0.2)]" />
+                        <span className="ml-2 text-sm font-bold text-brandDark">{contact.countryCode || '+1'}</span>
+                        <select
+                          value={`${contact.countryCode || '+1'}|${contact.countryIso || 'us'}`}
+                          onChange={(e) => {
+                            const [code, iso] = e.target.value.split('|');
+                            handleContactChange(contact.id, 'countryCode', code);
+                            handleContactChange(contact.id, 'countryIso', iso);
+                          }}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        >
+                          {sortedCountryCodes.map((c, i) => (
+                            <option key={`${c.iso}-${i}`} value={`${c.code}|${c.iso}`}>
+                              {c.country} ({c.code})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <input type="tel" placeholder="Phone Number" value={contact.phone} onChange={(e) => handleContactChange(contact.id, 'phone', e.target.value)} required className="flex-1 p-3 outline-none w-full bg-transparent" />
+                    </div>
+
                     <select value={contact.tag} onChange={(e) => handleContactChange(contact.id, 'tag', e.target.value)} className="w-full p-3 border border-zinc-200 rounded-xl bg-white outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark font-medium">
                       <option value="Father">Father</option>
                       <option value="Mother">Mother</option>
