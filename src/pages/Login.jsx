@@ -8,8 +8,12 @@ export default function Login() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 🌟 NEW: Check state from Home page links. If isSignUp is true, show "Create Account" by default. Otherwise, show "Log In".
-  const [isLogin, setIsLogin] = useState(location.state?.isSignUp ? false : true);
+  // 🌟 FIXED: Parse URL Query Params directly (e.g. ?mode=signup) to bypass HashRouter state drops
+  const queryParams = new URLSearchParams(location.search);
+  const urlMode = queryParams.get('mode');
+
+  // If urlMode is exactly 'signup', default to Create Account. Otherwise, default to Log In.
+  const [isLogin, setIsLogin] = useState(urlMode === 'signup' ? false : true);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,7 +23,16 @@ export default function Login() {
   const [resetMessage, setResetMessage] = useState(''); 
   const [loading, setLoading] = useState(false);
 
-  // 🌟 NEW: Reload Protection Logic. If the user refreshes their browser while on the Auth screen, send them Home.
+  // 🌟 FIXED: Ensures that if the URL changes while staying on the page, the tab updates too
+  useEffect(() => {
+    if (urlMode === 'signup') {
+      setIsLogin(false);
+    } else if (urlMode === 'login') {
+      setIsLogin(true);
+    }
+  }, [urlMode]);
+
+  // 🌟 FIXED: Reload Protection - Kicks user to Home page if they refresh the auth screen
   useEffect(() => {
     const isReload = (window.performance.navigation && window.performance.navigation.type === 1) ||
       window.performance
@@ -218,7 +231,7 @@ export default function Login() {
           )}
           
           <button type="submit" disabled={loading || (!isLogin && password.length < 8)} className="w-full bg-brandDark text-white p-3.5 rounded-xl font-bold hover:bg-brandAccent transition-all shadow-md mt-2 disabled:opacity-50">
-            {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
+            {loading ? 'Processing...' : (isLogin ? 'Log In' : 'Create Account')}
           </button>
         </form>
 
@@ -235,7 +248,7 @@ export default function Login() {
         <p className="text-center mt-8 text-sm text-zinc-600 font-medium">
           {isLogin ? "Don't have an account? " : "Already have an account? "}
           <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-brandDark font-bold hover:text-brandGold transition-colors">
-            {isLogin ? 'Sign Up' : 'Log In'}
+            {isLogin ? 'Create Account' : 'Log In'}
           </button>
         </p>
       </div>
