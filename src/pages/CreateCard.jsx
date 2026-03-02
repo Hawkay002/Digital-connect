@@ -180,7 +180,7 @@ export default function CreateCard() {
             </div>
 
             <div>
-              <label className={labelStyles}>Hero Image (Optional)</label>
+              <label className={labelStyles}>Profile Image (Optional)</label>
               <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} className="w-full p-2.5 bg-brandMuted rounded-xl text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-brandDark file:text-white hover:file:bg-brandAccent transition-all cursor-pointer text-zinc-600 font-medium" />
             </div>
 
