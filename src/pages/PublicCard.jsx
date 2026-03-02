@@ -4,7 +4,6 @@ import { db } from '../firebase';
 import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
 import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart, BellRing, Loader2, CheckCircle2, Cake } from 'lucide-react';
 
-// 🌟 NEW: Math engine to perfectly convert DOB into a clean text label
 const getComputedAge = (profile) => {
   if (profile.dob) {
     const dob = new Date(profile.dob);
@@ -19,7 +18,6 @@ const getComputedAge = (profile) => {
       return { value: Math.floor(months / 12), label: 'Yrs' };
     }
   }
-  // Safe Fallback for legacy profiles without a DOB yet
   return { 
     value: profile.age || 'Unknown', 
     label: profile.ageUnit === 'Months' ? 'Mos' : 'Yrs' 
@@ -178,8 +176,8 @@ export default function PublicCard() {
   if (!profile) return <div className="min-h-screen flex items-center justify-center bg-zinc-50 font-bold text-red-500">Identity not found.</div>;
 
   let displayContacts = profile.contacts || [
-    { id: '1', name: profile.parent1Name, phone: profile.parent1Phone, tag: 'Mother' },
-    ...(profile.parent2Name ? [{ id: '2', name: profile.parent2Name, phone: profile.parent2Phone, tag: 'Father' }] : [])
+    { id: '1', name: profile.parent1Name, phone: profile.parent1Phone, countryCode: '', tag: 'Mother' },
+    ...(profile.parent2Name ? [{ id: '2', name: profile.parent2Name, phone: profile.parent2Phone, countryCode: '', tag: 'Father' }] : [])
   ];
 
   const primaryContact = displayContacts.find(c => c.id === profile.primaryContactId) || displayContacts[0];
@@ -198,7 +196,6 @@ export default function PublicCard() {
     ? `${profile.weightMain} ${profile.weightUnit}` 
     : profile.weight;
 
-  // Calculate the age using the helper
   const computedAge = getComputedAge(profile);
 
   return (
@@ -293,7 +290,6 @@ export default function PublicCard() {
            </div>
         )}
 
-        {/* 🌟 NEW: Beautiful Date of Birth block that explicitly shows vets or responders their birthday */}
         {profile.dob && (
            <div className="bg-sky-50 border border-sky-100 p-4 rounded-2xl flex items-start space-x-3">
              <Cake className="text-sky-500 shrink-0 mt-0.5 drop-shadow-sm" size={24} />
@@ -391,7 +387,8 @@ export default function PublicCard() {
                   </div>
                   <p className="text-zinc-500 text-xs font-semibold mt-1 tracking-wide">{contact.phone}</p>
                 </div>
-                <a href={`tel:${contact.phone}`} className="bg-brandDark text-white p-3 rounded-full hover:bg-brandAccent transition shadow-sm">
+                {/* 🌟 NEW: Intelligently adds Country Code directly into the dial string */}
+                <a href={`tel:${contact.countryCode || ''}${contact.phone}`} className="bg-brandDark text-white p-3 rounded-full hover:bg-brandAccent transition shadow-sm">
                   <Phone size={16} fill="currentColor" />
                 </a>
               </div>
@@ -412,7 +409,8 @@ export default function PublicCard() {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/85 backdrop-blur-xl border-t border-zinc-200 max-w-md mx-auto space-y-2 pb-8 shadow-[0_-15px_40px_rgba(0,0,0,0.08)] z-50">
-        <a href={`tel:${primaryContact.phone}`} className="w-full flex items-center justify-center space-x-2 bg-brandDark text-white py-3.5 px-4 rounded-2xl font-bold text-base shadow-lg hover:bg-brandAccent transition-colors">
+        {/* 🌟 NEW: Primary emergency button also uses Country Code safely */}
+        <a href={`tel:${primaryContact.countryCode || ''}${primaryContact.phone}`} className="w-full flex items-center justify-center space-x-2 bg-brandDark text-white py-3.5 px-4 rounded-2xl font-bold text-base shadow-lg hover:bg-brandAccent transition-colors">
           <Phone size={20} />
           <span className="truncate">Call {primaryContact.name} (Emergency)</span>
         </a>
