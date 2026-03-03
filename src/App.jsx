@@ -10,8 +10,8 @@ import PublicCard from './pages/PublicCard';
 import Login from './pages/Login';
 import Signup from './pages/Signup'; 
 import Admin from './pages/Admin'; 
+import Profile from './pages/Profile'; // 🌟 NEW: Profile Page
 
-// 🌟 NEW: Checks if the user hard-refreshed directly onto the login or signup page
 let isAuthRefresh = window.location.hash.includes('/login') || window.location.hash.includes('/signup');
 
 const ProtectedRoute = ({ children }) => {
@@ -25,9 +25,8 @@ function AppRoutes() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // 🌟 NEW: If it was a hard refresh on auth pages, boot them to Home
     if (isAuthRefresh) {
-      isAuthRefresh = false; // Reset it immediately so normal navigation works perfectly
+      isAuthRefresh = false; 
       navigate('/', { replace: true });
     }
   }, [navigate]);
@@ -42,6 +41,8 @@ function AppRoutes() {
       <Route path="/create" element={<ProtectedRoute><CreateCard /></ProtectedRoute>} />
       <Route path="/edit/:profileId" element={<ProtectedRoute><EditCard /></ProtectedRoute>} />
       
+      {/* 🌟 NEW: Profile Route */}
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
       
       <Route path="/id/:profileId" element={<PublicCard />} />
