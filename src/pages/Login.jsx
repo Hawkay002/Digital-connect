@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -13,6 +14,26 @@ export default function Login() {
   const [resetMessage, setResetMessage] = useState(''); 
   const [loading, setLoading] = useState(false);
 
+  // 🌟 Ensure family linking happens even on simple logins
+  const syncUserDatabase = async (user) => {
+    const userDocRef = doc(db, "users", user.uid);
+    const userDoc = await getDoc(userDocRef);
+    
+    // Check if they were invited AFTER they originally created their account
+    const inviteRef = doc(db, "invites", user.email.toLowerCase());
+    const inviteSnap = await getDoc(inviteRef);
+    
+    let familyId = userDoc.exists() && userDoc.data().familyId ? userDoc.data().familyId : user.uid;
+    if (inviteSnap.exists()) {
+      familyId = inviteSnap.data().familyId; 
+    }
+
+    await setDoc(userDocRef, {
+      email: user.email.toLowerCase(),
+      familyId: familyId,
+    }, { merge: true });
+  };
+
   const handleEmailLogin = async (e) => {
     e.preventDefault();
     setError('');
@@ -20,7 +41,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCred = await signInWithEmailAndPassword(auth, email, password);
+      await syncUserDatabase(userCred.user);
       navigate('/'); 
     } catch (err) {
       setError(err.message.replace('Firebase: ', ''));
@@ -36,7 +58,8 @@ export default function Login() {
     const provider = new GoogleAuthProvider();
     
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      await syncUserDatabase(result.user);
       navigate('/'); 
     } catch (err) {
       setError("Google log-in failed. Please try again.");
