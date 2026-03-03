@@ -1,17 +1,48 @@
 import { useState } from 'react';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getAdditionalUserInfo } from 'firebase/auth';
-import { useNavigate, Link } from 'react-router-dom';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, CheckCircle2, Circle } from 'lucide-react';
 
 export default function Signup() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const location = useLocation();
+  const prefilledEmail = new URLSearchParams(location.search).get('email') || '';
+
+  const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState(prefilledEmail);
   const [password, setPassword] = useState('');
+  
   const [showPassword, setShowPassword] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // 🌟 Handles database mapping and Co-Guardian Linking
+  const processUserDatabase = async (user, displayName) => {
+    const emailLower = user.email.toLowerCase();
+    const inviteRef = doc(db, "invites", emailLower);
+    const inviteSnap = await getDoc(inviteRef);
+    
+    // If invited, link to existing familyId. If not, generate their own.
+    const familyId = inviteSnap.exists() ? inviteSnap.data().familyId : user.uid;
+
+    await setDoc(doc(db, "users", user.uid), {
+      email: emailLower,
+      name: displayName,
+      familyId: familyId,
+      createdAt: new Date().toISOString()
+    }, { merge: true });
+
+    fetch('/api/welcome', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userEmail: user.email, userName: displayName })
+    }).catch(err => console.log("Welcome email failed:", err));
+  };
 
   const handleEmailSignup = async (e) => {
     e.preventDefault();
@@ -25,13 +56,9 @@ export default function Signup() {
     setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      fetch('/api/welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userEmail: user.email, userName: '' })
-      }).catch(err => console.log("Welcome email failed:", err));
+      const fullName = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
       
+      await processUserDatabase(userCredential.user, fullName);
       navigate('/'); 
     } catch (err) {
       setError(err.message.replace('Firebase: ', ''));
@@ -47,15 +74,10 @@ export default function Signup() {
     
     try {
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
       const details = getAdditionalUserInfo(result);
 
       if (details && details.isNewUser) {
-        fetch('/api/welcome', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userEmail: user.email, userName: user.displayName })
-        }).catch(err => console.log("Welcome email failed:", err));
+        await processUserDatabase(result.user, result.user.displayName || '');
       }
       navigate('/'); 
     } catch (err) {
@@ -84,7 +106,7 @@ export default function Signup() {
   );
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center bg-zinc-50 p-4">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-zinc-50 p-4 py-12">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-premium p-8 border border-zinc-100">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-3 mb-4">
@@ -92,19 +114,19 @@ export default function Signup() {
             <h1 className="text-4xl font-extrabold text-brandDark tracking-tight">KinTag</h1>
           </div>
           <p className="text-zinc-500 mt-2 font-medium">Create an account to secure your family.</p>
+          {prefilledEmail && <span className="inline-block mt-2 bg-brandGold/20 text-brandGold px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">Invited by Guardian</span>}
         </div>
 
         {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-4 text-sm text-center border border-red-100">{error}</div>}
 
         <form onSubmit={handleEmailSignup} className="space-y-4 mb-6">
-          <input 
-            type="email" 
-            placeholder="Email Address" 
-            required 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
-            className="w-full p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" 
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <input type="text" placeholder="First Name" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" />
+            <input type="text" placeholder="Last Name" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" />
+          </div>
+          <input type="text" placeholder="Middle Name (Optional)" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className="w-full p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" />
+          
+          <input type="email" placeholder="Email Address" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" />
           
           <div className="relative">
             <input 
@@ -118,12 +140,7 @@ export default function Signup() {
               onBlur={() => setTimeout(() => setIsPasswordFocused(false), 200)}
               className="w-full p-3.5 pr-12 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" 
             />
-            <button 
-              type="button" 
-              onMouseDown={(e) => e.preventDefault()} 
-              onClick={() => setShowPassword(!showPassword)} 
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-brandDark transition-colors"
-            >
+            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-brandDark transition-colors">
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
