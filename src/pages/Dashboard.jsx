@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { db, auth, messaging } from '../firebase'; 
-import { collection, query, where, getDocs, getDoc, doc, deleteDoc, setDoc, onSnapshot, updateDoc } from 'firebase/firestore'; 
+import { collection, query, where, getDocs, getDoc, doc, deleteDoc, setDoc, onSnapshot, updateDoc, addDoc } from 'firebase/firestore'; 
 import { getToken } from 'firebase/messaging'; 
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -45,7 +45,7 @@ const renderFormattedTextDark = (text) => {
   return text.split('\n').map((line, i) => {
     const isBullet = line.trim().startsWith('-');
     let content = isBullet ? line.substring(line.indexOf('-') + 1).trim() : line;
-    let htmlContent = content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\*\*(.*?)\*\*/g, '<strong class="font-extrabold text-white">$1</strong>').replace(/\*(.*?)\*/g, '<em class="italic text-white/90">$1</em>');
+    let htmlContent = content.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">").replace(/\*\*(.*?)\*\*/g, '<strong class="font-extrabold text-white">$1</strong>').replace(/\*(.*?)\*/g, '<em class="italic text-white/90">$1</em>');
     if (isBullet) return <li key={i} className="ml-5 list-disc marker:text-brandGold pl-1 mb-1" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
     return <p key={i} className="mb-2 last:mb-0 min-h-[1rem]" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
   });
@@ -55,6 +55,8 @@ export default function Dashboard() {
   const [profiles, setProfiles] = useState([]);
   const [scans, setScans] = useState([]);
   const [systemMessages, setSystemMessages] = useState([]);
+  const [pendingInvite, setPendingInvite] = useState(null); // 🌟 NEW: Live Invite State
+
   const [loading, setLoading] = useState(true);
   const [qrModalProfile, setQrModalProfile] = useState(null); 
   const [searchTerm, setSearchTerm] = useState(''); 
@@ -96,11 +98,10 @@ export default function Dashboard() {
     }
   }, []);
 
-  // 🌟 Auto-Migration & Setup Listeners
   useEffect(() => {
     if (!currentUser) return;
 
-    let unsubProfiles, unsubScans, unsubSys;
+    let unsubProfiles, unsubScans, unsubSys, unsubInvite;
 
     const setupListeners = async () => {
       try {
@@ -114,13 +115,12 @@ export default function Dashboard() {
           if (data.lastViewedSystem) setLastViewedSystem(data.lastViewedSystem);
           currentFamilyId = data.familyId || currentUser.uid;
         } else {
-          // Fallback legacy user creation
           await setDoc(userDocRef, { email: currentUser.email, familyId: currentUser.uid }, { merge: true });
         }
         
         setUserFamilyId(currentFamilyId);
 
-        // 🌟 Auto-Migrate Legacy Profiles to Family Sharing
+        // Auto-Migrate Legacy Profiles
         const legacyProfilesQuery = query(collection(db, "profiles"), where("userId", "==", currentUser.uid));
         const legacySnaps = await getDocs(legacyProfilesQuery);
         legacySnaps.forEach(async (d) => {
@@ -130,11 +130,21 @@ export default function Dashboard() {
            }
         });
 
-        // 🌟 Auto-Migrate Legacy Scans
+        // Auto-Migrate Legacy Scans
         const legacyScansQuery = query(collection(db, "scans"), where("ownerId", "==", currentUser.uid));
         const legacyScanSnaps = await getDocs(legacyScansQuery);
         legacyScanSnaps.forEach(async (d) => {
            if (!d.data().familyId) await updateDoc(doc(db, "scans", d.id), { familyId: currentFamilyId });
+        });
+
+        // 🌟 NEW: Live Pending Invite Listener
+        const inviteRef = doc(db, "invites", currentUser.email.toLowerCase());
+        unsubInvite = onSnapshot(inviteRef, (docSnap) => {
+           if (docSnap.exists() && docSnap.data().status === 'pending') {
+              setPendingInvite({ id: docSnap.id, ...docSnap.data() });
+           } else {
+              setPendingInvite(null);
+           }
         });
 
         // LIVE LISTENERS BY FAMILY ID
@@ -184,6 +194,7 @@ export default function Dashboard() {
       if (unsubProfiles) unsubProfiles();
       if (unsubScans) unsubScans();
       if (unsubSys) unsubSys();
+      if (unsubInvite) unsubInvite();
     };
   }, [currentUser]);
 
@@ -207,6 +218,62 @@ export default function Dashboard() {
     };
     markAsRead();
   }, [showNotifCenter, notifTab, scans, systemMessages, currentUser, lastViewedPersonal, lastViewedSystem]);
+
+  // 🌟 NEW: Handle Co-Guardian Invite Actions
+  const handleAcceptInvite = async () => {
+    if (!pendingInvite) return;
+    try {
+      await updateDoc(doc(db, "users", currentUser.uid), { familyId: pendingInvite.familyId });
+      await deleteDoc(doc(db, "invites", currentUser.email.toLowerCase()));
+      
+      const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+      const acceptName = userDoc.exists() ? userDoc.data().name : currentUser.email;
+
+      await addDoc(collection(db, "scans"), {
+        familyId: pendingInvite.familyId,
+        type: 'invite_response',
+        profileName: 'Family Update',
+        message: `${acceptName} accepted your co-guardian request and can now manage your profiles.`,
+        timestamp: new Date().toISOString()
+      });
+
+      // Send push notification to inviter
+      await fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ownerId: pendingInvite.inviterUid,
+          title: `🤝 Guardian Joined!`,
+          body: `${acceptName} accepted your invite.`,
+          link: `https://kintag.vercel.app/#/?view=notifications` 
+        })
+      });
+
+      window.location.reload(); 
+    } catch(e) {
+      console.error(e);
+    }
+  };
+
+  const handleDeclineInvite = async () => {
+    if (!pendingInvite) return;
+    try {
+      await deleteDoc(doc(db, "invites", currentUser.email.toLowerCase()));
+      
+      const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+      const declineName = userDoc.exists() ? userDoc.data().name : currentUser.email;
+
+      await addDoc(collection(db, "scans"), {
+        familyId: pendingInvite.familyId,
+        type: 'invite_response',
+        profileName: 'Family Update',
+        message: `${declineName} declined your co-guardian request.`,
+        timestamp: new Date().toISOString()
+      });
+    } catch(e) {
+      console.error(e);
+    }
+  };
 
   const handleEnableAlertsClick = () => {
     if (!('Notification' in window)) {
@@ -277,7 +344,6 @@ export default function Dashboard() {
     }
   };
 
-  // 🌟 NEW: Toggle Profile Active/Inactive
   const toggleProfileStatus = async (profileId, currentStatus) => {
     try {
       await updateDoc(doc(db, "profiles", profileId), { isActive: !currentStatus });
@@ -452,7 +518,7 @@ export default function Dashboard() {
   
   const unreadPersonalCount = lastViewedPersonal ? scans.filter(scan => getTime(scan.timestamp) > new Date(lastViewedPersonal).getTime()).length : scans.length;
   const unreadSystemCount = lastViewedSystem ? systemMessages.filter(msg => getTime(msg.timestamp) > new Date(lastViewedSystem).getTime()).length : systemMessages.length;
-  const hasAnyUnread = unreadPersonalCount > 0 || unreadSystemCount > 0;
+  const hasAnyUnread = unreadPersonalCount > 0 || unreadSystemCount > 0 || pendingInvite; // Highlight if invite pending
 
   const groupedScans = [];
   scans.forEach(scan => {
@@ -647,6 +713,20 @@ export default function Dashboard() {
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-zinc-50">
               
+              {/* 🌟 NEW: Live Pending Invites showing at the top of either tab */}
+              {pendingInvite && (
+                <div className="bg-brandGold/10 p-5 rounded-2xl border border-brandGold/30 mb-6 shadow-sm">
+                  <h3 className="font-extrabold text-brandDark flex items-center gap-2 mb-2"><Users size={18} className="text-brandGold"/> Co-Guardian Invite</h3>
+                  <p className="text-sm text-zinc-600 font-medium mb-4 leading-relaxed">
+                    <strong className="text-brandDark">{pendingInvite.invitedBy}</strong> invited you to accept this request to become their kid/pet's co-guardian.
+                  </p>
+                  <div className="flex gap-2">
+                    <button onClick={handleAcceptInvite} className="bg-brandDark hover:bg-brandAccent text-white px-4 py-2.5 rounded-xl font-bold flex-1 transition-colors">Accept</button>
+                    <button onClick={handleDeclineInvite} className="bg-white border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2.5 rounded-xl font-bold flex-1 transition-colors">Decline</button>
+                  </div>
+                </div>
+              )}
+
               {/* PERSONAL SCANS TAB */}
               {notifTab === 'personal' && (
                 groupedScans.length === 0 ? (
@@ -665,7 +745,7 @@ export default function Dashboard() {
                           <div key={scan.id} className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 relative group">
                             <button onClick={() => setScanToDelete(scan.id)} className="absolute top-3 right-3 p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors" title="Delete Scan Record"><Trash2 size={16} /></button>
                             <div className="flex items-center justify-between mb-2 pr-10">
-                              <span className="font-extrabold text-brandDark truncate">{scan.profileName} Scanned</span>
+                              <span className="font-extrabold text-brandDark truncate">{scan.profileName} {scan.type === 'invite_response' ? 'Update' : 'Scanned'}</span>
                               <span className="text-[10px] text-zinc-400 font-bold uppercase shrink-0">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                             </div>
                             
@@ -676,6 +756,10 @@ export default function Dashboard() {
                                   <MapPin size={16}/> Open in Google Maps
                                 </a>
                               </div>
+                            ) : scan.type === 'invite_response' ? (
+                              <p className="text-xs text-emerald-600 font-bold flex items-start gap-1.5 mt-2 bg-emerald-50 p-3 rounded-xl border border-emerald-100 leading-relaxed">
+                                <Users size={14} className="shrink-0 mt-0.5"/> {scan.message}
+                              </p>
                             ) : (
                               <p className="text-xs text-zinc-500 font-medium flex items-center gap-1.5 mt-2"><Info size={14} className="shrink-0 text-brandGold"/> Passive scan near {scan.city}, {scan.region}</p>
                             )}
