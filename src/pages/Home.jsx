@@ -4,7 +4,7 @@ import {
   Shield, MapPin, BellRing, Heart, QrCode, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
   ChevronDown, Lock, Globe, Infinity, Zap, Mail, MessageCircle, Send, 
-  Users, Wifi, Database, Phone, AlertTriangle
+  Users, Wifi, Database, Phone, AlertTriangle, PowerOff, Trash2
 } from 'lucide-react';
 
 export default function Home() {
@@ -25,21 +25,22 @@ export default function Home() {
     setTimeout(() => setShowGithubTooltip(false), 2500);
   };
 
+  // 🌟 UPDATED: FAQs to include new Family Sharing & Security features
   const faqData = [
     { q: "Is there a monthly subscription fee?", a: "No! The core KinTag platform is entirely free to use. We don't believe in holding your family's safety hostage behind a monthly paywall. You only pay for your own blank NFC tags or printing if you choose to." },
     { q: "Does the finder need to download an app?", a: "No. That is the magic of KinTag. In a panic, you don't want a finder struggling to download an app. They simply point their standard phone camera at the QR code, and it opens a secure, native webpage instantly." },
+    { q: "Can my spouse and I both receive alerts?", a: "Yes! With our new Family Sharing feature, you can invite up to 5 co-guardians. If your child or pet's tag is scanned, every guardian receives an instant push notification on their own phone, and everyone can manage the profiles." },
     { q: "Do I have to buy special tags directly from you?", a: "Not at all. You can generate and download high-resolution QR codes directly from your dashboard to print on standard paper/stickers, or you can buy cheap, blank NFC tags from Amazon and program them yourself." },
     { q: "What happens if the finder denies GPS access?", a: "KinTag uses a dual-layer alert system. Even if the finder taps 'No' to sharing their exact GPS coordinates, our system performs a 'Passive Scan' which grabs their general IP-based city/region and sends you an instant push notification anyway." },
+    { q: "What if a tag gets lost or stolen?", a: "We built an instant 'Kill Switch'. From your dashboard, you can click one button to disable any profile. If someone scans the lost tag, they will be blocked by a secure 'Profile Disabled' screen, protecting your data." },
     { q: "What if I move or change my phone number?", a: "Because KinTag is a cloud-based digital ID, any changes you make in your dashboard are instantly updated on the live tag. You never have to engrave, print, or buy a new physical tag just because you moved!" },
     { q: "Does the tag have a battery I need to charge?", a: "No. Unlike bulky, heavy GPS collars that constantly die and require charging, KinTag relies on the battery and cellular data of the Good Samaritan's smartphone. Your tag will never run out of power." },
     { q: "Can I create profiles for multiple pets or kids?", a: "Yes! Your single KinTag dashboard can hold multiple profiles. You can create unique cards and QR codes for every child, dog, or cat in your household." },
     { q: "What is an NFC tag and how do I use it?", a: "NFC (Near Field Communication) is the same technology used for Apple Pay. You can buy blank NFC stickers online, and use free apps to program your unique KinTag URL onto them. Anyone who taps their phone to the sticker will instantly open your profile." },
-    { q: "Is my medical and contact data kept private?", a: "Your data is only accessible to someone who physically scans your unique, randomly generated tag. It is not listed in a public directory or searchable on Google. You can also delete a profile at any time to instantly destroy the link." },
-    { q: "Can I temporarily disable a tag?", a: "Currently, the safest way to disable a tag is to edit the profile and remove sensitive information, or delete the profile entirely. We are working on a 'Pause' feature for a future update!" },
+    { q: "How do I delete my data if I stop using KinTag?", a: "You have total ownership of your data. We built a 'Danger Zone' in your profile settings where you can permanently wipe your account, all created profiles, and all scan histories from our servers instantly." },
+    { q: "Is my medical and contact data kept private?", a: "Your data is only accessible to someone who physically scans your unique, randomly generated tag. It is not listed in a public directory or searchable on Google." },
     { q: "Will the QR code fade or expire?", a: "The link embedded in the QR code will never expire as long as your account is active. If you print it on paper, we recommend placing clear tape over it to waterproof it to prevent smudging." },
     { q: "Can I print the tags myself?", a: "Absolutely. When you create a profile, you get a 'Download QR' button. You can print this at home, scale it down, and laminate it onto a backpack or dog collar." },
-    { q: "What if someone scans the tag maliciously?", a: "KinTag profiles only show the data you explicitly choose to share. If you feel a tag has been compromised, you can delete the profile from your dashboard and the tag instantly becomes a dead link." },
-    { q: "Is this only for pets and kids?", a: "Not at all. KinTag is highly versatile. People use it for elderly parents with dementia, as emergency medical bracelets for severe allergies, or even to tag expensive luggage!" },
     { q: "Can I self-host this application?", a: "Yes. KinTag was built to be open and transparent. Developers can clone the repository and hook it up to their own private database for ultimate ownership." },
   ];
 
@@ -99,7 +100,7 @@ export default function Home() {
             <span className="flex items-center gap-1.5"><Shield size={14} className="text-blue-500"/> No App Required</span>
           </div>
 
-          {/* 🌟 REBUILT: Responsive, Side-by-Side Flex Layout with Scrollbar Hide Trick */}
+          {/* Responsive, Side-by-Side Flex Layout with Scrollbar Hide Trick */}
           <div className="relative mx-auto max-w-5xl">
             {/* Tiny Live Preview Badge */}
             <div className="flex justify-center mb-8 relative z-40">
@@ -117,7 +118,6 @@ export default function Home() {
               <div className="relative w-[280px] md:w-[320px] aspect-[9/19.5] rounded-[2.25rem] md:rounded-[3rem] border-[8px] md:border-[10px] border-zinc-900 bg-zinc-900 shadow-2xl overflow-hidden transform md:rotate-y-[8deg] md:rotate-x-[4deg] z-20 md:hover:rotate-y-0 hover:scale-[1.02] transition-all duration-700 ease-out group shrink-0">
                 <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.75rem] md:rounded-[2.4rem]">
                    <div className="absolute top-0 left-0 w-[375px] h-[813px] origin-top-left max-md:[transform:scale(0.704)] md:[transform:scale(0.8)]">
-                      {/* 🌟 HACK: The 395px width pushes the 20px native scrollbar off the screen! */}
                       <div className="w-[375px] h-full overflow-hidden">
                         <iframe 
                           src="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3?preview=true" 
@@ -188,7 +188,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* REORDERED: USE CASES / WHO IS IT FOR */}
+      {/* USE CASES / WHO IS IT FOR */}
       <section className="py-24 bg-zinc-50 border-t border-zinc-100">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="text-center mb-16">
@@ -216,7 +216,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 EXPANDED: 18 MASSIVE FEATURES GRID */}
+      {/* 🌟 UPDATED: 18 FEATURES GRID WITH NEW HIGHLIGHTS */}
       <section className="py-24 bg-white border-y border-zinc-100">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="text-center mb-16">
@@ -228,7 +228,12 @@ export default function Home() {
             <FeatureCard icon={<Smartphone size={24} className="text-blue-500" />} title="No App Required" desc="Anyone with a smartphone camera can scan the tag. There is absolutely nothing for the finder to download or install." />
             <FeatureCard icon={<MapPin size={24} className="text-emerald-500" />} title="Precision GPS Pinpointing" desc="When scanned, the finder can securely send their exact coordinates directly to your phone with a single tap." />
             <FeatureCard icon={<BellRing size={24} className="text-brandGold" />} title="Instant Push Alerts" desc="The second a tag is scanned, you receive an emergency push notification alerting you that your loved one was found." />
-            <FeatureCard icon={<Users size={24} className="text-indigo-400" />} title="Authorized Guardians" desc="Add multiple emergency contacts. If one parent misses the call, the finder can immediately try the other." />
+            
+            {/* 🌟 NEW FEATURE UPDATES */}
+            <FeatureCard icon={<Users size={24} className="text-indigo-500" />} title="Co-Guardian Family Sharing" desc="Invite up to 5 family members. When a tag is scanned, every co-guardian receives an instant push alert simultaneously." />
+            <FeatureCard icon={<PowerOff size={24} className="text-red-500" />} title="Instant Kill Switch" desc="Tag lost or stolen? Disable it instantly from your dashboard. Finders will be blocked by a secure 'Profile Disabled' screen." />
+            <FeatureCard icon={<Trash2 size={24} className="text-zinc-800" />} title="Complete Data Control" desc="You own your data. Permanently wipe your account, profiles, and scan histories from our servers at any time." />
+
             <FeatureCard icon={<Wifi size={24} className="text-rose-400" />} title="Passive Location Fallback" desc="Even if the finder denies GPS access, KinTag will passively log their general IP-based city and send an alert." />
             <FeatureCard icon={<Phone size={24} className="text-emerald-600" />} title="One-Tap Emergency Dial" desc="A massive, clear button allows the finder to instantly dial your emergency contact number without copying it." />
             <FeatureCard icon={<AlertTriangle size={24} className="text-amber-500" />} title="Behavioral Alerts" desc="Highlight critical non-verbal behaviors, special needs, or fears so the finder knows exactly how to approach them." />
@@ -237,17 +242,15 @@ export default function Home() {
             <FeatureCard icon={<RefreshCw size={24} className="text-teal-500" />} title="Dynamic Updates" desc="Moved to a new house? Changed your phone number? Update your profile instantly without ever needing to print a new tag." />
             <FeatureCard icon={<Battery size={24} className="text-orange-500" />} title="Zero Battery Required" desc="Unlike bulky GPS collars that constantly need charging, KinTag never dies. It utilizes the smartphone power of the finder." />
             <FeatureCard icon={<Heart size={24} className="text-pink-500" />} title="Critical Medical Info" desc="Display crucial allergies, blood types, and daily medications instantly to whoever scans the tag." />
-            <FeatureCard icon={<Globe size={24} className="text-indigo-500" />} title="Global Compatibility" desc="Traveling abroad? KinTag works universally. As long as the finder has internet, they can access the profile from anywhere." />
+            <FeatureCard icon={<Globe size={24} className="text-indigo-400" />} title="Global Compatibility" desc="Traveling abroad? KinTag works universally. As long as the finder has internet, they can access the profile from anywhere." />
             <FeatureCard icon={<Infinity size={24} className="text-rose-500" />} title="Unlimited Scans" desc="There is absolutely no cap on how many times your QR codes or NFC tags can be scanned." />
             <FeatureCard icon={<Zap size={24} className="text-yellow-500" />} title="Instant Setup" desc="Skip the wait times of ordering custom engraved metals. Create an account and secure your child or pet in under 2 minutes." />
-            <FeatureCard icon={<QrCode size={24} className="text-purple-500" />} title="Custom Mobile IDs" desc="Generate beautiful, printable QR codes or program your own blank NFC tags using your KinTag dashboard." />
-            <FeatureCard icon={<Cloud size={24} className="text-sky-500" />} title="Cloud Synced" desc="All your profiles are securely backed up to the cloud. Access and manage your dashboard from any device." />
-            <FeatureCard icon={<Shield size={24} className="text-zinc-700" />} title="Privacy First" desc="You control the data. Disable a tag anytime, and rest easy knowing your location alerts are encrypted and secure." />
+            <FeatureCard icon={<Cloud size={24} className="text-sky-400" />} title="Cloud Synced" desc="All your profiles are securely backed up to the cloud. Access and manage your dashboard from any device." />
           </div>
         </div>
       </section>
 
-      {/* 🌟 REWRITTEN: THE PASSIONATE DEVELOPER STORY */}
+      {/* THE PASSIONATE DEVELOPER STORY */}
       <section className="py-24 px-4 relative bg-zinc-50 border-b border-zinc-100">
         <div className="max-w-5xl mx-auto bg-brandDark rounded-[3rem] p-8 md:p-16 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-brandGold/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -286,7 +289,6 @@ export default function Home() {
                 <li className="flex items-start text-white/90 font-medium gap-3"><CheckCircle2 size={20} className="text-emerald-400 shrink-0 mt-0.5"/> You have absolute ownership of your data</li>
                 <li className="flex items-start text-white/90 font-medium gap-3"><CheckCircle2 size={20} className="text-emerald-400 shrink-0 mt-0.5"/> Built specifically for parents, by a parent</li>
               </ul>
-              {/* 🌟 NATIVELY RESIZED BUTTON */}
               <Link to="/signup" className="w-full flex items-center justify-center bg-white text-brandDark py-3.5 px-6 md:px-8 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-zinc-200 transition-all shadow-lg hover:scale-[1.02]">
                 Create Your Free KinTag
               </Link>
@@ -347,7 +349,6 @@ export default function Home() {
                 <span>View GitHub Repository</span>
               </button>
               
-              {/* 🌟 FIXED: Right-aligned Tooltip */}
               {showGithubTooltip && (
                 <div className="absolute top-1/2 left-[calc(100%+14px)] -translate-y-1/2 bg-brandDark text-white text-xs font-bold px-3 py-2 rounded-lg shadow-xl animate-in fade-in slide-in-from-left-2 duration-200 flex items-center whitespace-nowrap z-10">
                   Coming soon
@@ -378,7 +379,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 LIVE CONTACT & LIMITATIONS */}
+      {/* LIVE CONTACT & LIMITATIONS */}
       <section className="py-24 bg-white border-b border-zinc-100">
         <div className="max-w-4xl mx-auto px-4 md:px-8 text-center">
           <Heart size={40} className="text-rose-500 mx-auto mb-6" />
