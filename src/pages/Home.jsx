@@ -95,11 +95,10 @@ export default function Home() {
             <span className="flex items-center gap-1.5"><Shield size={14} className="text-blue-500"/> No App Required</span>
           </div>
 
-          {/* 🌟 FIXED: Side-by-Side Desktop Phones with smaller Live Preview Note */}
+          {/* 🌟 FIXED: Perfect Scale ratios added so iframes fit flawlessly without right-side cutoff */}
           <div className="relative mx-auto mt-20 flex flex-col md:flex-row justify-center items-center gap-12 md:gap-16 perspective-[1200px] w-full max-w-5xl pb-10 md:pb-0">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] h-[100%] bg-gradient-to-tr from-brandGold/20 via-emerald-400/20 to-blue-500/10 blur-3xl -z-10 rounded-full animate-pulse"></div>
 
-            {/* Live Preview Notice Badge */}
             <div className="absolute -top-12 md:-top-16 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 bg-zinc-900/90 backdrop-blur-md border border-zinc-700 text-white px-4 py-2 rounded-full shadow-2xl">
               <Info size={14} className="text-brandGold shrink-0" />
               <span className="text-[10px] md:text-xs font-bold tracking-wide whitespace-nowrap">
@@ -112,7 +111,7 @@ export default function Home() {
               <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[2rem] md:rounded-[2.5rem]">
                  <iframe 
                    src="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3?preview=true" 
-                   className="absolute top-0 left-0 w-[375px] h-[813px] origin-top-left scale-[0.747] md:scale-[0.854] border-0 z-10" 
+                   className="absolute top-0 left-0 w-[375px] h-[813px] origin-top-left scale-[0.714] md:scale-[0.789] border-0 z-10" 
                    title="Live Kid Profile View"
                  />
               </div>
@@ -123,7 +122,7 @@ export default function Home() {
               <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.5rem] md:rounded-[2.2rem]">
                  <iframe 
                    src="https://kintag.vercel.app/#/id/OSCIDGkJXSIh9mTmOVtr?preview=true" 
-                   className="absolute top-0 left-0 w-[375px] h-[834px] origin-top-left scale-[0.747] md:scale-[0.827] border-0 z-10" 
+                   className="absolute top-0 left-0 w-[375px] h-[834px] origin-top-left scale-[0.714] md:scale-[0.773] border-0 z-10" 
                    title="Live Pet Profile View"
                  />
               </div>
@@ -172,7 +171,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 FIXED: Reordered "Who is it for" section */}
+      {/* USE CASES / WHO IS IT FOR */}
       <section className="py-24 bg-zinc-50 border-t border-zinc-100">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="text-center mb-16">
@@ -200,7 +199,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 FIXED: More and More Features Added */}
+      {/* FEATURES GRID */}
       <section className="py-24 bg-white border-y border-zinc-100">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="text-center mb-16">
@@ -225,7 +224,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 REWRITTEN: The Deep "About" Developer Story Section */}
+      {/* THE DEEP "ABOUT THE DEV" STORY */}
       <section className="py-24 px-4 relative bg-zinc-50 border-b border-zinc-100">
         <div className="max-w-5xl mx-auto bg-brandDark rounded-[3rem] p-8 md:p-16 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-brandGold/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -261,7 +260,8 @@ export default function Home() {
                 <li className="flex items-center text-white/90 font-medium gap-3"><CheckCircle2 size={20} className="text-emerald-400 shrink-0"/> You have absolute ownership of your data</li>
                 <li className="flex items-center text-white/90 font-medium gap-3"><CheckCircle2 size={20} className="text-emerald-400 shrink-0"/> Built specifically for parents, by a parent</li>
               </ul>
-              <Link to="/signup" className="w-full flex items-center justify-center bg-white text-brandDark px-8 py-4 rounded-xl font-bold text-lg hover:bg-zinc-200 transition-all shadow-lg hover:scale-[1.02]">
+              {/* 🌟 FIXED: Button resized natively for mobile vs desktop */}
+              <Link to="/signup" className="w-full flex items-center justify-center bg-white text-brandDark px-6 py-3.5 md:px-8 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-zinc-200 transition-all shadow-lg hover:scale-[1.02]">
                 Create Your Free KinTag
               </Link>
             </div>
@@ -269,7 +269,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 FIXED: Expanding FAQs with Gradient Button */}
+      {/* EXPANDING FAQS WITH GRADIENT BUTTON */}
       <section className="py-24 bg-white border-b border-zinc-100">
         <div className="max-w-3xl mx-auto px-4 md:px-8">
           <div className="text-center mb-12">
@@ -321,11 +321,12 @@ export default function Home() {
                 <span>View GitHub Repository</span>
               </button>
               
+              {/* 🌟 FIXED: Tooltip now appears securely to the right with a left-pointing triangle */}
               {showGithubTooltip && (
-                <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-brandDark text-white text-xs font-bold px-3 py-2 rounded-lg shadow-xl animate-in fade-in zoom-in-95 duration-200 flex items-center gap-1.5 whitespace-nowrap z-10">
+                <div className="absolute top-1/2 left-[calc(100%+12px)] -translate-y-1/2 bg-brandDark text-white text-xs font-bold px-3 py-2 rounded-lg shadow-xl animate-in fade-in slide-in-from-left-2 duration-200 flex items-center gap-1.5 whitespace-nowrap z-10">
                   <Info size={14} className="text-brandGold"/>
                   Source code coming soon!
-                  <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-brandDark"></div>
+                  <div className="absolute top-1/2 -left-[6px] -translate-y-1/2 w-0 h-0 border-y-[6px] border-y-transparent border-r-[6px] border-r-brandDark"></div>
                 </div>
               )}
             </div>
@@ -352,7 +353,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 NEW: Support & Limitations Section */}
+      {/* SUPPORT & LIMITATIONS SECTION */}
       <section className="py-24 bg-white border-b border-zinc-100">
         <div className="max-w-4xl mx-auto px-4 md:px-8 text-center">
           <Heart size={40} className="text-rose-500 mx-auto mb-6" />
@@ -368,10 +369,12 @@ export default function Home() {
             <a href="mailto:shovith2@gmail.com" className="flex items-center gap-2 bg-zinc-100 hover:bg-zinc-200 text-brandDark border border-zinc-200 px-6 py-3 rounded-xl font-bold transition-all">
               <Mail size={18} className="text-blue-500"/> Email Me
             </a>
-            <a href="#" onClick={(e) => e.preventDefault()} className="flex items-center gap-2 bg-zinc-100 hover:bg-zinc-200 text-brandDark border border-zinc-200 px-6 py-3 rounded-xl font-bold transition-all">
+            {/* 🌟 FIXED: Added WhatsApp specific live link */}
+            <a href="https://wa.me/918777845713" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-zinc-100 hover:bg-zinc-200 text-brandDark border border-zinc-200 px-6 py-3 rounded-xl font-bold transition-all">
               <MessageCircle size={18} className="text-emerald-500"/> WhatsApp
             </a>
-            <a href="#" onClick={(e) => e.preventDefault()} className="flex items-center gap-2 bg-zinc-100 hover:bg-zinc-200 text-brandDark border border-zinc-200 px-6 py-3 rounded-xl font-bold transition-all">
+            {/* 🌟 FIXED: Added Telegram specific live link */}
+            <a href="https://t.me/X_o_x_o_002" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-zinc-100 hover:bg-zinc-200 text-brandDark border border-zinc-200 px-6 py-3 rounded-xl font-bold transition-all">
               <Send size={18} className="text-sky-500"/> Telegram
             </a>
           </div>
