@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { db, auth } from '../firebase'; 
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
 import { Download, Plus, X, MapPin, Loader2, Check } from 'lucide-react';
@@ -23,6 +23,7 @@ export default function CreateCard() {
   const [isFetchingLoc, setIsFetchingLoc] = useState(false);
   const [generatedUrl, setGeneratedUrl] = useState('');
   const [error, setError] = useState('');
+  const [familyId, setFamilyId] = useState(null);
 
   const [contacts, setContacts] = useState([
     { id: Date.now().toString(), name: '', phone: '', countryCode: '+1', countryIso: 'us', tag: 'Father', customTag: '' }
@@ -38,6 +39,20 @@ export default function CreateCard() {
     qrStyle: 'obsidian',
     microchip: '', vaccinationStatus: 'Up to Date', temperament: 'Friendly', specialNeeds: ''
   });
+
+  // Fetch the current user's family ID before allowing creation
+  useEffect(() => {
+    const fetchFamilyId = async () => {
+      if (!auth.currentUser) return;
+      const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+      if (userDoc.exists()) {
+        setFamilyId(userDoc.data().familyId || auth.currentUser.uid);
+      } else {
+        setFamilyId(auth.currentUser.uid);
+      }
+    };
+    fetchFamilyId();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -108,7 +123,7 @@ export default function CreateCard() {
   const handleSave = async (e) => {
     e.preventDefault();
     setError('');
-    if (!auth.currentUser) return setError("You must be logged in.");
+    if (!auth.currentUser || !familyId) return setError("Authentication syncing. Please wait a moment.");
     
     if (contacts.some(c => !c.name || !c.phone || (c.tag === 'Other' && !c.customTag))) {
       return setError("Please fill out all contact names, phone numbers, and custom tags.");
@@ -119,7 +134,15 @@ export default function CreateCard() {
     try {
       let imageUrl = imageFile ? await uploadToCloudinary(imageFile) : 'https://placehold.co/600x400/eeeeee/999999?text=No+Photo+Provided';
       const docRef = await addDoc(collection(db, "profiles"), {
-        ...formData, type, imageUrl, contacts, primaryContactId, userId: auth.currentUser.uid, createdAt: new Date().toISOString()
+        ...formData, 
+        type, 
+        imageUrl, 
+        contacts, 
+        primaryContactId, 
+        userId: auth.currentUser.uid, 
+        familyId: familyId,  // 🌟 Assign to the family group!
+        isActive: true,      // 🌟 Active by default
+        createdAt: new Date().toISOString()
       });
       setGeneratedUrl(`${window.location.origin}/#/id/${docRef.id}`);
     } catch (err) {
@@ -327,7 +350,6 @@ export default function CreateCard() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                     <input type="text" placeholder="Full Name" value={contact.name} onChange={(e) => handleContactChange(contact.id, 'name', e.target.value)} required className="w-full p-3 border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark" />
                     
-                    {/* 🌟 THE FIX: Single synchronized state update */}
                     <div className="flex w-full border border-zinc-200 rounded-xl focus-within:border-brandDark focus-within:ring-1 focus-within:ring-brandDark bg-white overflow-hidden transition-all relative">
                       <div className="relative flex items-center bg-zinc-50 hover:bg-zinc-100 border-r border-zinc-200 px-3 cursor-pointer shrink-0 transition-colors">
                         <img src={`https://flagcdn.com/w20/${contact.countryIso || 'us'}.png`} alt="flag" className="w-5 h-auto rounded-sm shrink-0 shadow-[0_0_2px_rgba(0,0,0,0.2)]" />
