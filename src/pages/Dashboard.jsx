@@ -5,7 +5,8 @@ import { getToken } from 'firebase/messaging';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
-import { Plus, User, QrCode, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing, Bell, MapPin, Info, CheckCircle2, AlertTriangle, EyeOff } from 'lucide-react';
+// 🌟 FIXED: Added the missing 'Users' and 'EyeOff' icons here!
+import { Plus, User, QrCode, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing, Bell, MapPin, Info, CheckCircle2, AlertTriangle, EyeOff, Users } from 'lucide-react';
 
 const QR_STYLES = {
   obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200', hexBorder: '#e4e4e7' },
@@ -45,7 +46,7 @@ const renderFormattedTextDark = (text) => {
   return text.split('\n').map((line, i) => {
     const isBullet = line.trim().startsWith('-');
     let content = isBullet ? line.substring(line.indexOf('-') + 1).trim() : line;
-    let htmlContent = content.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">").replace(/\*\*(.*?)\*\*/g, '<strong class="font-extrabold text-white">$1</strong>').replace(/\*(.*?)\*/g, '<em class="italic text-white/90">$1</em>');
+    let htmlContent = content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\*\*(.*?)\*\*/g, '<strong class="font-extrabold text-white">$1</strong>').replace(/\*(.*?)\*/g, '<em class="italic text-white/90">$1</em>');
     if (isBullet) return <li key={i} className="ml-5 list-disc marker:text-brandGold pl-1 mb-1" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
     return <p key={i} className="mb-2 last:mb-0 min-h-[1rem]" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
   });
@@ -83,7 +84,7 @@ export default function Dashboard() {
   const playChime = () => {
     try {
       const audio = new Audio('/chime.mp3');
-      audio.play().catch(e => console.log("Audio prevented:", e));
+      audio.play().catch(() => {});
     } catch (err) {}
   };
 
@@ -120,7 +121,7 @@ export default function Dashboard() {
         
         setUserFamilyId(currentFamilyId);
 
-        // Auto-Migrate Legacy Profiles
+        // 🌟 Auto-Migrate Legacy Profiles
         const legacyProfilesQuery = query(collection(db, "profiles"), where("userId", "==", currentUser.uid));
         const legacySnaps = await getDocs(legacyProfilesQuery);
         legacySnaps.forEach(async (d) => {
@@ -130,7 +131,7 @@ export default function Dashboard() {
            }
         });
 
-        // Auto-Migrate Legacy Scans
+        // 🌟 Auto-Migrate Legacy Scans
         const legacyScansQuery = query(collection(db, "scans"), where("ownerId", "==", currentUser.uid));
         const legacyScanSnaps = await getDocs(legacyScansQuery);
         legacyScanSnaps.forEach(async (d) => {
@@ -227,7 +228,7 @@ export default function Dashboard() {
       await deleteDoc(doc(db, "invites", currentUser.email.toLowerCase()));
       
       const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-      const acceptName = userDoc.exists() ? userDoc.data().name : currentUser.email;
+      const acceptName = userDoc.exists() && userDoc.data().name ? userDoc.data().name : currentUser.email;
 
       await addDoc(collection(db, "scans"), {
         familyId: pendingInvite.familyId,
@@ -237,7 +238,6 @@ export default function Dashboard() {
         timestamp: new Date().toISOString()
       });
 
-      // Send push notification to inviter
       await fetch('/api/notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -247,7 +247,7 @@ export default function Dashboard() {
           body: `${acceptName} accepted your invite.`,
           link: `https://kintag.vercel.app/#/?view=notifications` 
         })
-      });
+      }).catch(()=>{});
 
       window.location.reload(); 
     } catch(e) {
@@ -261,7 +261,7 @@ export default function Dashboard() {
       await deleteDoc(doc(db, "invites", currentUser.email.toLowerCase()));
       
       const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-      const declineName = userDoc.exists() ? userDoc.data().name : currentUser.email;
+      const declineName = userDoc.exists() && userDoc.data().name ? userDoc.data().name : currentUser.email;
 
       await addDoc(collection(db, "scans"), {
         familyId: pendingInvite.familyId,
@@ -316,12 +316,19 @@ export default function Dashboard() {
     }
   };
 
+  const extractPublicId = (url) => {
+    if (!url || url.includes('placehold.co')) return null;
+    const regex = /\/v\d+\/([^\.]+)/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+  };
+
   const confirmDelete = async () => {
     if (!profileToDelete) return;
     try {
-      if (profileToDelete.imageUrl && !profileToDelete.imageUrl.includes('placehold.co')) {
-        const match = profileToDelete.imageUrl.match(/\/v\d+\/([^\.]+)/);
-        if (match) await fetch('/api/delete-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ publicId: match[1] }) });
+      const publicId = extractPublicId(profileToDelete.imageUrl);
+      if (publicId) {
+        await fetch('/api/delete-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ publicId }) }).catch(()=>console.log("Image delete skipped"));
       }
       await deleteDoc(doc(db, "profiles", profileToDelete.id));
       setProfiles(profiles.filter(p => p.id !== profileToDelete.id)); 
@@ -344,6 +351,7 @@ export default function Dashboard() {
     }
   };
 
+  // 🌟 NEW: Toggle Profile Active/Inactive
   const toggleProfileStatus = async (profileId, currentStatus) => {
     try {
       await updateDoc(doc(db, "profiles", profileId), { isActive: !currentStatus });
@@ -518,7 +526,7 @@ export default function Dashboard() {
   
   const unreadPersonalCount = lastViewedPersonal ? scans.filter(scan => getTime(scan.timestamp) > new Date(lastViewedPersonal).getTime()).length : scans.length;
   const unreadSystemCount = lastViewedSystem ? systemMessages.filter(msg => getTime(msg.timestamp) > new Date(lastViewedSystem).getTime()).length : systemMessages.length;
-  const hasAnyUnread = unreadPersonalCount > 0 || unreadSystemCount > 0 || pendingInvite; // Highlight if invite pending
+  const hasAnyUnread = unreadPersonalCount > 0 || unreadSystemCount > 0 || pendingInvite;
 
   const groupedScans = [];
   scans.forEach(scan => {
@@ -550,6 +558,7 @@ export default function Dashboard() {
             </div>
           </div>
           
+          {/* 🌟 NEW: Profile Navigation Button */}
           <button onClick={() => navigate('/profile')} className="flex items-center justify-center space-x-2 text-white bg-brandDark hover:bg-brandAccent p-3 md:px-5 md:py-2.5 rounded-xl transition-all font-bold text-sm shadow-sm">
             <User size={18} />
             <span className="hidden md:inline">Profile & Family</span>
@@ -604,9 +613,12 @@ export default function Dashboard() {
                   <div className="relative h-48 shrink-0">
                     <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent"></div>
+                    
+                    {/* 🌟 NEW: Disabled Badge */}
                     {profile.isActive === false && (
-                      <div className="absolute top-3 left-3 bg-red-600/90 backdrop-blur text-white text-[10px] font-extrabold uppercase px-2 py-1 rounded-md tracking-widest">Disabled</div>
+                      <div className="absolute top-3 left-3 bg-red-600/90 backdrop-blur text-white text-[10px] font-extrabold uppercase px-2 py-1 rounded-md tracking-widest shadow-sm">Disabled</div>
                     )}
+                    
                     <div className="absolute bottom-4 left-4 right-4 text-white">
                       <h3 className="text-xl font-extrabold tracking-tight">{profile.name}</h3>
                       <p className="text-sm text-zinc-200 font-medium capitalize flex items-center gap-1.5 mt-0.5">
@@ -622,6 +634,7 @@ export default function Dashboard() {
                         <Eye size={16} />
                         <span>View</span>
                       </Link>
+                      {/* 🌟 NEW: Quick Enable/Disable Toggle on Card */}
                       <button onClick={() => toggleProfileStatus(profile.id, profile.isActive)} className={`flex items-center justify-center p-2.5 rounded-xl transition-colors ${profile.isActive === false ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-red-50 text-red-600 hover:bg-red-100'}`} title={profile.isActive === false ? 'Enable Profile' : 'Disable Profile'}>
                         {profile.isActive === false ? <Eye size={18} /> : <EyeOff size={18} />}
                       </button>
@@ -713,7 +726,7 @@ export default function Dashboard() {
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-zinc-50">
               
-              {/* 🌟 NEW: Live Pending Invites showing at the top of either tab */}
+              {/* 🌟 NEW: Live Pending Invites showing at the top */}
               {pendingInvite && (
                 <div className="bg-brandGold/10 p-5 rounded-2xl border border-brandGold/30 mb-6 shadow-sm">
                   <h3 className="font-extrabold text-brandDark flex items-center gap-2 mb-2"><Users size={18} className="text-brandGold"/> Co-Guardian Invite</h3>
