@@ -114,35 +114,37 @@ export default function Home() {
 
             <div className="flex flex-col md:flex-row justify-center items-center gap-12 md:gap-16 perspective-[1200px] w-full pb-10 md:pb-0">
               
-              {/* iPhone Mockup (Live Kid Profile) */}
-              <div className="relative w-[280px] md:w-[320px] aspect-[9/19.5] rounded-[2.25rem] md:rounded-[3rem] border-[8px] md:border-[10px] border-zinc-900 bg-zinc-900 shadow-2xl overflow-hidden transform md:rotate-y-[8deg] md:rotate-x-[4deg] z-20 md:hover:rotate-y-0 hover:scale-[1.02] transition-all duration-700 ease-out group shrink-0">
-                <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.75rem] md:rounded-[2.4rem]">
-                   <div className="absolute top-0 left-0 w-[375px] h-[813px] origin-top-left max-md:[transform:scale(0.600)] md:[transform:scale(0.8)]">
-                      <div className="w-[375px] h-full overflow-hidden">
-                        <iframe 
-                          src="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3?preview=true" 
-                          className="w-[395px] h-full border-0" 
-                          title="Live Kid Profile View"
-                        />
-                      </div>
-                   </div>
-                </div>
+{ /* iPhone Mockup (Live Kid Profile) */ }
+<div className="relative w-[280px] md:w-[320px] aspect-[9/19.5] rounded-[2.25rem] md:rounded-[3rem] border-[8px] md:border-[10px] border-zinc-900 bg-zinc-900 shadow-2xl overflow-hidden transform md:rotate-y-[8deg] md:rotate-x-[4deg] z-20 md:hover:rotate-y-0 hover:scale-[1.02] transition-all duration-700 ease-out group shrink-0">
+              <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.75rem] md:rounded-[2.4rem]">
+                 {/* Standardized 375px width container */}
+                 <div className="absolute top-0 left-0 w-[375px] h-[813px] origin-top-left max-md:[transform:scale(0.704)] md:[transform:scale(0.8)] overflow-hidden">
+                    <iframe 
+                      src="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3?preview=true" 
+                      className="w-full h-full border-0" 
+                      style={{ width: '100%', height: '100%', overflow: 'hidden' }}
+                      scrolling="no"
+                      title="Live Kid Profile View"
+                    />
+                 </div>
               </div>
+            </div>
 
-              {/* Google Pixel Mockup (Live Pet Profile) */}
-              <div className="relative w-[280px] md:w-[310px] aspect-[9/20] rounded-[2rem] md:rounded-[2.75rem] border-[8px] md:border-[10px] border-zinc-800 bg-zinc-800 shadow-2xl overflow-hidden transform md:rotate-y-[-8deg] md:rotate-x-[4deg] z-10 md:hover:rotate-y-0 hover:scale-[1.02] transition-all duration-700 ease-out group shrink-0">
-                <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.5rem] md:rounded-[2.1rem]">
-                   <div className="absolute top-0 left-0 w-[375px] h-[834px] origin-top-left max-md:[transform:scale(0.704)] md:[transform:scale(0.7733)]">
-                      <div className="w-[375px] h-full overflow-hidden">
-                        <iframe 
-                          src="https://kintag.vercel.app/#/id/OSCIDGkJXSIh9mTmOVtr?preview=true" 
-                          className="w-[395px] h-full border-0" 
-                          title="Live Pet Profile View"
-                        />
-                      </div>
-                   </div>
-                </div>
+{ /* Google Pixel Mockup (Live Pet Profile) */ }
+<div className="relative w-[280px] md:w-[310px] aspect-[9/20] rounded-[2rem] md:rounded-[2.75rem] border-[8px] md:border-[10px] border-zinc-800 bg-zinc-800 shadow-2xl overflow-hidden transform md:rotate-y-[-8deg] md:rotate-x-[4deg] z-10 md:hover:rotate-y-0 hover:scale-[1.02] transition-all duration-700 ease-out group shrink-0">
+              <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.5rem] md:rounded-[2.1rem]">
+                 {/* Standardized 375px width container */}
+                 <div className="absolute top-0 left-0 w-[375px] h-[834px] origin-top-left max-md:[transform:scale(0.704)] md:[transform:scale(0.7733)] overflow-hidden">
+                    <iframe 
+                      src="https://kintag.vercel.app/#/id/OSCIDGkJXSIh9mTmOVtr?preview=true" 
+                      className="w-full h-full border-0" 
+                      style={{ width: '100%', height: '100%', overflow: 'hidden' }}
+                      scrolling="no"
+                      title="Live Pet Profile View"
+                    />
+                 </div>
               </div>
+            </div>
 
             </div>
           </div>
