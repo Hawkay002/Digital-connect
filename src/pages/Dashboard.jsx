@@ -5,8 +5,8 @@ import { getToken } from 'firebase/messaging';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
-// 🌟 FIXED: Added the missing 'Users' and 'EyeOff' icons here!
-import { Plus, User, QrCode, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing, Bell, MapPin, Info, CheckCircle2, AlertTriangle, EyeOff, Users } from 'lucide-react';
+// 🌟 NEW: Added Siren and Megaphone for the Lost Mode and KinAlert features
+import { Plus, User, QrCode, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing, Bell, MapPin, Info, CheckCircle2, AlertTriangle, EyeOff, Users, Siren, Megaphone } from 'lucide-react';
 
 const QR_STYLES = {
   obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200', hexBorder: '#e4e4e7' },
@@ -56,7 +56,7 @@ export default function Dashboard() {
   const [profiles, setProfiles] = useState([]);
   const [scans, setScans] = useState([]);
   const [systemMessages, setSystemMessages] = useState([]);
-  const [pendingInvite, setPendingInvite] = useState(null); // 🌟 NEW: Live Invite State
+  const [pendingInvite, setPendingInvite] = useState(null); 
 
   const [loading, setLoading] = useState(true);
   const [qrModalProfile, setQrModalProfile] = useState(null); 
@@ -74,6 +74,12 @@ export default function Dashboard() {
   const [lastViewedSystem, setLastViewedSystem] = useState(null);
 
   const [userFamilyId, setUserFamilyId] = useState(null);
+
+  // 🌟 NEW: State for Lost Mode and KinAlert
+  const [lostModalProfile, setLostModalProfile] = useState(null);
+  const [broadcastModalProfile, setBroadcastModalProfile] = useState(null);
+  const [allActiveAlerts, setAllActiveAlerts] = useState([]);
+  const [dismissedAlerts, setDismissedAlerts] = useState([]);
 
   const isInitialScansLoad = useRef(true);
   const isInitialSysLoad = useRef(true);
@@ -102,7 +108,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!currentUser) return;
 
-    let unsubProfiles, unsubScans, unsubSys, unsubInvite;
+    let unsubProfiles, unsubScans, unsubSys, unsubInvite, unsubAlerts;
 
     const setupListeners = async () => {
       try {
@@ -121,7 +127,6 @@ export default function Dashboard() {
         
         setUserFamilyId(currentFamilyId);
 
-        // 🌟 Auto-Migrate Legacy Profiles
         const legacyProfilesQuery = query(collection(db, "profiles"), where("userId", "==", currentUser.uid));
         const legacySnaps = await getDocs(legacyProfilesQuery);
         legacySnaps.forEach(async (d) => {
@@ -131,14 +136,12 @@ export default function Dashboard() {
            }
         });
 
-        // 🌟 Auto-Migrate Legacy Scans
         const legacyScansQuery = query(collection(db, "scans"), where("ownerId", "==", currentUser.uid));
         const legacyScanSnaps = await getDocs(legacyScansQuery);
         legacyScanSnaps.forEach(async (d) => {
            if (!d.data().familyId) await updateDoc(doc(db, "scans", d.id), { familyId: currentFamilyId });
         });
 
-        // 🌟 NEW: Live Pending Invite Listener
         const inviteRef = doc(db, "invites", currentUser.email.toLowerCase());
         unsubInvite = onSnapshot(inviteRef, (docSnap) => {
            if (docSnap.exists() && docSnap.data().status === 'pending') {
@@ -148,7 +151,6 @@ export default function Dashboard() {
            }
         });
 
-        // LIVE LISTENERS BY FAMILY ID
         const qProfiles = query(collection(db, "profiles"), where("familyId", "==", currentFamilyId));
         unsubProfiles = onSnapshot(qProfiles, (snap) => {
           const fetchedProfiles = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -182,6 +184,12 @@ export default function Dashboard() {
           isInitialSysLoad.current = false;
         });
 
+        // 🌟 NEW: Global listener for any active KinAlerts in the database
+        const qAlerts = query(collection(db, "profiles"), where("kinAlertActive", "==", true));
+        unsubAlerts = onSnapshot(qAlerts, (snap) => {
+           setAllActiveAlerts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
+
         setLoading(false);
       } catch (error) {
         console.error("Error setting up listeners:", error);
@@ -196,6 +204,7 @@ export default function Dashboard() {
       if (unsubScans) unsubScans();
       if (unsubSys) unsubSys();
       if (unsubInvite) unsubInvite();
+      if (unsubAlerts) unsubAlerts();
     };
   }, [currentUser]);
 
@@ -220,7 +229,95 @@ export default function Dashboard() {
     markAsRead();
   }, [showNotifCenter, notifTab, scans, systemMessages, currentUser, lastViewedPersonal, lastViewedSystem]);
 
-  // 🌟 NEW: Handle Co-Guardian Invite Actions
+  // --- KINALERT & LOST MODE LOGIC ---
+  const getFamiliesInPincode = async (pincode, excludeFamilyId) => {
+    const pQuery = query(collection(db, "profiles"), where("pincode", "==", pincode));
+    const snap = await getDocs(pQuery);
+    const families = new Set();
+    snap.forEach(d => {
+        const fam = d.data().familyId;
+        if (fam && fam !== excludeFamilyId) families.add(fam);
+    });
+    return Array.from(families);
+  };
+
+  const handleConfirmLost = async () => {
+    if (!lostModalProfile) return;
+    const profile = lostModalProfile;
+    try {
+      await updateDoc(doc(db, "profiles", profile.id), { isLost: true });
+      setLostModalProfile(null);
+      // Immediately suggest Broadcasting
+      setBroadcastModalProfile(profile);
+    } catch (e) {
+      showMessage("Error", "Failed to activate Lost Mode.");
+    }
+  };
+
+  const handleConfirmBroadcast = async () => {
+    if (!broadcastModalProfile) return;
+    const profile = broadcastModalProfile;
+    setBroadcastModalProfile(null);
+    try {
+      await updateDoc(doc(db, "profiles", profile.id), { kinAlertActive: true });
+      
+      const targetFamilies = await getFamiliesInPincode(profile.pincode, profile.familyId);
+      
+      targetFamilies.forEach(async (familyId) => {
+          await addDoc(collection(db, "scans"), {
+              familyId: familyId,
+              type: 'kinAlert',
+              profileName: profile.name,
+              message: `🚨 MISSING ${profile.type.toUpperCase()}: ${profile.name} in your area (${profile.pincode}). Please keep an eye out!`,
+              timestamp: new Date().toISOString(),
+              publicLink: `${window.location.origin}/#/id/${profile.id}`
+          });
+
+          // Trigger push notifications
+          const uSnap = await getDocs(query(collection(db, "users"), where("familyId", "==", familyId)));
+          uSnap.forEach(uDoc => {
+              const token = uDoc.data().fcmToken;
+              if (token) {
+                  fetch('/api/notify', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                          ownerId: uDoc.id,
+                          title: `🚨 Local KinAlert: ${profile.name} is missing!`,
+                          body: `Missing near ${profile.pincode}. Tap to view details and help.`
+                      })
+                  }).catch(()=>{});
+              }
+          });
+      });
+      showMessage("KinAlert Active", "We have broadcasted this alert to nearby guardians in your Pincode.", "success");
+    } catch (e) {
+      showMessage("Error", "Failed to broadcast KinAlert.");
+    }
+  };
+
+  const handleDeactivateLost = async (profile) => {
+    try {
+      await updateDoc(doc(db, "profiles", profile.id), { isLost: false, kinAlertActive: false });
+      
+      if (profile.kinAlertActive) {
+          const targetFamilies = await getFamiliesInPincode(profile.pincode, profile.familyId);
+          targetFamilies.forEach(async (familyId) => {
+              await addDoc(collection(db, "scans"), {
+                  familyId: familyId,
+                  type: 'kinAlert_found',
+                  profileName: profile.name,
+                  message: `Safe and Sound! ${profile.name} (${profile.pincode}) has been found. Thank you for your vigilance.`,
+                  timestamp: new Date().toISOString(),
+              });
+          });
+      }
+      showMessage("Safe and Sound", `${profile.name} has been marked as found.`, "success");
+    } catch (e) {
+      showMessage("Error", "Failed to deactivate Lost Mode.");
+    }
+  };
+
   const handleAcceptInvite = async () => {
     if (!pendingInvite) return;
     try {
@@ -250,19 +347,15 @@ export default function Dashboard() {
       }).catch(()=>{});
 
       window.location.reload(); 
-    } catch(e) {
-      console.error(e);
-    }
+    } catch(e) { console.error(e); }
   };
 
   const handleDeclineInvite = async () => {
     if (!pendingInvite) return;
     try {
       await deleteDoc(doc(db, "invites", currentUser.email.toLowerCase()));
-      
       const userDoc = await getDoc(doc(db, "users", currentUser.uid));
       const declineName = userDoc.exists() && userDoc.data().name ? userDoc.data().name : currentUser.email;
-
       await addDoc(collection(db, "scans"), {
         familyId: pendingInvite.familyId,
         type: 'invite_response',
@@ -270,9 +363,7 @@ export default function Dashboard() {
         message: `${declineName} declined your co-guardian request.`,
         timestamp: new Date().toISOString()
       });
-    } catch(e) {
-      console.error(e);
-    }
+    } catch(e) { console.error(e); }
   };
 
   const handleEnableAlertsClick = () => {
@@ -351,7 +442,6 @@ export default function Dashboard() {
     }
   };
 
-  // 🌟 NEW: Toggle Profile Active/Inactive
   const toggleProfileStatus = async (profileId, currentStatus) => {
     try {
       await updateDoc(doc(db, "profiles", profileId), { isActive: !currentStatus });
@@ -365,155 +455,86 @@ export default function Dashboard() {
     try {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-
-      const pixelScale = 2; 
-      const W = 1080; 
-      const H = 1920; 
-
-      canvas.width = W * pixelScale;
-      canvas.height = H * pixelScale; 
+      const pixelScale = 2; const W = 1080; const H = 1920; 
+      canvas.width = W * pixelScale; canvas.height = H * pixelScale; 
       ctx.scale(pixelScale, pixelScale);
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
 
-      ctx.beginPath();
-      ctx.roundRect(0, 0, W, H, 80);
-      ctx.clip(); 
-      ctx.fillStyle = '#18181b'; 
-      ctx.fillRect(0, 0, W, H);
+      ctx.beginPath(); ctx.roundRect(0, 0, W, H, 80); ctx.clip(); 
+      ctx.fillStyle = '#18181b'; ctx.fillRect(0, 0, W, H);
 
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = profile.imageUrl;
+      const img = new Image(); img.crossOrigin = "anonymous"; img.src = profile.imageUrl;
       await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
 
       const imgHeight = H * 0.45; 
       if (img.width && img.height) {
         const scaleFactor = Math.max(W / img.width, imgHeight / img.height);
-        const drawW = W / scaleFactor;
-        const drawH = imgHeight / scaleFactor;
-        const sX = (img.width - drawW) / 2;
-        const sY = (img.height - drawH) / 2;
+        const drawW = W / scaleFactor; const drawH = imgHeight / scaleFactor;
+        const sX = (img.width - drawW) / 2; const sY = (img.height - drawH) / 2;
         ctx.drawImage(img, sX, sY, drawW, drawH, 0, 0, W, imgHeight);
       }
 
       const gradient = ctx.createLinearGradient(0, imgHeight - 350, 0, imgHeight);
-      gradient.addColorStop(0, "rgba(24, 24, 27, 0)");
-      gradient.addColorStop(1, "#18181b");
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, imgHeight - 350, W, 350);
+      gradient.addColorStop(0, "rgba(24, 24, 27, 0)"); gradient.addColorStop(1, "#18181b");
+      ctx.fillStyle = gradient; ctx.fillRect(0, imgHeight - 350, W, 350);
 
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-      ctx.beginPath();
-      ctx.roundRect(50, 50, 220, 70, 35);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'; ctx.beginPath(); ctx.roundRect(50, 50, 220, 70, 35); ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'; ctx.lineWidth = 2; ctx.stroke();
 
-      const logoImg = new Image();
-      logoImg.crossOrigin = "anonymous";
-      logoImg.src = "/kintag-logo.png";
+      const logoImg = new Image(); logoImg.crossOrigin = "anonymous"; logoImg.src = "/kintag-logo.png";
       await new Promise((resolve) => { logoImg.onload = resolve; logoImg.onerror = resolve; });
       if (logoImg.width) ctx.drawImage(logoImg, 65, 60, 50, 50);
       
-      ctx.fillStyle = 'white';
-      ctx.font = 'bold 30px sans-serif';
-      ctx.textBaseline = 'middle';
-      ctx.textAlign = 'left';
+      ctx.fillStyle = 'white'; ctx.font = 'bold 30px sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
       ctx.fillText("KinTag", 130, 85);
 
       ctx.textBaseline = 'alphabetic';
       let textBaseY = imgHeight - 30;
-      if (profile.type === 'pet') {
-        textBaseY = imgHeight - 115; 
-      } else if (profile.type === 'kid' && profile.specialNeeds) {
-        textBaseY = imgHeight - 75; 
-      }
+      if (profile.type === 'pet') textBaseY = imgHeight - 115; 
+      else if (profile.type === 'kid' && profile.specialNeeds) textBaseY = imgHeight - 75; 
 
-      ctx.fillStyle = 'white';
-      ctx.font = '900 85px sans-serif';
-      ctx.fillText(profile.name, 60, textBaseY - 45);
-
-      ctx.fillStyle = '#fbbf24'; 
-      ctx.font = 'bold 28px sans-serif';
+      ctx.fillStyle = 'white'; ctx.font = '900 85px sans-serif'; ctx.fillText(profile.name, 60, textBaseY - 45);
+      ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 28px sans-serif';
       const ageInfo = getComputedAge(profile);
-      const infoText = `${profile.typeSpecific || 'Family Member'}  •  ${ageInfo.value} ${ageInfo.fullLabel}`;
-      ctx.fillText(infoText.toUpperCase(), 65, textBaseY);
+      ctx.fillText(`${profile.typeSpecific || 'Family Member'}  •  ${ageInfo.value} ${ageInfo.fullLabel}`.toUpperCase(), 65, textBaseY);
 
       if (profile.type === 'pet') {
-        ctx.font = 'bold 24px sans-serif';
-        let lineY = textBaseY + 38;
-        ctx.fillStyle = 'white';
-        let label = "TEMPERAMENT - ";
-        ctx.fillText(label, 65, lineY);
-        ctx.fillStyle = profile.temperament !== 'Friendly' ? '#ef4444' : '#fbbf24';
-        ctx.fillText(profile.temperament.toUpperCase(), 65 + ctx.measureText(label).width, lineY);
+        ctx.font = 'bold 24px sans-serif'; let lineY = textBaseY + 38;
+        ctx.fillStyle = 'white'; let label = "TEMPERAMENT - "; ctx.fillText(label, 65, lineY);
+        ctx.fillStyle = profile.temperament !== 'Friendly' ? '#ef4444' : '#fbbf24'; ctx.fillText(profile.temperament.toUpperCase(), 65 + ctx.measureText(label).width, lineY);
         
-        lineY += 32;
-        ctx.fillStyle = 'white';
-        label = "VACCINATION STATUS - ";
-        ctx.fillText(label, 65, lineY);
-        ctx.fillStyle = '#fbbf24';
-        ctx.fillText(profile.vaccinationStatus.toUpperCase(), 65 + ctx.measureText(label).width, lineY);
+        lineY += 32; ctx.fillStyle = 'white'; label = "VACCINATION STATUS - "; ctx.fillText(label, 65, lineY);
+        ctx.fillStyle = '#fbbf24'; ctx.fillText(profile.vaccinationStatus.toUpperCase(), 65 + ctx.measureText(label).width, lineY);
 
         if (profile.microchip) {
-          lineY += 32;
-          ctx.fillStyle = 'white';
-          label = "MICROCHIP NUMBER - ";
-          ctx.fillText(label, 65, lineY);
-          ctx.fillStyle = '#fbbf24';
-          ctx.fillText(profile.microchip.toUpperCase(), 65 + ctx.measureText(label).width, lineY);
+          lineY += 32; ctx.fillStyle = 'white'; label = "MICROCHIP NUMBER - "; ctx.fillText(label, 65, lineY);
+          ctx.fillStyle = '#fbbf24'; ctx.fillText(profile.microchip.toUpperCase(), 65 + ctx.measureText(label).width, lineY);
         }
       } else if (profile.type === 'kid' && profile.specialNeeds) {
-        ctx.fillStyle = '#ef4444'; 
-        ctx.font = 'bold 26px sans-serif';
+        ctx.fillStyle = '#ef4444'; ctx.font = 'bold 26px sans-serif';
         ctx.fillText(`ATTENTION: ${profile.specialNeeds}`.toUpperCase(), 65, textBaseY + 45);
       }
 
       const qrCanvas = document.getElementById("qr-canvas-modal");
       if (qrCanvas) {
-        const boxSize = 600;
-        const qrBoxX = (W - boxSize) / 2;
-        const qrBoxY = imgHeight + 110; 
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-        ctx.shadowBlur = 40;
-        ctx.shadowOffsetY = 15;
+        const boxSize = 600; const qrBoxX = (W - boxSize) / 2; const qrBoxY = imgHeight + 110; 
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 15;
         const styleTheme = QR_STYLES[profile.qrStyle || 'obsidian'];
-        ctx.fillStyle = styleTheme.bg; 
-        ctx.beginPath();
-        ctx.roundRect(qrBoxX, qrBoxY, boxSize, boxSize, 60);
-        ctx.fill();
-        ctx.shadowColor = 'transparent';
-        ctx.strokeStyle = styleTheme.hexBorder;
-        ctx.lineWidth = 14;
-        ctx.stroke();
-        const padding = 40;
-        const qrSize = boxSize - (padding * 2);
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(qrCanvas, qrBoxX + padding, qrBoxY + padding, qrSize, qrSize);
+        ctx.fillStyle = styleTheme.bg; ctx.beginPath(); ctx.roundRect(qrBoxX, qrBoxY, boxSize, boxSize, 60); ctx.fill();
+        ctx.shadowColor = 'transparent'; ctx.strokeStyle = styleTheme.hexBorder; ctx.lineWidth = 14; ctx.stroke();
+        const padding = 40; const qrSize = boxSize - (padding * 2);
+        ctx.imageSmoothingEnabled = false; ctx.drawImage(qrCanvas, qrBoxX + padding, qrBoxY + padding, qrSize, qrSize);
         ctx.imageSmoothingEnabled = true; 
       }
 
       const textY = imgHeight + 110 + 600 + 90; 
-      ctx.textAlign = 'center';
-      ctx.fillStyle = 'white';
-      ctx.font = 'bold 45px sans-serif';
-      ctx.fillText("Scan (if lost) for", W / 2, textY);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      ctx.font = 'bold 22px sans-serif';
-      ctx.letterSpacing = "3px"; 
-      ctx.fillText("EMERGENCY CONTACT, MEDICAL AND LOCATION", W / 2, textY + 55);
-      ctx.fillText("INFO", W / 2, textY + 90);
-      ctx.letterSpacing = "0px";
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-      ctx.font = 'bold 22px monospace';
+      ctx.textAlign = 'center'; ctx.fillStyle = 'white'; ctx.font = 'bold 45px sans-serif'; ctx.fillText("Scan (if lost) for", W / 2, textY);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.font = 'bold 22px sans-serif'; ctx.letterSpacing = "3px"; 
+      ctx.fillText("EMERGENCY CONTACT, MEDICAL AND LOCATION", W / 2, textY + 55); ctx.fillText("INFO", W / 2, textY + 90);
+      ctx.letterSpacing = "0px"; ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.font = 'bold 22px monospace';
       ctx.fillText(`ID: ${profile.id.slice(0,8).toUpperCase()}`, W / 2, H - 70);
 
-      const link = document.createElement('a');
-      link.download = `${profile.name}-Mobile-ID.png`;
-      link.href = canvas.toDataURL('image/png', 1.0);
-      link.click();
+      const link = document.createElement('a'); link.download = `${profile.name}-Mobile-ID.png`; link.href = canvas.toDataURL('image/png', 1.0); link.click();
     } catch (e) {
       showMessage("Download Failed", "Could not generate image due to device restrictions. Please take a screenshot instead.", "error");
     } finally {
@@ -528,12 +549,14 @@ export default function Dashboard() {
   const unreadSystemCount = lastViewedSystem ? systemMessages.filter(msg => getTime(msg.timestamp) > new Date(lastViewedSystem).getTime()).length : systemMessages.length;
   const hasAnyUnread = unreadPersonalCount > 0 || unreadSystemCount > 0 || pendingInvite;
 
+  // 🌟 LOCAL KINALERTS DERIVED FROM PROFILES
+  const myPincodes = [...new Set(profiles.map(p => p.pincode).filter(Boolean))];
+  const localAlerts = allActiveAlerts.filter(a => myPincodes.includes(a.pincode) && a.familyId !== userFamilyId);
+
   const groupedScans = [];
   scans.forEach(scan => {
     const dateObj = new Date(getTime(scan.timestamp));
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    const today = new Date(); const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
     let dateStr = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
     if (dateObj.toDateString() === today.toDateString()) dateStr = 'Today';
     else if (dateObj.toDateString() === yesterday.toDateString()) dateStr = 'Yesterday';
@@ -558,7 +581,6 @@ export default function Dashboard() {
             </div>
           </div>
           
-          {/* 🌟 NEW: Profile Navigation Button */}
           <button onClick={() => navigate('/profile')} className="flex items-center justify-center space-x-2 text-white bg-brandDark hover:bg-brandAccent p-3 md:px-5 md:py-2.5 rounded-xl transition-all font-bold text-sm shadow-sm">
             <User size={18} />
             <span className="hidden md:inline">Profile & Family</span>
@@ -575,11 +597,27 @@ export default function Dashboard() {
           <button onClick={() => setShowNotifCenter(true)} className="flex-1 flex items-center justify-center space-x-2 bg-white text-brandDark border border-zinc-200 p-4 rounded-2xl hover:bg-zinc-100 transition-all font-bold shadow-sm relative">
             <Bell size={18} />
             <span>Notifications</span>
-            {hasAnyUnread && (
-              <span className="absolute top-3.5 right-3.5 w-2.5 h-2.5 bg-red-500 rounded-full shadow-sm animate-pulse border border-white"></span>
-            )}
+            {hasAnyUnread && <span className="absolute top-3.5 right-3.5 w-2.5 h-2.5 bg-red-500 rounded-full shadow-sm animate-pulse border border-white"></span>}
           </button>
         </div>
+
+        {/* 🌟 NEW: KINALERT DASHBOARD MARQUEE */}
+        {localAlerts.length > 0 && (
+          <div className="mb-8 overflow-hidden bg-red-600 text-white rounded-2xl shadow-[0_0_20px_rgba(239,68,68,0.4)] border-4 border-red-500 relative flex items-center h-16 group">
+            <style>{`
+              @keyframes dashMarquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+              .animate-dash-marquee { display: inline-block; white-space: nowrap; animation: dashMarquee 15s linear infinite; padding-left: 100%; }
+            `}</style>
+            <div className="absolute inset-0 flex items-center whitespace-nowrap animate-dash-marquee group-hover:[animation-play-state:paused]">
+               {localAlerts.map((alert) => (
+                 <Link key={`dash-alert-${alert.id}`} to={`/id/${alert.id}`} target="_blank" className="mx-8 font-black text-xl tracking-widest uppercase hover:underline text-white flex items-center gap-3">
+                   <AlertTriangle size={24} className="animate-pulse text-brandGold shrink-0" />
+                   MISSING {alert.type}: {alert.name} near {alert.pincode} - TAP TO VIEW AND HELP!
+                 </Link>
+               ))}
+            </div>
+          </div>
+        )}
 
         {profiles.length > 0 && (
           <div className="mb-8 relative">
@@ -609,16 +647,35 @@ export default function Dashboard() {
             {filteredProfiles.map(profile => {
               const ageInfo = getComputedAge(profile);
               return (
-                <div key={profile.id} className={`bg-white rounded-3xl overflow-hidden shadow-premium border transition-all hover:-translate-y-1 flex flex-col ${profile.isActive === false ? 'border-red-200 opacity-80 grayscale-[30%]' : 'border-zinc-100'}`}>
+                // 🌟 UPDATED: RED GLOW IF LOST MODE IS ACTIVE
+                <div key={profile.id} className={`bg-white rounded-3xl overflow-hidden shadow-premium border transition-all flex flex-col ${profile.isActive === false ? 'border-red-200 opacity-80 grayscale-[30%]' : profile.isLost ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'border-zinc-100 hover:-translate-y-1'}`}>
                   <div className="relative h-48 shrink-0">
                     <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent"></div>
                     
-                    {/* 🌟 NEW: Disabled Badge */}
                     {profile.isActive === false && (
                       <div className="absolute top-3 left-3 bg-red-600/90 backdrop-blur text-white text-[10px] font-extrabold uppercase px-2 py-1 rounded-md tracking-widest shadow-sm">Disabled</div>
                     )}
                     
+                    {/* 🌟 NEW: LOST & BROADCAST TOGGLES */}
+                    <div className="absolute top-3 right-3 flex gap-2 z-30">
+                       <button 
+                         disabled={!profile.isLost}
+                         onClick={() => { if(profile.isLost && !profile.kinAlertActive) setBroadcastModalProfile(profile); }}
+                         className={`p-2 rounded-full shadow-lg backdrop-blur-md transition-all ${profile.kinAlertActive ? 'bg-emerald-500 text-white' : profile.isLost ? 'bg-amber-500 text-white hover:scale-110' : 'bg-white/50 text-zinc-400 cursor-not-allowed'}`}
+                         title={profile.kinAlertActive ? "KinAlert Active" : "Broadcast KinAlert"}
+                       >
+                          <Megaphone size={16} />
+                       </button>
+                       <button 
+                         onClick={() => profile.isLost ? handleDeactivateLost(profile) : setLostModalProfile(profile)}
+                         className={`p-2 rounded-full shadow-lg backdrop-blur-md transition-all hover:scale-110 ${profile.isLost ? 'bg-red-600 text-white animate-pulse' : 'bg-white/80 text-zinc-500 hover:text-red-500'}`}
+                         title={profile.isLost ? "Mark as Found" : "Mark as Lost"}
+                       >
+                          <Siren size={16} />
+                       </button>
+                    </div>
+
                     <div className="absolute bottom-4 left-4 right-4 text-white">
                       <h3 className="text-xl font-extrabold tracking-tight">{profile.name}</h3>
                       <p className="text-sm text-zinc-200 font-medium capitalize flex items-center gap-1.5 mt-0.5">
@@ -634,7 +691,6 @@ export default function Dashboard() {
                         <Eye size={16} />
                         <span>View</span>
                       </Link>
-                      {/* 🌟 NEW: Quick Enable/Disable Toggle on Card */}
                       <button onClick={() => toggleProfileStatus(profile.id, profile.isActive)} className={`flex items-center justify-center p-2.5 rounded-xl transition-colors ${profile.isActive === false ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-red-50 text-red-600 hover:bg-red-100'}`} title={profile.isActive === false ? 'Enable Profile' : 'Disable Profile'}>
                         {profile.isActive === false ? <Eye size={18} /> : <EyeOff size={18} />}
                       </button>
@@ -656,13 +712,27 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* FLOATING ACTION BUTTON (+) */}
       <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-zinc-50 via-zinc-50/80 to-transparent pointer-events-none z-40"></div>
       <Link to="/create" className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-brandDark text-white p-5 rounded-full shadow-2xl hover:bg-brandAccent transition-transform hover:scale-105 z-50 pointer-events-auto border-4 border-white">
         <Plus size={32} strokeWidth={3} />
       </Link>
 
-      {/* GENERIC CUSTOM ALERT MODAL */}
+      {/* 🌟 NEW: LOCAL KINALERT INSTANT POPUPS */}
+      {localAlerts.filter(a => !dismissedAlerts.includes(a.id)).map(alert => (
+        <div key={`popup-${alert.id}`} className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+          <div className="bg-red-600 text-white rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl border-4 border-red-400 animate-in zoom-in-95 duration-300">
+             <Siren size={48} className="mx-auto mb-4 animate-pulse text-white" />
+             <h2 className="text-3xl font-black uppercase tracking-widest mb-2">URGENT KINALERT</h2>
+             <p className="text-lg font-bold mb-6 leading-snug">A {alert.type} named {alert.name} has gone missing in your exact area ({alert.pincode})!</p>
+             <img src={alert.imageUrl} className="w-full h-48 object-cover rounded-xl mb-6 shadow-inner border border-white/20" />
+             <div className="flex flex-col gap-3">
+               <Link to={`/id/${alert.id}`} target="_blank" onClick={() => setDismissedAlerts(prev => [...prev, alert.id])} className="w-full bg-white text-red-600 py-4 rounded-xl font-black text-lg shadow-lg hover:scale-[1.02] transition-transform">VIEW PROFILE & HELP</Link>
+               <button onClick={() => setDismissedAlerts(prev => [...prev, alert.id])} className="text-white/70 font-bold text-sm hover:text-white py-2 transition-colors">Close for now</button>
+             </div>
+          </div>
+        </div>
+      ))}
+
       {customAlert.isOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
@@ -686,7 +756,36 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* SOFT ASK PERMISSION MODAL */}
+      {/* 🌟 NEW: CONFIRM LOST MODE MODAL */}
+      {lostModalProfile && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-brandDark/90 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
+             <Siren size={40} className="mx-auto mb-4 text-red-600" />
+             <h2 className="text-2xl font-black uppercase text-brandDark tracking-widest mb-2">Mark as Lost?</h2>
+             <p className="text-zinc-500 font-medium mb-6 text-sm leading-relaxed">This will instantly change {lostModalProfile.name}'s public ID into a high-alert distress signal with pulsing warnings.</p>
+             <div className="flex gap-3">
+               <button onClick={() => setLostModalProfile(null)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-colors">Cancel</button>
+               <button onClick={handleConfirmLost} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors animate-pulse">Yes, I'm Sure</button>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🌟 NEW: CONFIRM BROADCAST MODAL */}
+      {broadcastModalProfile && (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-brandDark/90 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
+             <Megaphone size={40} className="mx-auto mb-4 text-amber-500" />
+             <h2 className="text-2xl font-black uppercase text-brandDark tracking-widest mb-2">Broadcast Alert?</h2>
+             <p className="text-zinc-500 font-medium mb-6 text-sm leading-relaxed">Would you like to send a KinAlert? This will instantly notify all other KinTag users in your exact Pincode ({broadcastModalProfile.pincode}) to keep an eye out.</p>
+             <div className="flex gap-3">
+               <button onClick={() => setBroadcastModalProfile(null)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-colors">Not Now</button>
+               <button onClick={handleConfirmBroadcast} className="flex-1 bg-amber-500 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-amber-600 transition-colors">Broadcast</button>
+             </div>
+          </div>
+        </div>
+      )}
+
       {showSoftAskModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
@@ -694,7 +793,7 @@ export default function Dashboard() {
               <BellRing size={32} />
             </div>
             <h2 className="text-2xl font-extrabold text-brandDark mb-2">Enable Alerts?</h2>
-            <p className="text-zinc-500 mb-6 text-sm font-medium leading-relaxed">KinTag needs permission to send you emergency push notifications when your tag is scanned. This is crucial for your peace of mind.</p>
+            <p className="text-zinc-500 mb-6 text-sm font-medium leading-relaxed">KinTag needs permission to send you emergency push notifications when your tag is scanned.</p>
             <div className="flex gap-3">
               <button onClick={() => setShowSoftAskModal(false)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold">Maybe Later</button>
               <button onClick={processNotificationPermission} className="flex-1 bg-brandGold text-white py-3.5 rounded-xl font-bold shadow-md">Proceed</button>
@@ -703,7 +802,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* NOTIFICATION CENTER MODAL */}
       {showNotifCenter && (
         <div className="fixed inset-0 z-[100] flex justify-end bg-brandDark/50 backdrop-blur-sm">
           <div className="bg-white w-full max-w-md h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
@@ -726,7 +824,6 @@ export default function Dashboard() {
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-zinc-50">
               
-              {/* 🌟 NEW: Live Pending Invites showing at the top */}
               {pendingInvite && (
                 <div className="bg-brandGold/10 p-5 rounded-2xl border border-brandGold/30 mb-6 shadow-sm">
                   <h3 className="font-extrabold text-brandDark flex items-center gap-2 mb-2"><Users size={18} className="text-brandGold"/> Co-Guardian Invite</h3>
@@ -740,7 +837,6 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* PERSONAL SCANS TAB */}
               {notifTab === 'personal' && (
                 groupedScans.length === 0 ? (
                   <div className="text-center mt-10 text-zinc-400 font-medium">No scans recorded yet.</div>
@@ -754,37 +850,64 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="space-y-3">
-                        {group.items.map(scan => (
-                          <div key={scan.id} className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 relative group">
-                            <button onClick={() => setScanToDelete(scan.id)} className="absolute top-3 right-3 p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors" title="Delete Scan Record"><Trash2 size={16} /></button>
-                            <div className="flex items-center justify-between mb-2 pr-10">
-                              <span className="font-extrabold text-brandDark truncate">{scan.profileName} {scan.type === 'invite_response' ? 'Update' : 'Scanned'}</span>
-                              <span className="text-[10px] text-zinc-400 font-bold uppercase shrink-0">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                            </div>
-                            
-                            {scan.type === 'active' ? (
-                              <div className="bg-red-50 p-3 rounded-xl border border-red-100 mt-2">
-                                <p className="text-xs text-red-800 font-bold mb-3">A Good Samaritan pinpointed their exact location!</p>
-                                <a href={scan.googleMapsLink} target="_blank" rel="noopener noreferrer" className="bg-red-600 text-white px-3 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-700 w-full shadow-sm">
-                                  <MapPin size={16}/> Open in Google Maps
-                                </a>
+                        {group.items.map(scan => {
+                          // 🌟 NEW: Rendering for KinAlert Community Scans
+                          if (scan.type === 'kinAlert') {
+                             return (
+                               <div key={scan.id} className="bg-red-50 p-4 rounded-2xl border border-red-200 shadow-sm relative group">
+                                 <button onClick={() => setScanToDelete(scan.id)} className="absolute top-3 right-3 p-2 text-red-300 hover:text-red-600 hover:bg-red-100 rounded-xl transition-colors"><Trash2 size={16} /></button>
+                                 <div className="flex items-center justify-between mb-2 pr-10">
+                                    <span className="font-extrabold text-red-800 truncate">🚨 Local KinAlert</span>
+                                    <span className="text-[10px] text-red-400 font-bold uppercase shrink-0">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                 </div>
+                                 <p className="text-sm text-red-900 font-bold mb-3 leading-relaxed">{scan.message}</p>
+                                 {scan.publicLink && <a href={scan.publicLink} target="_blank" rel="noopener noreferrer" className="bg-red-600 text-white px-3 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-700 w-full shadow-sm transition-colors"><Eye size={16}/> View Missing Profile</a>}
+                               </div>
+                             );
+                          } else if (scan.type === 'kinAlert_found') {
+                             return (
+                               <div key={scan.id} className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 shadow-sm relative group">
+                                 <button onClick={() => setScanToDelete(scan.id)} className="absolute top-3 right-3 p-2 text-emerald-300 hover:text-emerald-600 hover:bg-emerald-100 rounded-xl transition-colors"><Trash2 size={16} /></button>
+                                 <div className="flex items-center justify-between mb-2 pr-10">
+                                    <span className="font-extrabold text-emerald-800 truncate">✅ Found Alert</span>
+                                    <span className="text-[10px] text-emerald-400 font-bold uppercase shrink-0">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                 </div>
+                                 <p className="text-sm text-emerald-900 font-bold leading-relaxed">{scan.message}</p>
+                               </div>
+                             );
+                          }
+
+                          return (
+                            <div key={scan.id} className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 relative group">
+                              <button onClick={() => setScanToDelete(scan.id)} className="absolute top-3 right-3 p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"><Trash2 size={16} /></button>
+                              <div className="flex items-center justify-between mb-2 pr-10">
+                                <span className="font-extrabold text-brandDark truncate">{scan.profileName} {scan.type === 'invite_response' ? 'Update' : 'Scanned'}</span>
+                                <span className="text-[10px] text-zinc-400 font-bold uppercase shrink-0">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                               </div>
-                            ) : scan.type === 'invite_response' ? (
-                              <p className="text-xs text-emerald-600 font-bold flex items-start gap-1.5 mt-2 bg-emerald-50 p-3 rounded-xl border border-emerald-100 leading-relaxed">
-                                <Users size={14} className="shrink-0 mt-0.5"/> {scan.message}
-                              </p>
-                            ) : (
-                              <p className="text-xs text-zinc-500 font-medium flex items-center gap-1.5 mt-2"><Info size={14} className="shrink-0 text-brandGold"/> Passive scan near {scan.city}, {scan.region}</p>
-                            )}
-                          </div>
-                        ))}
+                              
+                              {scan.type === 'active' ? (
+                                <div className="bg-red-50 p-3 rounded-xl border border-red-100 mt-2">
+                                  <p className="text-xs text-red-800 font-bold mb-3">A Good Samaritan pinpointed their exact location!</p>
+                                  <a href={scan.googleMapsLink} target="_blank" rel="noopener noreferrer" className="bg-red-600 text-white px-3 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-700 w-full shadow-sm">
+                                    <MapPin size={16}/> Open in Google Maps
+                                  </a>
+                                </div>
+                              ) : scan.type === 'invite_response' ? (
+                                <p className="text-xs text-emerald-600 font-bold flex items-start gap-1.5 mt-2 bg-emerald-50 p-3 rounded-xl border border-emerald-100 leading-relaxed">
+                                  <Users size={14} className="shrink-0 mt-0.5"/> {scan.message}
+                                </p>
+                              ) : (
+                                <p className="text-xs text-zinc-500 font-medium flex items-center gap-1.5 mt-2"><Info size={14} className="shrink-0 text-brandGold"/> Passive scan near {scan.city}, {scan.region}</p>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   ))
                 )
               )}
 
-              {/* SYSTEM UPDATES TAB */}
               {notifTab === 'system' && (
                 systemMessages.length === 0 ? (
                   <div className="text-center mt-10">
@@ -865,7 +988,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* DELETE PROFILE MODAL */}
       {profileToDelete && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100">
@@ -880,7 +1002,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* DELETE SCAN MODAL */}
       {scanToDelete && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200">
