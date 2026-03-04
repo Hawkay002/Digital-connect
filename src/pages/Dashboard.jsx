@@ -75,7 +75,6 @@ export default function Dashboard() {
   const [userFamilyId, setUserFamilyId] = useState(null);
   const [userZipCode, setUserZipCode] = useState(''); 
 
-  // State for Lost Mode and KinAlert
   const [lostModalProfile, setLostModalProfile] = useState(null);
   const [broadcastModalProfile, setBroadcastModalProfile] = useState(null);
   const [allActiveAlerts, setAllActiveAlerts] = useState([]);
@@ -187,7 +186,6 @@ export default function Dashboard() {
           isInitialSysLoad.current = false;
         });
 
-        // 🌟 Global listener for any active KinAlerts in the database
         const qAlerts = query(collection(db, "profiles"), where("kinAlertActive", "==", true));
         unsubAlerts = onSnapshot(qAlerts, (snap) => {
            setAllActiveAlerts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -211,10 +209,8 @@ export default function Dashboard() {
     };
   }, [currentUser]);
 
-  // 🌟 Extract "Found" popups from incoming scans real-time
   useEffect(() => {
     if (scans.length > 0) {
-      // Show found popups that were triggered within the last 5 minutes
       const recentFound = scans.filter(s => s.type === 'kinAlert_found' && (Date.now() - new Date(s.timestamp).getTime() < 300000));
       setFoundPopups(recentFound);
     }
@@ -241,7 +237,6 @@ export default function Dashboard() {
     markAsRead();
   }, [showNotifCenter, notifTab, scans, systemMessages, currentUser, lastViewedPersonal, lastViewedSystem]);
 
-  // --- KINALERT & LOST MODE LOGIC ---
   const getFamiliesInPincode = async (pincode, excludeFamilyId) => {
     const pQuery = query(collection(db, "profiles"), where("pincode", "==", pincode));
     const snap = await getDocs(pQuery);
@@ -270,7 +265,6 @@ export default function Dashboard() {
     const profile = broadcastModalProfile;
     setBroadcastModalProfile(null);
     try {
-      // Uses a brand new timestamp every time so the instant popup is guaranteed to fire for community users
       const newTimestamp = Date.now();
       await updateDoc(doc(db, "profiles", profile.id), { kinAlertActive: true, kinAlertTimestamp: newTimestamp });
       
@@ -632,7 +626,6 @@ export default function Dashboard() {
               .animate-seamless-dash { display: flex; width: max-content; animation: seamlessDash 15s linear infinite; }
             `}</style>
             <div className="animate-seamless-dash flex items-center h-full group-hover:[animation-play-state:paused]">
-               {/* Rendering multiple sets ensures it seamlessly loops forever without snapping */}
                {[...Array(4)].map((_, i) => (
                  <div key={i} className="flex items-center shrink-0">
                    {localAlerts.map(alert => (
@@ -735,7 +728,61 @@ export default function Dashboard() {
         <Plus size={32} strokeWidth={3} />
       </Link>
 
-      {/* 🌟 100% RELIABLE INSTANT LOST POPUP */}
+      {/* 🌟 COMPLETELY RESTORED QR MODAL */}
+      {qrModalProfile && (
+        <div className="fixed inset-0 z-[100] bg-brandDark/95 backdrop-blur-lg overflow-y-auto flex p-4 md:p-8">
+          <button onClick={() => setQrModalProfile(null)} className="absolute top-4 right-4 md:fixed md:top-6 md:right-6 z-[110] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 md:p-3 rounded-full transition shadow-lg backdrop-blur-md"><X size={24} /></button>
+          <div className="max-w-sm w-full relative m-auto pt-16 pb-8 md:py-8">
+            <div className="flex items-center justify-between gap-3 mb-5">
+              <div className="text-left">
+                 <h2 className="text-2xl font-extrabold text-white tracking-tight leading-tight">Mobile ID</h2>
+                 <p className="text-white/60 text-[10px] sm:text-xs font-medium mt-0.5 leading-snug">Download this card to save to your photos.</p>
+              </div>
+              <button onClick={() => downloadFullPass(qrModalProfile)} disabled={downloading} className="shrink-0 flex items-center justify-center space-x-1.5 bg-white text-brandDark px-4 py-2.5 rounded-xl font-bold shadow-lg hover:bg-zinc-200 transition-all disabled:opacity-50 text-sm">
+                {downloading ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
+                <span>{downloading ? 'Wait...' : 'Download ID'}</span>
+              </button>
+            </div>
+
+            <div className="bg-brandDark rounded-[2.5rem] overflow-hidden shadow-2xl border border-zinc-700 w-full aspect-[9/16] flex flex-col relative mx-auto">
+              <div className="h-[45%] w-full relative shrink-0">
+                <img src={qrModalProfile.imageUrl} alt="Profile" className="w-full h-full object-cover opacity-90" crossOrigin="anonymous" />
+                <div className="absolute inset-0 bg-gradient-to-t from-brandDark via-brandDark/20 to-transparent"></div>
+                <div className="absolute top-5 left-5 flex items-center space-x-2 bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                   <img src="/kintag-logo.png" alt="Logo" className="w-5 h-5 rounded" />
+                   <span className="text-white font-bold text-xs tracking-wide">KinTag</span>
+                </div>
+                <div className="absolute bottom-3 left-6 right-6">
+                  <h3 className="text-3xl font-extrabold text-white tracking-tight leading-none mb-1">{qrModalProfile.name}</h3>
+                  <div className="flex items-center space-x-2 text-brandGold text-[11px] font-bold uppercase tracking-widest mb-1">
+                     <span>{qrModalProfile.typeSpecific}</span><span>•</span>
+                     <span>{getComputedAge(qrModalProfile).value} {getComputedAge(qrModalProfile).label}</span>
+                  </div>
+                  {qrModalProfile.type === 'kid' && qrModalProfile.specialNeeds && <p className="text-red-400 font-bold text-[10px] uppercase tracking-wider mt-1">{qrModalProfile.specialNeeds}</p>}
+                  {qrModalProfile.type === 'pet' && (
+                    <div className="space-y-0.5 mt-2">
+                       <p className="text-white text-[10px] font-bold uppercase tracking-wider">Temperament - <span className={qrModalProfile.temperament !== 'Friendly' ? 'text-red-400' : 'text-brandGold'}>{qrModalProfile.temperament}</span></p>
+                       <p className="text-white text-[10px] font-bold uppercase tracking-wider">Vaccination - <span className="text-brandGold">{qrModalProfile.vaccinationStatus}</span></p>
+                       {qrModalProfile.microchip && <p className="text-white text-[10px] font-bold uppercase tracking-wider">Microchip - <span className="text-brandGold">{qrModalProfile.microchip}</span></p>}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex-1 bg-brandDark p-6 flex flex-col items-center justify-center text-center relative">
+                <div className={`bg-white p-4 rounded-3xl shadow-lg border-4 ${activeStyle.border}`}>
+                  <QRCodeCanvas id="qr-canvas-modal" value={`${window.location.origin}/#/id/${qrModalProfile.id}`} size={1024} style={{ width: '160px', height: '160px' }} level="H" includeMargin={false} fgColor={activeStyle.fg} bgColor={activeStyle.bg} imageSettings={{ src: "/kintag-logo.png", height: 224, width: 224, excavate: true }} />
+                </div>
+                <div className="mt-5 text-center px-4">
+                  <p className="text-white font-bold text-lg tracking-tight mb-1">Scan (if lost) for</p>
+                  <p className="text-white/50 text-[10px] uppercase tracking-widest font-bold leading-relaxed">Emergency Contact, Medical and Location<br/>Info</p>
+                </div>
+                <div className="absolute bottom-6 text-white/20 text-[10px] font-mono">ID: {qrModalProfile.id.slice(0,8).toUpperCase()}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {localAlerts.filter(a => !dismissedAlerts.includes(`${a.id}-${a.kinAlertTimestamp}`)).map(alert => (
         <div key={`popup-${alert.id}-${alert.kinAlertTimestamp}`} className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
           <div className="bg-red-600 text-white rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl border-4 border-red-400 animate-in zoom-in-95 duration-300">
@@ -751,7 +798,6 @@ export default function Dashboard() {
         </div>
       ))}
 
-      {/* 🌟 INSTANT FOUND POPUP */}
       {foundPopups.filter(s => !dismissedFoundAlerts.includes(s.id)).slice(0, 1).map(scan => (
         <div key={`found-popup-${scan.id}`} className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
           <div className="bg-emerald-500 text-white rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl border-4 border-emerald-300 animate-in zoom-in-95 duration-300">
