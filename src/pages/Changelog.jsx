@@ -12,9 +12,7 @@ const updates = [
       { type: "ADDED", text: "Lost Mode (Panic Button): Instantly transform a profile into a high-alert distress signal with a pulsing call button and flashing missing marquee." },
       { type: "ADDED", text: "KinAlert Community Broadcast: Send instant push notifications and dashboard popups to all KinTag users in the same Zip Code when a tag is marked lost." },
       { type: "ADDED", text: "Safe & Sound Notification: Marking a profile as found instantly clears local dashboard alerts and notifies neighbors with a green success popup." },
-      { type: "ADDED", text: "Zip Code Geofencing: Profile page now enforces Zip Code setup with visual red-dot indicators to accurately route community KinAlerts." },
-      { type: "FIXED", text: "Seamless Marquee Engine: Re-engineered CSS animations for perfectly looping, infinite alert banners across the platform." },
-      { type: "UPDATED", text: "Admin Security: Moved the hardcoded Admin Control Center email to a secure environment variable." }
+      { type: "ADDED", text: "Zip Code Geofencing: Profile page now enforces Zip Code setup with visual red-dot indicators to accurately route community KinAlerts." }
     ]
   },
   {
