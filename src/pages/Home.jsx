@@ -415,7 +415,12 @@ export default function Home() {
           <img src="/kintag-logo.png" alt="Logo" className="w-5 h-5 rounded grayscale" />
           <span className="font-bold text-brandDark">KinTag</span>
         </div>
-        <p className="text-xs text-zinc-400 font-bold">© {new Date().getFullYear()} KinTag. All rights reserved.</p>
+        <p className="text-xs text-zinc-400 font-bold mb-3">© {new Date().getFullYear()} KinTag. All rights reserved.</p>
+        
+        {/* 🌟 NEW: Link to Changelog */}
+        <Link to="/changelog" className="text-xs text-zinc-400 font-bold hover:text-brandGold transition-colors inline-block">
+          View Changelog & Updates
+        </Link>
       </footer>
     </div>
   );
