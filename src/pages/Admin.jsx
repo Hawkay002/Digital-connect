@@ -38,8 +38,8 @@ export default function Admin() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  // SECURITY LOCK: Change this to your exact email address!
-  const ADMIN_EMAIL = "shovith2@gmail.com"; 
+  // 🌟 SECURITY LOCK: Now securely using environment variables!
+  const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL; 
 
   const showMessage = (alertTitle, alertMessage, type = 'info', onClose = null) => {
     setCustomAlert({ isOpen: true, title: alertTitle, message: alertMessage, type, onClose });
@@ -56,7 +56,7 @@ export default function Admin() {
     }
 
     fetchMessages();
-  }, [currentUser, navigate]);
+  }, [currentUser, navigate, ADMIN_EMAIL]);
 
   const fetchMessages = async () => {
     try {
