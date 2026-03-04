@@ -3,8 +3,7 @@ import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore'; 
 import { useNavigate } from 'react-router-dom';
-// 🌟 Added UserMinus icon for the removal modal
-import { User, LogOut, ArrowLeft, Users, Mail, Link as LinkIcon, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2, UserMinus } from 'lucide-react'; 
+import { User, LogOut, ArrowLeft, Users, Mail, Link as LinkIcon, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2, UserMinus, MapPin } from 'lucide-react'; 
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -21,10 +20,12 @@ export default function Profile() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState("");
 
-  // Remove Guardian State (🌟 NEW Custom Modal State)
+  // 🌟 NEW: Edit Zip Code State
+  const [isEditingZip, setIsEditingZip] = useState(false);
+  const [editZipValue, setEditZipValue] = useState("");
+
   const [guardianToRemove, setGuardianToRemove] = useState(null);
 
-  // Delete Account State
   const [showDeleteZone, setShowDeleteZone] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -42,7 +43,7 @@ export default function Profile() {
           activeFamilyId = data.familyId || auth.currentUser.uid;
           setUserData({ ...data, familyId: activeFamilyId });
         } else {
-          setUserData({ name: '', familyId: activeFamilyId });
+          setUserData({ name: '', zipCode: '', familyId: activeFamilyId });
         }
         
         const familyQuery = query(collection(db, "users"), where("familyId", "==", activeFamilyId));
@@ -70,6 +71,19 @@ export default function Profile() {
       setIsEditingName(false);
     } catch (err) {
       setError("Failed to update name.");
+    }
+  };
+
+  // 🌟 NEW: Save Zip Code Function
+  const handleSaveZipCode = async () => {
+    if (!editZipValue.trim()) return;
+    try {
+      await updateDoc(doc(db, "users", auth.currentUser.uid), { zipCode: editZipValue.trim() });
+      setUserData(prev => ({ ...prev, zipCode: editZipValue.trim() }));
+      setIsEditingZip(false);
+      setSuccess("Zip Code updated successfully! You will now receive local KinAlerts.");
+    } catch (err) {
+      setError("Failed to update Zip Code.");
     }
   };
 
@@ -109,9 +123,7 @@ export default function Profile() {
           });
           sharedNative = true;
           setSuccess("Invite sent successfully!");
-        } catch (shareErr) {
-          // If user cancels the share sheet, we ignore the error
-        }
+        } catch (shareErr) {}
       } 
       
       if (!sharedNative) {
@@ -125,7 +137,6 @@ export default function Profile() {
       
       setInviteEmail('');
     } catch (err) {
-      console.error("Invite Error: ", err);
       if (err.message.includes("Missing or insufficient permissions") || err.code === "permission-denied") {
         setError("Firebase Error: You need to update your Firestore Security Rules to allow writing to the 'invites' collection.");
       } else {
@@ -136,18 +147,11 @@ export default function Profile() {
     }
   };
 
-  // 🌟 TRIGGERED BY MODAL CONFIRM BUTTON NOW
   const confirmRemoveGuardian = async () => {
     if (!guardianToRemove) return;
-    
     try {
-      // 1. Reset their database connection so they no longer fetch your cards
       await updateDoc(doc(db, "users", guardianToRemove.id), { familyId: guardianToRemove.id });
-
-      // 2. Delete their original invite document to prevent weird looping bugs
       await deleteDoc(doc(db, "invites", guardianToRemove.email.toLowerCase()));
-
-      // 3. Drop a notification for yourself so you have a record
       await addDoc(collection(db, "scans"), {
         familyId: userData?.familyId || auth.currentUser.uid,
         type: 'invite_response',
@@ -155,8 +159,6 @@ export default function Profile() {
         message: `${guardianToRemove.name || guardianToRemove.email} was securely removed from your family dashboard.`,
         timestamp: new Date().toISOString()
       });
-
-      // 4. Update the screen visually
       setFamilyMembers(prev => prev.filter(m => m.id !== guardianToRemove.id));
       setSuccess(`${guardianToRemove.name || guardianToRemove.email} was removed successfully.`);
     } catch (err) {
@@ -180,7 +182,6 @@ export default function Profile() {
       await deleteDoc(doc(db, "users", auth.currentUser.uid));
       await auth.currentUser.delete();
       navigate('/login');
-
     } catch (err) {
       if (err.code === 'auth/requires-recent-login') {
         setError("For your security, please log out and log back in before deleting your account.");
@@ -200,50 +201,67 @@ export default function Profile() {
     <div className="min-h-screen bg-zinc-50 p-4 md:p-8 relative">
       <div className="max-w-2xl mx-auto">
         
-        <button onClick={() => navigate('/')} className="mb-6 flex items-center space-x-2 text-zinc-500 hover:text-brandDark font-bold transition-colors">
-          <ArrowLeft size={20} />
-          <span>Back to Dashboard</span>
-        </button>
+        <div className="flex justify-between items-center mb-6">
+          <button onClick={() => navigate('/')} className="flex items-center space-x-2 text-zinc-500 hover:text-brandDark font-bold transition-colors">
+            <ArrowLeft size={20} />
+            <span>Back to Dashboard</span>
+          </button>
+        </div>
 
         {/* Profile Card */}
         <div className="bg-white rounded-3xl shadow-premium border border-zinc-100 p-8 mb-8 text-center relative">
-          
-          <button 
-            onClick={handleLogout} 
-            className="absolute top-6 right-6 flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-100 p-3 rounded-full transition-colors shadow-sm"
-            title="Log Out Securely"
-          >
+          <button onClick={handleLogout} className="absolute top-6 right-6 flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-100 p-3 rounded-full transition-colors shadow-sm" title="Log Out Securely">
             <LogOut size={18} />
           </button>
 
-          <div className="w-24 h-24 bg-brandMuted text-brandDark rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-24 h-24 bg-brandMuted text-brandDark rounded-full flex items-center justify-center mx-auto mb-4 relative">
             <User size={40} />
+            {/* 🌟 NEW: Red Dot on profile icon if zip is missing */}
+            {!userData?.zipCode && <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 border-2 border-white rounded-full animate-pulse" title="Missing Zip Code"></span>}
           </div>
 
-          <div className="flex items-center justify-center gap-2 mb-1">
-            {isEditingName ? (
+          <div className="flex flex-col items-center justify-center mb-4">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              {isEditingName ? (
+                <div className="flex items-center gap-2">
+                  <input type="text" defaultValue={userData?.name || ''} onChange={(e) => setEditNameValue(e.target.value)} className="px-3 py-1.5 border border-zinc-300 rounded-lg outline-none focus:border-brandDark text-lg font-bold text-center" autoFocus/>
+                  <button onClick={handleSaveName} className="bg-brandDark text-white px-3 py-1.5 rounded-lg font-bold text-sm hover:bg-brandAccent transition">Save</button>
+                  <button onClick={() => setIsEditingName(false)} className="text-zinc-400 hover:text-zinc-600 bg-zinc-100 p-1.5 rounded-lg transition"><X size={18}/></button>
+                </div>
+              ) : (
+                <>
+                  <h1 className="text-3xl font-extrabold text-brandDark tracking-tight">{userData?.name || 'Guardian'}</h1>
+                  <button onClick={() => { setEditNameValue(userData?.name || ''); setIsEditingName(true); }} className="text-zinc-400 hover:text-brandGold transition-colors" title="Edit Name"><Edit2 size={16} /></button>
+                </>
+              )}
+            </div>
+            <p className="text-zinc-500 font-medium">{auth.currentUser?.email}</p>
+          </div>
+
+          {/* 🌟 NEW: Zip Code Field Section (For KinAlert Local Routing) */}
+          <div className="max-w-xs mx-auto bg-zinc-50 p-4 rounded-2xl border border-zinc-200 mt-6 relative">
+            <div className="flex items-center justify-center gap-2 mb-2 text-brandDark font-bold">
+              <MapPin size={16} className="text-brandGold" />
+              <span>Broadcast Zip Code</span>
+            </div>
+            <p className="text-xs text-zinc-500 mb-3 px-2">Set your local Zip Code to receive community KinAlerts in your area.</p>
+            
+            {isEditingZip ? (
               <div className="flex items-center gap-2">
-                <input 
-                  type="text" 
-                  defaultValue={userData?.name || ''} 
-                  onChange={(e) => setEditNameValue(e.target.value)}
-                  className="px-3 py-1.5 border border-zinc-300 rounded-lg outline-none focus:border-brandDark text-lg font-bold text-center"
-                  autoFocus
-                />
-                <button onClick={handleSaveName} className="bg-brandDark text-white px-3 py-1.5 rounded-lg font-bold text-sm hover:bg-brandAccent transition">Save</button>
-                <button onClick={() => setIsEditingName(false)} className="text-zinc-400 hover:text-zinc-600 bg-zinc-100 p-1.5 rounded-lg transition"><X size={18}/></button>
+                <input type="text" placeholder="Enter Zip/Pincode" defaultValue={userData?.zipCode || ''} onChange={(e) => setEditZipValue(e.target.value)} className="w-full px-3 py-2 border border-zinc-300 rounded-xl outline-none focus:border-brandDark font-bold text-center" autoFocus/>
+                <button onClick={handleSaveZipCode} className="bg-brandDark text-white px-3 py-2 rounded-xl font-bold text-sm hover:bg-brandAccent transition">Save</button>
+                <button onClick={() => setIsEditingZip(false)} className="text-zinc-400 hover:text-zinc-600 bg-zinc-200 p-2 rounded-xl transition"><X size={18}/></button>
               </div>
             ) : (
-              <>
-                <h1 className="text-3xl font-extrabold text-brandDark tracking-tight">{userData?.name || 'Guardian'}</h1>
-                <button onClick={() => { setEditNameValue(userData?.name || ''); setIsEditingName(true); }} className="text-zinc-400 hover:text-brandGold transition-colors" title="Edit Name">
-                  <Edit2 size={16} />
+              <div className="flex justify-center">
+                <button onClick={() => { setEditZipValue(userData?.zipCode || ''); setIsEditingZip(true); }} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all relative ${userData?.zipCode ? 'bg-white border border-zinc-200 text-brandDark shadow-sm hover:bg-zinc-100' : 'bg-red-50 border border-red-200 text-red-600 hover:bg-red-100'}`}>
+                  {userData?.zipCode ? <span>{userData.zipCode}</span> : <span>Setup Zip Code Now</span>}
+                  <Edit2 size={14} />
+                  {!userData?.zipCode && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>}
                 </button>
-              </>
+              </div>
             )}
           </div>
-          
-          <p className="text-zinc-500 font-medium">{auth.currentUser?.email}</p>
         </div>
 
         {/* Co-Guardians Card */}
@@ -263,14 +281,7 @@ export default function Profile() {
 
           {invitedGuardians.length < 5 && (
             <form onSubmit={handleInvite} className="flex flex-col sm:flex-row gap-3 mb-8">
-              <input 
-                type="email" 
-                placeholder="Enter guardian's email..." 
-                value={inviteEmail} 
-                onChange={(e) => setInviteEmail(e.target.value)} 
-                required 
-                className="flex-1 p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all font-medium" 
-              />
+              <input type="email" placeholder="Enter guardian's email..." value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required className="flex-1 p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all font-medium" />
               <button type="submit" disabled={inviteLoading} className="bg-brandDark text-white px-6 py-3.5 rounded-xl font-bold hover:bg-brandAccent transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2 shrink-0">
                 {inviteLoading ? <Loader2 size={18} className="animate-spin"/> : <Mail size={18} />}
                 <span>Send Invite</span>
@@ -333,21 +344,11 @@ export default function Profile() {
                 {deleteConfirmationPhrase}
               </div>
               
-              <input 
-                type="text" 
-                value={deleteInput}
-                onChange={(e) => setDeleteInput(e.target.value)}
-                placeholder="Type the confirmation phrase here..."
-                className="w-full p-3.5 bg-white border border-zinc-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all font-medium mb-4"
-              />
+              <input type="text" value={deleteInput} onChange={(e) => setDeleteInput(e.target.value)} placeholder="Type the confirmation phrase here..." className="w-full p-3.5 bg-white border border-zinc-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all font-medium mb-4" />
               
               <div className="flex gap-3">
                 <button onClick={() => setShowDeleteZone(false)} className="flex-1 bg-zinc-100 text-zinc-600 font-bold py-3.5 rounded-xl hover:bg-zinc-200 transition-colors">Cancel</button>
-                <button 
-                  onClick={handleDeleteAccount}
-                  disabled={deleteInput !== deleteConfirmationPhrase || isDeleting} 
-                  className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors disabled:opacity-50"
-                >
+                <button onClick={handleDeleteAccount} disabled={deleteInput !== deleteConfirmationPhrase || isDeleting} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors disabled:opacity-50">
                   {isDeleting ? 'Deleting...' : 'Confirm'}
                 </button>
               </div>
@@ -355,7 +356,6 @@ export default function Profile() {
           )}
         </div>
 
-        {/* 🌟 NEW: Custom Modal for Removing a Co-Guardian */}
         {guardianToRemove && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
             <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200">
