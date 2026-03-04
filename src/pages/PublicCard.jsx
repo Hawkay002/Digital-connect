@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useLocation } from 'react-router-dom'; 
 import { db } from '../firebase';
 import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
-import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart, BellRing, Loader2, CheckCircle2, Cake, ShieldAlert } from 'lucide-react';
+import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart, BellRing, Loader2, CheckCircle2, Cake, ShieldAlert, Siren } from 'lucide-react';
 
 const getComputedAge = (profile) => {
   if (profile.dob) {
@@ -85,7 +85,7 @@ export default function PublicCard() {
         await addDoc(collection(db, "scans"), {
           profileId: profileId,
           ownerId: profile.userId,
-          familyId: profile.familyId || profile.userId, // 🌟 Maps to family dashboard
+          familyId: profile.familyId || profile.userId,
           profileName: profile.name,
           type: 'passive',
           city: ipData.city || 'Unknown City',
@@ -139,7 +139,7 @@ export default function PublicCard() {
           await addDoc(collection(db, "scans"), {
             profileId: profileId,
             ownerId: profile.userId,
-            familyId: profile.familyId || profile.userId, // 🌟 Maps to family dashboard
+            familyId: profile.familyId || profile.userId,
             profileName: profile.name,
             type: 'active',
             latitude: latitude,
@@ -185,7 +185,6 @@ export default function PublicCard() {
   if (loading) return <PublicCardSkeleton />;
   if (!profile) return <div className="min-h-screen flex items-center justify-center bg-zinc-50 font-bold text-red-500">Identity not found.</div>;
 
-  // 🌟 SECURITY BLOCK: Profile Disabled
   if (profile.isActive === false) {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center bg-zinc-100 p-4">
@@ -293,6 +292,23 @@ export default function PublicCard() {
       
       <div className="flex-1 bg-white -mt-10 rounded-t-[2.5rem] p-7 z-10 space-y-7 relative pb-64 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
         
+        {/* 🌟 NEW: THICK MISSING MARQUEE BANNER */}
+        {profile.isLost && (
+          <div className="overflow-hidden bg-red-600 text-white shadow-[0_5px_20px_rgba(239,68,68,0.4)] border-y-4 border-red-700 relative flex items-center h-[72px] -mx-7 -mt-7 mb-6 rounded-t-[2.5rem]">
+            <style>{`
+              @keyframes missingMarquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+              .animate-missing-marquee { display: inline-block; white-space: nowrap; animation: missingMarquee 7s linear infinite; padding-left: 100%; }
+            `}</style>
+            <div className="absolute inset-0 flex items-center whitespace-nowrap animate-missing-marquee">
+              <span className="mx-4 font-black text-[1.4rem] tracking-[0.15em] uppercase flex items-center gap-3">
+                <Siren size={30} className="animate-pulse text-white shrink-0" />
+                ⚠️ REPORTED MISSING ⚠️ PLEASE HELP ⚠️ REPORTED MISSING ⚠️ PLEASE HELP
+                <Siren size={30} className="animate-pulse text-white shrink-0 ml-3" />
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className="text-center border-b border-zinc-100 pb-6">
           <h1 className="text-4xl font-extrabold text-brandDark mb-1.5 tracking-tight">{profile.name}</h1>
           <p className="text-sm text-brandGold font-bold uppercase tracking-widest">
@@ -454,15 +470,17 @@ export default function PublicCard() {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/85 backdrop-blur-xl border-t border-zinc-200 max-w-md mx-auto space-y-2 pb-8 shadow-[0_-15px_40px_rgba(0,0,0,0.08)] z-50">
+        
+        {/* 🌟 NEW: URGENT, PULSING CALL BUTTON IF LOST */}
         {isPreview ? (
-          <div className="w-full flex items-center justify-center space-x-2 bg-brandDark text-white py-3.5 px-4 rounded-2xl font-bold text-base shadow-lg opacity-50 cursor-not-allowed">
+          <div className={`w-full flex items-center justify-center space-x-2 py-3.5 px-4 rounded-2xl font-bold text-base shadow-lg opacity-50 cursor-not-allowed ${profile.isLost ? 'bg-red-600 text-white' : 'bg-brandDark text-white'}`}>
             <Phone size={20} />
-            <span className="truncate">Call {primaryContact.name} (Emergency)</span>
+            <span className="truncate">{profile.isLost ? `CALL IMMEDIATELY` : `Call ${primaryContact.name} (Emergency)`}</span>
           </div>
         ) : (
-          <a href={`tel:${primaryContact.countryCode || ''}${primaryContact.phone}`} className="w-full flex items-center justify-center space-x-2 bg-brandDark text-white py-3.5 px-4 rounded-2xl font-bold text-base shadow-lg hover:bg-brandAccent transition-colors">
-            <Phone size={20} />
-            <span className="truncate">Call {primaryContact.name} (Emergency)</span>
+          <a href={`tel:${primaryContact.countryCode || ''}${primaryContact.phone}`} className={`w-full flex items-center justify-center space-x-2 py-3.5 px-4 rounded-2xl font-black text-lg shadow-lg transition-all ${profile.isLost ? 'bg-red-600 text-white animate-[pulse_1.5s_ease-in-out_infinite] shadow-[0_0_20px_rgba(239,68,68,0.5)] border-2 border-red-400' : 'bg-brandDark text-white hover:bg-brandAccent'}`}>
+            <Phone size={22} fill={profile.isLost ? "currentColor" : "none"} />
+            <span className="truncate">{profile.isLost ? `CALL ${primaryContact.name.toUpperCase()} IMMEDIATELY` : `Call ${primaryContact.name} (Emergency)`}</span>
           </a>
         )}
 
