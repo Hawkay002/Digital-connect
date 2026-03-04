@@ -132,7 +132,7 @@ export default function Changelog() {
       <header className="max-w-4xl mx-auto px-4 md:px-8 pt-16 pb-12 text-center">
         <h1 className="text-4xl md:text-6xl font-extrabold text-brandDark tracking-tight mb-4">Official Changelog</h1>
         <p className="text-lg md:text-xl text-zinc-500 font-medium max-w-2xl mx-auto leading-relaxed">
-          Tracking the evolution of the ultimate digital safety net. Built by a solo developer, driven by pure passion.
+          Tracking the evolution of the ultimate digital safety net.
         </p>
       </header>
 
