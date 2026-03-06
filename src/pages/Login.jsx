@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { auth, db } from '../firebase';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react'; // 🌟 NEW: Added Loader2
 
 export default function Login() {
   const navigate = useNavigate();
@@ -13,6 +13,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [resetMessage, setResetMessage] = useState(''); 
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false); // 🌟 NEW: Loader state for forgot password
 
   // 🌟 Ensure family linking happens even on simple logins
   const syncUserDatabase = async (user) => {
@@ -68,18 +69,35 @@ export default function Login() {
     }
   };
 
+  // 🌟 UPDATED: Call the custom API instead of Firebase directly
   const handleResetPassword = async () => {
     setError('');
     setResetMessage('');
+    
     if (!email) {
       setError("Please enter your email address first, then click 'Forgot Password?'.");
       return;
     }
+    
+    setResetLoading(true);
     try {
-      await sendPasswordResetEmail(auth, email);
+      const response = await fetch('/api/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase() })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send reset email");
+      }
+
       setResetMessage("Password reset email sent! Check your inbox.");
     } catch (err) {
       setError(err.message.replace('Firebase: ', ''));
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -126,8 +144,15 @@ export default function Login() {
           </div>
 
           <div className="flex justify-end mt-1">
-            <button type="button" onClick={handleResetPassword} className="text-xs font-bold text-zinc-500 hover:text-brandDark transition-colors">
-              Forgot Password?
+            {/* 🌟 UPDATED: Added Loader and disabled state to the Forgot Password button */}
+            <button 
+              type="button" 
+              onClick={handleResetPassword} 
+              disabled={resetLoading} 
+              className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 hover:text-brandDark transition-colors disabled:opacity-50"
+            >
+              {resetLoading && <Loader2 size={12} className="animate-spin" />}
+              {resetLoading ? 'Sending...' : 'Forgot Password?'}
             </button>
           </div>
           
