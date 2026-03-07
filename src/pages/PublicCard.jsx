@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useLocation } from 'react-router-dom'; 
 import { db } from '../firebase';
 import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
-import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart, BellRing, Loader2, CheckCircle2, Cake, ShieldAlert, Siren } from 'lucide-react';
+import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart, BellRing, Loader2, CheckCircle2, Cake, ShieldAlert, Siren, FileText, Lock, Unlock } from 'lucide-react';
 
 const getComputedAge = (profile) => {
   if (profile.dob) {
@@ -43,6 +43,11 @@ export default function PublicCard() {
   const [activeAlertSent, setActiveAlertSent] = useState(false);
   const [gpsError, setGpsError] = useState('');
 
+  // 🌟 NEW: Vault State & Refs
+  const [isVaultUnlocked, setIsVaultUnlocked] = useState(false);
+  const [viewingDocument, setViewingDocument] = useState(null);
+  const vaultTimerRef = useRef(null);
+
   const startLogoTimer = () => {
     if (logoTimeoutRef.current) clearTimeout(logoTimeoutRef.current);
     logoTimeoutRef.current = setTimeout(() => {
@@ -69,6 +74,7 @@ export default function PublicCard() {
 
     return () => {
       if (logoTimeoutRef.current) clearTimeout(logoTimeoutRef.current);
+      if (vaultTimerRef.current) clearTimeout(vaultTimerRef.current);
     };
   }, [profileId]);
 
@@ -117,6 +123,16 @@ export default function PublicCard() {
     return () => clearTimeout(timer);
   }, [profile, profileId, isPreview]);
 
+  // 🌟 NEW: Unlock Vault Function (runs when they call or share location)
+  const unlockVault = () => {
+    if (isPreview) return;
+    setIsVaultUnlocked(true);
+    if (vaultTimerRef.current) clearTimeout(vaultTimerRef.current);
+    vaultTimerRef.current = setTimeout(() => {
+      setIsVaultUnlocked(false);
+    }, 15 * 60 * 1000); // 15 minutes
+  };
+
   const handleActiveAlert = (e) => {
     e.stopPropagation(); 
     if (isPreview || profile?.isActive === false) return;
@@ -161,6 +177,7 @@ export default function PublicCard() {
           });
 
           setActiveAlertSent(true);
+          unlockVault(); // 🌟 Instantly unlock the documents when they share GPS!
         } catch (error) {
           setGpsError("Failed to send alert.");
         } finally {
@@ -272,7 +289,15 @@ export default function PublicCard() {
       </div>
 
       <div className="relative h-[45vh] w-full shrink-0">
-        <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
+        {/* 🌟 FIXED: Anti-download protections on the Hero image */}
+        <img 
+          src={profile.imageUrl} 
+          alt={profile.name} 
+          onContextMenu={(e) => e.preventDefault()} 
+          draggable="false" 
+          style={{ WebkitTouchCallout: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
+          className="w-full h-full object-cover" 
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent pointer-events-none"></div>
         
         <div 
@@ -292,7 +317,6 @@ export default function PublicCard() {
       
       <div className="flex-1 bg-white -mt-10 rounded-t-[2.5rem] p-7 z-10 space-y-7 relative pb-64 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
         
-        {/* 🌟 NEW: THICK MISSING MARQUEE BANNER */}
         {profile.isLost && (
           <div className="overflow-hidden bg-red-600 text-white shadow-[0_5px_20px_rgba(239,68,68,0.4)] border-y-4 border-red-700 relative flex items-center h-[72px] -mx-7 -mt-7 mb-6 rounded-t-[2.5rem]">
             <style>{`
@@ -439,7 +463,8 @@ export default function PublicCard() {
                     <Phone size={16} fill="currentColor" />
                   </div>
                 ) : (
-                  <a href={`tel:${contact.countryCode || ''}${contact.phone}`} className="bg-brandDark text-white p-3 rounded-full hover:bg-brandAccent transition shadow-sm">
+                  // 🌟 Intercept call to unlock vault
+                  <a href={`tel:${contact.countryCode || ''}${contact.phone}`} onClick={() => unlockVault()} className="bg-brandDark text-white p-3 rounded-full hover:bg-brandAccent transition shadow-sm">
                     <Phone size={16} fill="currentColor" />
                   </a>
                 )}
@@ -447,6 +472,52 @@ export default function PublicCard() {
             ))}
           </div>
         </div>
+
+        {/* 🌟 NEW: THE SECURE DOCUMENT VAULT UI */}
+        {profile.documents && profile.documents.length > 0 && (
+          <div className="bg-brandMuted p-5 rounded-3xl border border-zinc-200/60 mb-8 relative overflow-hidden">
+            <div className="flex items-center space-x-2 mb-4 text-brandDark">
+              <FileText size={18} />
+              <h3 className="font-extrabold tracking-tight">Important Documents</h3>
+            </div>
+
+            {!isVaultUnlocked ? (
+              <div className="relative rounded-2xl overflow-hidden border border-zinc-200/50">
+                <div className="filter blur-md opacity-40 select-none pointer-events-none p-2 bg-white/50">
+                   <div className="bg-white p-4 rounded-xl mb-3 h-12 shadow-sm"></div>
+                   <div className="bg-white p-4 rounded-xl h-12 w-3/4 shadow-sm"></div>
+                </div>
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-5 text-center z-10">
+                   <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg mb-3 text-brandDark border border-zinc-100">
+                     <Lock size={20} />
+                   </div>
+                   <p className="text-xs font-bold text-brandDark bg-white/95 backdrop-blur px-4 py-2.5 rounded-xl shadow-lg border border-zinc-100 max-w-[250px] leading-relaxed">
+                     Vault Locked. Please call an emergency contact or share your location above to view sensitive documents.
+                   </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3 animate-in fade-in duration-500">
+                {profile.documents.map((doc, idx) => (
+                  <button 
+                    key={idx} 
+                    onClick={() => setViewingDocument(doc)} 
+                    className="w-full flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-zinc-200 hover:border-brandDark/30 hover:shadow-md transition-all group"
+                  >
+                    <span className="font-extrabold text-brandDark text-sm tracking-tight">{doc.name}</span>
+                    <div className="bg-zinc-100 p-2 rounded-lg group-hover:bg-brandDark group-hover:text-white transition-colors">
+                      <FileText size={16} />
+                    </div>
+                  </button>
+                ))}
+                <div className="flex items-center justify-center gap-1.5 text-[10px] text-emerald-600 font-bold uppercase tracking-widest mt-4">
+                  <Unlock size={12} />
+                  <span>Vault Unlocked (15m)</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex justify-center pb-6">
           {isPreview ? (
@@ -472,14 +543,14 @@ export default function PublicCard() {
 
       <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/85 backdrop-blur-xl border-t border-zinc-200 max-w-md mx-auto space-y-2 pb-8 shadow-[0_-15px_40px_rgba(0,0,0,0.08)] z-50">
         
-        {/* 🌟 NEW: URGENT, PULSING CALL BUTTON IF LOST */}
         {isPreview ? (
           <div className={`w-full flex items-center justify-center space-x-2 py-3.5 px-4 rounded-2xl font-bold text-base shadow-lg opacity-50 cursor-not-allowed ${profile.isLost ? 'bg-red-600 text-white' : 'bg-brandDark text-white'}`}>
             <Phone size={20} />
             <span className="truncate">{profile.isLost ? `CALL IMMEDIATELY` : `Call ${primaryContact.name} (Emergency)`}</span>
           </div>
         ) : (
-          <a href={`tel:${primaryContact.countryCode || ''}${primaryContact.phone}`} className={`w-full flex items-center justify-center space-x-2 py-3.5 px-4 rounded-2xl font-black text-lg shadow-lg transition-all ${profile.isLost ? 'bg-red-600 text-white animate-[pulse_1.5s_ease-in-out_infinite] shadow-[0_0_20px_rgba(239,68,68,0.5)] border-2 border-red-400' : 'bg-brandDark text-white hover:bg-brandAccent'}`}>
+          // 🌟 Intercept main call button to unlock vault
+          <a href={`tel:${primaryContact.countryCode || ''}${primaryContact.phone}`} onClick={() => unlockVault()} className={`w-full flex items-center justify-center space-x-2 py-3.5 px-4 rounded-2xl font-black text-lg shadow-lg transition-all ${profile.isLost ? 'bg-red-600 text-white animate-[pulse_1.5s_ease-in-out_infinite] shadow-[0_0_20px_rgba(239,68,68,0.5)] border-2 border-red-400' : 'bg-brandDark text-white hover:bg-brandAccent'}`}>
             <Phone size={22} fill={profile.isLost ? "currentColor" : "none"} />
             <span className="truncate">{profile.isLost ? `CALL ${primaryContact.name.toUpperCase()} IMMEDIATELY` : `Call ${primaryContact.name} (Emergency)`}</span>
           </a>
@@ -512,14 +583,45 @@ export default function PublicCard() {
         </div>
       </div>
 
+      {/* 🌟 FIXED: Anti-download on Full Hero Image Modal */}
       {isImageEnlarged && !isPreview && (
         <div className="fixed inset-0 z-[100] bg-brandDark/95 flex items-center justify-center p-4 backdrop-blur-lg">
-          <button onClick={() => setIsImageEnlarged(false)} className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition">
+          <button onClick={() => setIsImageEnlarged(false)} className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition z-[110]">
             <X size={24} />
           </button>
-          <img src={profile.imageUrl} alt={profile.name} className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl" />
+          <img 
+            src={profile.imageUrl} 
+            alt={profile.name} 
+            onContextMenu={(e) => e.preventDefault()} 
+            draggable="false" 
+            style={{ WebkitTouchCallout: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
+            className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl relative z-[105]" 
+          />
         </div>
       )}
+
+      {/* 🌟 NEW: View Document Modal with Anti-download */}
+      {viewingDocument && !isPreview && (
+        <div className="fixed inset-0 z-[120] bg-brandDark/95 flex items-center justify-center p-4 backdrop-blur-lg animate-in fade-in duration-200">
+          <div className="absolute top-4 w-full px-6 flex justify-between items-center z-[130]">
+             <h3 className="text-white font-extrabold tracking-tight drop-shadow-md">{viewingDocument.name}</h3>
+             <button onClick={() => setViewingDocument(null)} className="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition">
+               <X size={24} />
+             </button>
+          </div>
+          <div className="w-full h-full flex items-center justify-center p-4 pt-16">
+            <img 
+              src={viewingDocument.url} 
+              alt={viewingDocument.name} 
+              onContextMenu={(e) => e.preventDefault()} 
+              draggable="false" 
+              style={{ WebkitTouchCallout: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
+              className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl relative z-[125]" 
+            />
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
