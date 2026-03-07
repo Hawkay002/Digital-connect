@@ -68,7 +68,6 @@ export default function EditCard() {
             temperament: data.temperament || 'Friendly', specialNeeds: data.specialNeeds || ''
           });
 
-          // 🌟 FIXED: Tracking edit state for previously uploaded documents
           if (data.documents && Array.isArray(data.documents)) {
              setDocuments(data.documents.map(d => ({ ...d, file: null, isEditingFile: false })));
           }
@@ -169,7 +168,6 @@ export default function EditCard() {
     );
   };
 
-  // 🌟 FIXED: Use auto/upload to properly process PDFs and images identically
   const uploadToCloudinary = async (file) => {
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME; 
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET; 
@@ -243,6 +241,20 @@ export default function EditCard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 🌟 NEW: Safe Preview URL Generator for the "View Uploaded" button
+  const getSafePreviewUrl = (url) => {
+    if (!url) return '#';
+    // If PDF, convert extension to JPG to force Cloudinary to rasterize it safely
+    if (url.toLowerCase().includes('.pdf')) {
+      return url.replace(/\.pdf$/i, '.jpg');
+    }
+    // If DOC/DOCX, route it through Google Docs Viewer
+    if (url.toLowerCase().includes('.doc') || url.toLowerCase().includes('.docx')) {
+      return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+    }
+    return url;
   };
 
   const inputStyles = "w-full p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all font-medium";
@@ -490,7 +502,6 @@ export default function EditCard() {
 
             <hr className="border-zinc-200" />
 
-            {/* 🌟 FIXED: Proper sizing, no icon, and visually distinct Edit controls */}
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-xl font-extrabold text-brandDark tracking-tight">Important Documents (Optional)</h3>
               <button type="button" onClick={addDocument} className="flex items-center space-x-1 text-sm bg-brandMuted text-brandDark font-bold px-4 py-2 rounded-lg hover:bg-zinc-200 transition-colors shrink-0">
@@ -524,7 +535,8 @@ export default function EditCard() {
                     <div className="relative flex items-center">
                       {doc.url && !doc.isEditingFile ? (
                         <div className="flex items-center justify-between w-full p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
-                          <a href={doc.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm font-bold text-emerald-700 hover:underline truncate mr-2">
+                          {/* 🌟 FIXED: Used the safe preview URL converter */}
+                          <a href={getSafePreviewUrl(doc.url)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm font-bold text-emerald-700 hover:underline truncate mr-2">
                             <CheckCircle2 size={16} className="shrink-0" /> <span className="truncate">View Uploaded</span>
                           </a>
                           <button type="button" onClick={() => handleDocumentChange(doc.id, 'isEditingFile', true)} className="shrink-0 text-xs bg-white border border-emerald-200 text-emerald-700 px-3 py-1.5 rounded-lg font-bold hover:bg-emerald-100 transition-colors">
