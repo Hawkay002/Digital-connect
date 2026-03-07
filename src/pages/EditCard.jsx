@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { db, auth } from '../firebase'; 
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Plus, X, MapPin, Loader2, Check } from 'lucide-react';
+import { Plus, X, MapPin, Loader2, Check, FileText, Info } from 'lucide-react';
 import { sortedCountryCodes } from '../data/countryCodes';
 
 const QR_STYLES = {
@@ -25,10 +25,13 @@ export default function EditCard() {
   const [isFetchingLoc, setIsFetchingLoc] = useState(false);
   const [initialFetchLoading, setInitialFetchLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isActive, setIsActive] = useState(true); // 🌟 Added isActive status
+  const [isActive, setIsActive] = useState(true);
 
   const [contacts, setContacts] = useState([]);
   const [primaryContactId, setPrimaryContactId] = useState('');
+
+  // 🌟 NEW: Document Vault State
+  const [documents, setDocuments] = useState([]);
 
   const [formData, setFormData] = useState({
     name: '', dob: '', gender: 'Male', 
@@ -49,12 +52,11 @@ export default function EditCard() {
         const docRef = doc(db, "profiles", profileId);
         const docSnap = await getDoc(docRef);
         
-        // 🌟 Ensure they are either the owner or part of the same Family ID
         if (docSnap.exists() && (docSnap.data().familyId === userFamilyId || docSnap.data().userId === auth.currentUser.uid)) {
           const data = docSnap.data();
           setType(data.type);
           setCurrentImageUrl(data.imageUrl);
-          setIsActive(data.isActive !== false); // Default to true if undefined
+          setIsActive(data.isActive !== false); 
           setFormData({
             name: data.name || '', dob: data.dob || '', gender: data.gender || 'Male',
             heightUnit: data.heightUnit || 'ft', heightMain: data.heightMain || '', heightSub: data.heightSub || '',
@@ -66,6 +68,11 @@ export default function EditCard() {
             microchip: data.microchip || '', vaccinationStatus: data.vaccinationStatus || 'Up to Date', 
             temperament: data.temperament || 'Friendly', specialNeeds: data.specialNeeds || ''
           });
+
+          // Load documents if they exist
+          if (data.documents && Array.isArray(data.documents)) {
+             setDocuments(data.documents.map(d => ({ ...d, file: null })));
+          }
 
           if (data.contacts && data.contacts.length > 0) {
             setContacts(data.contacts.map(c => ({
@@ -114,6 +121,24 @@ export default function EditCard() {
     const updatedContacts = contacts.filter(c => c.id !== id);
     setContacts(updatedContacts);
     if (primaryContactId === id) setPrimaryContactId(updatedContacts[0].id);
+  };
+
+  // 🌟 Document Handlers
+  const addDocument = () => {
+    setDocuments([...documents, { id: Date.now().toString(), name: '', file: null, url: '' }]);
+  };
+
+  const removeDocument = async (id) => {
+    const docToRemove = documents.find(d => d.id === id);
+    // If it was already uploaded previously, delete it from Cloudinary to save space
+    if (docToRemove && docToRemove.url) {
+       await deleteOldImage(docToRemove.url);
+    }
+    setDocuments(documents.filter(d => d.id !== id));
+  };
+
+  const handleDocumentChange = (id, field, value) => {
+    setDocuments(documents.map(d => d.id === id ? { ...d, [field]: value } : d));
   };
 
   const fetchLocation = () => {
@@ -187,9 +212,25 @@ export default function EditCard() {
       return setError("Please fill out all contact names, phone numbers, and custom tags.");
     }
 
+    if (documents.some(d => !d.name.trim() || (!d.file && !d.url))) {
+      return setError("Please provide a name and upload a file for every document you added, or remove the empty ones.");
+    }
+
     setLoading(true);
 
     try {
+      // 🌟 Process Documents
+      const processedDocs = [];
+      for (const docItem of documents) {
+        if (docItem.file) {
+          const docUrl = await uploadToCloudinary(docItem.file);
+          if (docItem.url) await deleteOldImage(docItem.url); // delete old replacement
+          processedDocs.push({ id: docItem.id, name: docItem.name.trim(), url: docUrl });
+        } else if (docItem.url) {
+          processedDocs.push({ id: docItem.id, name: docItem.name.trim(), url: docItem.url });
+        }
+      }
+
       let imageUrl = currentImageUrl;
       if (imageFile) {
         imageUrl = await uploadToCloudinary(imageFile);
@@ -197,7 +238,7 @@ export default function EditCard() {
       }
 
       await updateDoc(doc(db, "profiles", profileId), {
-        ...formData, type, imageUrl, contacts, primaryContactId, isActive, updatedAt: new Date().toISOString()
+        ...formData, type, imageUrl, contacts, primaryContactId, isActive, documents: processedDocs, updatedAt: new Date().toISOString()
       });
       navigate('/'); 
     } catch (err) {
@@ -227,7 +268,6 @@ export default function EditCard() {
 
         <form onSubmit={handleUpdate} className="space-y-8">
 
-            {/* 🌟 NEW: Active Status Toggle */}
             <div className={`p-5 rounded-2xl border transition-colors flex items-center justify-between cursor-pointer ${isActive ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`} onClick={() => setIsActive(!isActive)}>
               <div>
                 <h3 className={`font-extrabold text-lg ${isActive ? 'text-emerald-700' : 'text-red-700'}`}>
@@ -449,6 +489,68 @@ export default function EditCard() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <hr className="border-zinc-200" />
+
+            {/* 🌟 NEW: Important Documents (Vault) Section */}
+            <div className="flex justify-between items-center mb-2">
+              <div>
+                <h3 className="text-xl font-extrabold text-brandDark tracking-tight flex items-center gap-2">
+                  <FileText size={20} />
+                  Important Documents
+                  <span className="bg-zinc-200 text-zinc-500 text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-md">Optional</span>
+                </h3>
+              </div>
+              <button type="button" onClick={addDocument} className="flex items-center space-x-1 text-sm bg-brandMuted text-brandDark font-bold px-4 py-2 rounded-lg hover:bg-zinc-200 transition-colors shrink-0">
+                <Plus size={16} /> <span className="hidden sm:inline">Add</span>
+              </button>
+            </div>
+            
+            <div className="bg-brandGold/10 p-3 rounded-xl border border-brandGold/20 flex gap-3 mb-4">
+               <Info size={20} className="text-brandGold shrink-0" />
+               <p className="text-xs text-brandDark font-medium leading-relaxed">
+                 Add vaccination records, medical IDs, or other certificates here. These documents are securely <strong>locked</strong> on the public profile until a finder specifically calls you or shares their exact GPS location to unlock the vault.
+               </p>
+            </div>
+
+            <div className="space-y-4">
+              {documents.map((doc) => (
+                <div key={doc.id} className="p-5 border border-zinc-200 rounded-2xl bg-zinc-50 relative group transition-all">
+                  <button type="button" onClick={() => removeDocument(doc.id)} className="absolute top-3 right-3 text-zinc-400 hover:text-red-500 bg-white shadow-sm p-1.5 rounded-full transition-all">
+                    <X size={14} />
+                  </button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <input 
+                      type="text" 
+                      placeholder="Document Name (e.g., Aadhar Card)" 
+                      value={doc.name} 
+                      onChange={(e) => handleDocumentChange(doc.id, 'name', e.target.value)} 
+                      required 
+                      className="w-full p-3 border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark" 
+                    />
+                    <div className="relative">
+                      {doc.url && !doc.file && (
+                        <div className="absolute top-2 right-2 bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase px-2 py-1 rounded shadow-sm z-10 pointer-events-none">
+                           Uploaded
+                        </div>
+                      )}
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={(e) => handleDocumentChange(doc.id, 'file', e.target.files[0])} 
+                        required={!doc.url} 
+                        className="w-full p-2.5 bg-white border border-zinc-200 rounded-xl text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-brandMuted file:text-brandDark hover:file:bg-zinc-200 transition-all cursor-pointer text-zinc-600 font-medium" 
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {documents.length === 0 && (
+                <div className="text-center py-4 border-2 border-dashed border-zinc-200 rounded-2xl text-zinc-400 text-sm font-medium">
+                  No sensitive documents added.
+                </div>
+              )}
             </div>
 
             <hr className="border-zinc-200" />
