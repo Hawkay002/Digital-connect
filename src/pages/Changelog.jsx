@@ -1,7 +1,19 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Rocket, Paintbrush, Lock, MapPin, QrCode, Zap, Plus, RefreshCw, Wrench, Minus, Siren } from 'lucide-react';
+import { ArrowLeft, Rocket, Paintbrush, Lock, MapPin, QrCode, Zap, Plus, RefreshCw, Wrench, Minus, Siren, ShieldCheck } from 'lucide-react';
 
 const updates = [
+  {
+    version: "v1.2.0",
+    title: "The Security & Vault Update",
+    date: "March 7, 2026",
+    icon: <ShieldCheck className="text-indigo-500" size={24} />,
+    description: "Introducing the Secure Document Vault, dynamic PDF rendering, and strict anti-download protections for maximum data privacy and cross-platform reliability.",
+    changes: [
+      { type: "ADDED", text: "Secure Document Vault: Added a dedicated upload section in the Create and Edit Profile dashboards for medical or government documents. On the Public Card, these files remain visually locked and heavily blurred until a finder actively shares their GPS location or calls an emergency contact to verify they are helping." },
+      { type: "ADDED", text: "PDF-to-Image Engine: Re-engineered document rendering on the Public Card. PDFs are now dynamically rasterized into secure, high-quality JPGs using Cloudinary's format conversion API. This guarantees perfect cross-platform viewing without triggering forced file downloads on mobile browsers." },
+      { type: "ADDED", text: "Anti-Download Protections: Secured all public-facing media on the Public Card. Applied strict CSS and React UI blocks to the hero profile picture, full-screen image modals, and Vault documents to permanently prevent right-clicking, image dragging, and iOS long-press saving by strangers." }
+    ]
+  },
   {
     version: "v1.1.0",
     title: "The Search & Rescue Update",
