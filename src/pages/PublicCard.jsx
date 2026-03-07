@@ -43,7 +43,6 @@ export default function PublicCard() {
   const [activeAlertSent, setActiveAlertSent] = useState(false);
   const [gpsError, setGpsError] = useState('');
 
-  // 🌟 NEW: Vault State & Refs
   const [isVaultUnlocked, setIsVaultUnlocked] = useState(false);
   const [viewingDocument, setViewingDocument] = useState(null);
   const vaultTimerRef = useRef(null);
@@ -123,14 +122,13 @@ export default function PublicCard() {
     return () => clearTimeout(timer);
   }, [profile, profileId, isPreview]);
 
-  // 🌟 NEW: Unlock Vault Function (runs when they call or share location)
   const unlockVault = () => {
     if (isPreview) return;
     setIsVaultUnlocked(true);
     if (vaultTimerRef.current) clearTimeout(vaultTimerRef.current);
     vaultTimerRef.current = setTimeout(() => {
       setIsVaultUnlocked(false);
-    }, 15 * 60 * 1000); // 15 minutes
+    }, 15 * 60 * 1000); 
   };
 
   const handleActiveAlert = (e) => {
@@ -177,7 +175,7 @@ export default function PublicCard() {
           });
 
           setActiveAlertSent(true);
-          unlockVault(); // 🌟 Instantly unlock the documents when they share GPS!
+          unlockVault(); 
         } catch (error) {
           setGpsError("Failed to send alert.");
         } finally {
@@ -247,7 +245,6 @@ export default function PublicCard() {
   return (
     <div className="min-h-screen bg-zinc-100 flex flex-col max-w-md mx-auto shadow-2xl relative font-sans">
       
-      {/* DYNAMIC ISLAND */}
       <div 
         onClick={() => !isIslandExpanded && setIsIslandExpanded(true)}
         className={`fixed top-4 left-1/2 -translate-x-1/2 bg-black/85 backdrop-blur-xl text-white rounded-[2rem] shadow-2xl z-[100] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden cursor-pointer ${isIslandExpanded ? 'w-11/12 max-w-sm p-6' : 'w-auto px-5 py-3 flex items-center justify-center gap-2 hover:bg-black'}`}
@@ -289,7 +286,6 @@ export default function PublicCard() {
       </div>
 
       <div className="relative h-[45vh] w-full shrink-0">
-        {/* 🌟 FIXED: Anti-download protections on the Hero image */}
         <img 
           src={profile.imageUrl} 
           alt={profile.name} 
@@ -463,7 +459,6 @@ export default function PublicCard() {
                     <Phone size={16} fill="currentColor" />
                   </div>
                 ) : (
-                  // 🌟 Intercept call to unlock vault
                   <a href={`tel:${contact.countryCode || ''}${contact.phone}`} onClick={() => unlockVault()} className="bg-brandDark text-white p-3 rounded-full hover:bg-brandAccent transition shadow-sm">
                     <Phone size={16} fill="currentColor" />
                   </a>
@@ -473,25 +468,27 @@ export default function PublicCard() {
           </div>
         </div>
 
-        {/* 🌟 NEW: THE SECURE DOCUMENT VAULT UI */}
+        {/* 🌟 FIXED: Perfected Vault UI to avoid any border cutoffs */}
         {profile.documents && profile.documents.length > 0 && (
-          <div className="bg-brandMuted p-5 rounded-3xl border border-zinc-200/60 mb-8 relative overflow-hidden">
+          <div className="bg-brandMuted p-5 rounded-3xl border border-zinc-200/60 mb-8">
             <div className="flex items-center space-x-2 mb-4 text-brandDark">
               <FileText size={18} />
               <h3 className="font-extrabold tracking-tight">Important Documents</h3>
             </div>
 
             {!isVaultUnlocked ? (
-              <div className="relative rounded-2xl overflow-hidden border border-zinc-200/50">
-                <div className="filter blur-md opacity-40 select-none pointer-events-none p-2 bg-white/50">
-                   <div className="bg-white p-4 rounded-xl mb-3 h-12 shadow-sm"></div>
-                   <div className="bg-white p-4 rounded-xl h-12 w-3/4 shadow-sm"></div>
+              <div className="relative rounded-2xl overflow-hidden border border-zinc-200/50 min-h-[160px] flex items-center justify-center bg-zinc-50/50">
+                {/* Background Blur Elements */}
+                <div className="absolute inset-0 filter blur-md opacity-40 select-none pointer-events-none p-4">
+                   <div className="bg-white rounded-xl mb-3 h-12 shadow-sm w-full"></div>
+                   <div className="bg-white rounded-xl h-12 w-3/4 shadow-sm"></div>
                 </div>
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-5 text-center z-10">
-                   <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg mb-3 text-brandDark border border-zinc-100">
+                {/* Foreground Lock Info */}
+                <div className="relative z-10 flex flex-col items-center justify-center p-5 text-center w-full">
+                   <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg mb-3 text-brandDark border border-zinc-100 shrink-0">
                      <Lock size={20} />
                    </div>
-                   <p className="text-xs font-bold text-brandDark bg-white/95 backdrop-blur px-4 py-2.5 rounded-xl shadow-lg border border-zinc-100 max-w-[250px] leading-relaxed">
+                   <p className="text-xs font-bold text-brandDark bg-white/95 backdrop-blur px-4 py-2.5 rounded-xl shadow-lg border border-zinc-100 max-w-[260px] leading-relaxed">
                      Vault Locked. Please call an emergency contact or share your location above to view sensitive documents.
                    </p>
                 </div>
@@ -504,8 +501,8 @@ export default function PublicCard() {
                     onClick={() => setViewingDocument(doc)} 
                     className="w-full flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-zinc-200 hover:border-brandDark/30 hover:shadow-md transition-all group"
                   >
-                    <span className="font-extrabold text-brandDark text-sm tracking-tight">{doc.name}</span>
-                    <div className="bg-zinc-100 p-2 rounded-lg group-hover:bg-brandDark group-hover:text-white transition-colors">
+                    <span className="font-extrabold text-brandDark text-sm tracking-tight truncate pr-4">{doc.name}</span>
+                    <div className="bg-zinc-100 p-2 rounded-lg group-hover:bg-brandDark group-hover:text-white transition-colors shrink-0">
                       <FileText size={16} />
                     </div>
                   </button>
@@ -549,7 +546,6 @@ export default function PublicCard() {
             <span className="truncate">{profile.isLost ? `CALL IMMEDIATELY` : `Call ${primaryContact.name} (Emergency)`}</span>
           </div>
         ) : (
-          // 🌟 Intercept main call button to unlock vault
           <a href={`tel:${primaryContact.countryCode || ''}${primaryContact.phone}`} onClick={() => unlockVault()} className={`w-full flex items-center justify-center space-x-2 py-3.5 px-4 rounded-2xl font-black text-lg shadow-lg transition-all ${profile.isLost ? 'bg-red-600 text-white animate-[pulse_1.5s_ease-in-out_infinite] shadow-[0_0_20px_rgba(239,68,68,0.5)] border-2 border-red-400' : 'bg-brandDark text-white hover:bg-brandAccent'}`}>
             <Phone size={22} fill={profile.isLost ? "currentColor" : "none"} />
             <span className="truncate">{profile.isLost ? `CALL ${primaryContact.name.toUpperCase()} IMMEDIATELY` : `Call ${primaryContact.name} (Emergency)`}</span>
@@ -583,7 +579,6 @@ export default function PublicCard() {
         </div>
       </div>
 
-      {/* 🌟 FIXED: Anti-download on Full Hero Image Modal */}
       {isImageEnlarged && !isPreview && (
         <div className="fixed inset-0 z-[100] bg-brandDark/95 flex items-center justify-center p-4 backdrop-blur-lg">
           <button onClick={() => setIsImageEnlarged(false)} className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition z-[110]">
@@ -600,24 +595,31 @@ export default function PublicCard() {
         </div>
       )}
 
-      {/* 🌟 NEW: View Document Modal with Anti-download */}
+      {/* 🌟 NEW: View Document Modal with PDF Support */}
       {viewingDocument && !isPreview && (
-        <div className="fixed inset-0 z-[120] bg-brandDark/95 flex items-center justify-center p-4 backdrop-blur-lg animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[120] bg-brandDark/95 flex flex-col items-center justify-center p-4 backdrop-blur-lg animate-in fade-in duration-200">
           <div className="absolute top-4 w-full px-6 flex justify-between items-center z-[130]">
-             <h3 className="text-white font-extrabold tracking-tight drop-shadow-md">{viewingDocument.name}</h3>
-             <button onClick={() => setViewingDocument(null)} className="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition">
+             <h3 className="text-white font-extrabold tracking-tight drop-shadow-md truncate pr-4">{viewingDocument.name}</h3>
+             <button onClick={() => setViewingDocument(null)} className="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition shrink-0">
                <X size={24} />
              </button>
           </div>
-          <div className="w-full h-full flex items-center justify-center p-4 pt-16">
-            <img 
-              src={viewingDocument.url} 
-              alt={viewingDocument.name} 
-              onContextMenu={(e) => e.preventDefault()} 
-              draggable="false" 
-              style={{ WebkitTouchCallout: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
-              className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl relative z-[125]" 
-            />
+          <div className="w-full h-full flex items-center justify-center pt-16 pb-4">
+            {viewingDocument.url.toLowerCase().includes('.pdf') ? (
+              <iframe 
+                src={`${viewingDocument.url}#toolbar=0`} 
+                className="w-full h-full max-h-[85vh] rounded-2xl shadow-2xl relative z-[125] bg-white" 
+              />
+            ) : (
+              <img 
+                src={viewingDocument.url} 
+                alt={viewingDocument.name} 
+                onContextMenu={(e) => e.preventDefault()} 
+                draggable="false" 
+                style={{ WebkitTouchCallout: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
+                className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl relative z-[125]" 
+              />
+            )}
           </div>
         </div>
       )}
