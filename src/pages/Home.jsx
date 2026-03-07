@@ -4,7 +4,7 @@ import {
   Shield, MapPin, BellRing, Heart, QrCode, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
   ChevronDown, Lock, Globe, Infinity, Zap, Mail, MessageCircle, Send, 
-  Users, Wifi, Database, Phone, AlertTriangle, PowerOff, Trash2, Rocket, Siren, Megaphone
+  Users, Wifi, Database, Phone, AlertTriangle, PowerOff, Trash2, Rocket, Siren, Megaphone, FileText, ShieldCheck
 } from 'lucide-react';
 
 export default function Home() {
@@ -25,7 +25,6 @@ export default function Home() {
     setTimeout(() => setShowGithubTooltip(false), 2500);
   };
 
-  // 🌟 NEW: Completely Updated FAQs to explain Lost Mode, KinAlerts, and Zip Codes
   const faqData = [
   {
     q: "Is there a monthly subscription fee?",
@@ -38,6 +37,14 @@ export default function Home() {
   {
     q: "Can my spouse and I both receive alerts?",
     a: "Yes! With our Family Sharing feature, you can invite up to 5 co-guardians. If your child or pet's tag is scanned, every guardian receives an instant push notification on their own phone, and everyone can manage the profiles."
+  },
+  {
+    q: "Can I upload medical records or government IDs?",
+    a: "Yes. Our Secure Document Vault allows you to attach sensitive files like Rabies Certificates or Autism Medical IDs. To protect your privacy, these documents remain heavily blurred and locked until the finder physically taps 'Share Location' or calls your emergency contact."
+  },
+  {
+    q: "Can strangers download my child's photos or documents?",
+    a: "No. We have implemented strict anti-download protections across all public profiles. Right-clicking, image dragging, and mobile long-press saving are completely disabled to protect your family's data."
   },
   {
     q: "What is 'Lost Mode' (The Panic Button)?",
@@ -96,10 +103,6 @@ export default function Home() {
     a: "You have total ownership of your data. We built a 'Danger Zone' in your profile settings where you can permanently wipe your account, all created profiles, and all scan histories from our servers instantly."
   },
   {
-    q: "Is my medical and contact data kept private?",
-    a: "Your data is only accessible to someone who physically scans your unique, randomly generated tag. It is not listed in a public directory or searchable on Google."
-  },
-  {
     q: "Can I self-host this application?",
     a: "Yes. KinTag was built to be open and transparent. Developers can clone the repository and hook it up to their own private database for ultimate ownership."
   }
@@ -134,7 +137,7 @@ export default function Home() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span className="text-xs font-extrabold uppercase tracking-widest text-zinc-500">V1.1.0 is now live</span>
+            <span className="text-xs font-extrabold uppercase tracking-widest text-zinc-500">V1.1.1 is now live</span>
           </div>
           
           <h1 className="text-5xl md:text-7xl font-extrabold text-brandDark tracking-tight leading-[1.1] mb-6">
@@ -275,7 +278,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 18 FEATURES GRID */}
+      {/* FEATURES GRID */}
       <section className="py-24 bg-white border-y border-zinc-100">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="text-center mb-16">
@@ -285,37 +288,39 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-  {/* How it Works */}
-  <FeatureCard icon={<Smartphone size={24} className="text-blue-500" />} title="No App Required" desc="Anyone with a smartphone camera can scan the tag. There is absolutely nothing for the finder to download or install." />
-  <FeatureCard icon={<Zap size={24} className="text-yellow-500" />} title="Instant Setup" desc="Skip the wait times of ordering custom engraved metals. Create an account and secure your child or pet in under 2 minutes." />
-  <FeatureCard icon={<Infinity size={24} className="text-rose-500" />} title="Unlimited Scans" desc="There is absolutely no cap on how many times your QR codes or NFC tags can be scanned." />
+            {/* How it Works */}
+            <FeatureCard icon={<Smartphone size={24} className="text-blue-500" />} title="No App Required" desc="Anyone with a smartphone camera can scan the tag. There is absolutely nothing for the finder to download or install." />
+            <FeatureCard icon={<Zap size={24} className="text-yellow-500" />} title="Instant Setup" desc="Skip the wait times of ordering custom engraved metals. Create an account and secure your child or pet in under 2 minutes." />
+            <FeatureCard icon={<Infinity size={24} className="text-rose-500" />} title="Unlimited Scans" desc="There is absolutely no cap on how many times your QR codes or NFC tags can be scanned." />
 
-  {/* Core Safety Features */}
-  <FeatureCard icon={<MapPin size={24} className="text-emerald-500" />} title="Precision GPS Pinpointing" desc="When scanned, the finder can securely send their exact coordinates directly to your phone with a single tap." />
-  <FeatureCard icon={<Wifi size={24} className="text-rose-400" />} title="Passive Location Fallback" desc="Even if the finder denies GPS access, KinTag will passively log their general IP-based city and send an alert." />
-  <FeatureCard icon={<BellRing size={24} className="text-brandGold" />} title="Instant Push Alerts" desc="The second a tag is scanned, you receive an emergency push notification alerting you that your loved one was found." />
+            {/* Core Safety Features */}
+            <FeatureCard icon={<MapPin size={24} className="text-emerald-500" />} title="Precision GPS Pinpointing" desc="When scanned, the finder can securely send their exact coordinates directly to your phone with a single tap." />
+            <FeatureCard icon={<Wifi size={24} className="text-rose-400" />} title="Passive Location Fallback" desc="Even if the finder denies GPS access, KinTag will passively log their general IP-based city and send an alert." />
+            <FeatureCard icon={<BellRing size={24} className="text-brandGold" />} title="Instant Push Alerts" desc="The second a tag is scanned, you receive an emergency push notification alerting you that your loved one was found." />
 
-  {/* Emergency Features */}
-  <FeatureCard icon={<Phone size={24} className="text-emerald-600" />} title="One-Tap Emergency Dial" desc="A massive, clear button allows the finder to instantly dial your emergency contact number without copying it." />
-  <FeatureCard icon={<Siren size={24} className="text-red-500" />} title="Lost Mode (Panic Button)" desc="Instantly transform a lost tag into a high-alert distress signal with a flashing missing banner and pulsing emergency dialer." />
-  <FeatureCard icon={<Megaphone size={24} className="text-amber-500" />} title="KinAlert Broadcasts" desc="Trigger an instant localized push notification to all other KinTag users in your zip code to help search for your missing loved one." />
+            {/* Emergency Features */}
+            <FeatureCard icon={<Phone size={24} className="text-emerald-600" />} title="One-Tap Emergency Dial" desc="A massive, clear button allows the finder to instantly dial your emergency contact number without copying it." />
+            <FeatureCard icon={<Siren size={24} className="text-red-500" />} title="Lost Mode (Panic Button)" desc="Instantly transform a lost tag into a high-alert distress signal with a flashing missing banner and pulsing emergency dialer." />
+            <FeatureCard icon={<Megaphone size={24} className="text-amber-500" />} title="KinAlert Broadcasts" desc="Trigger an instant localized push notification to all other KinTag users in your zip code to help search for your missing loved one." />
 
-  {/* Family & Sharing */}
-  <FeatureCard icon={<Users size={24} className="text-indigo-500" />} title="Co-Guardian Family Sharing" desc="Invite up to 5 family members. When a tag is scanned, every co-guardian receives an instant push alert simultaneously." />
+            {/* New Vault & Security Features */}
+            <FeatureCard icon={<FileText size={24} className="text-indigo-500" />} title="Secure Document Vault" desc="Upload sensitive medical records or IDs. They remain heavily locked and blurred until the finder explicitly shares their GPS location or calls you." />
+            <FeatureCard icon={<ShieldCheck size={24} className="text-emerald-600" />} title="Anti-Download Protection" desc="Strict UI protections prevent strangers from right-clicking, dragging, or long-pressing to save your photos and documents." />
+            <FeatureCard icon={<Users size={24} className="text-indigo-500" />} title="Co-Guardian Family Sharing" desc="Invite up to 5 family members. When a tag is scanned, every co-guardian receives an instant push alert simultaneously." />
 
-  {/* Info for Finder */}
-  <FeatureCard icon={<AlertTriangle size={24} className="text-amber-500" />} title="Behavioral Alerts" desc="Highlight critical non-verbal behaviors, special needs, or fears so the finder knows exactly how to approach them." />
-  <FeatureCard icon={<Heart size={24} className="text-pink-500" />} title="Critical Medical Info" desc="Display crucial allergies, blood types, and daily medications instantly to whoever scans the tag." />
-  <FeatureCard icon={<Database size={24} className="text-zinc-600" />} title="Microchip Linking" desc="Store your pet's official microchip ID number visibly so veterinarians can cross-reference it instantly." />
-  <FeatureCard icon={<Activity size={24} className="text-sky-500" />} title="Vaccination Records" desc="Display rabies and core vaccination statuses to reassure finders that your pet is safe to handle." />
+            {/* Info for Finder */}
+            <FeatureCard icon={<AlertTriangle size={24} className="text-amber-500" />} title="Behavioral Alerts" desc="Highlight critical non-verbal behaviors, special needs, or fears so the finder knows exactly how to approach them." />
+            <FeatureCard icon={<Heart size={24} className="text-pink-500" />} title="Critical Medical Info" desc="Display crucial allergies, blood types, and daily medications instantly to whoever scans the tag." />
+            <FeatureCard icon={<Database size={24} className="text-zinc-600" />} title="Microchip Linking" desc="Store your pet's official microchip ID number visibly so veterinarians can cross-reference it instantly." />
+            
+            {/* Management & Reliability */}
+            <FeatureCard icon={<Activity size={24} className="text-sky-500" />} title="Vaccination Records" desc="Display rabies and core vaccination statuses to reassure finders that your pet is safe to handle." />
+            <FeatureCard icon={<RefreshCw size={24} className="text-teal-500" />} title="Dynamic Updates" desc="Moved to a new house? Changed your phone number? Update your profile instantly without ever needing to print a new tag." />
+            <FeatureCard icon={<Cloud size={24} className="text-sky-400" />} title="Cloud Synced" desc="All your profiles are securely backed up to the cloud. Access and manage your dashboard from any device." />
+            <FeatureCard icon={<Trash2 size={24} className="text-zinc-800" />} title="Complete Data Control" desc="You own your data. Permanently wipe your account, profiles, and scan histories from our servers at any time." />
+            <FeatureCard icon={<Battery size={24} className="text-orange-500" />} title="Zero Battery Required" desc="Unlike bulky GPS collars that constantly die and require charging, KinTag relies on the battery and cellular data of the Good Samaritan's smartphone. Your tag will never run out of power." />
 
-  {/* Management & Reliability */}
-  <FeatureCard icon={<RefreshCw size={24} className="text-teal-500" />} title="Dynamic Updates" desc="Moved to a new house? Changed your phone number? Update your profile instantly without ever needing to print a new tag." />
-  <FeatureCard icon={<Cloud size={24} className="text-sky-400" />} title="Cloud Synced" desc="All your profiles are securely backed up to the cloud. Access and manage your dashboard from any device." />
-  <FeatureCard icon={<Trash2 size={24} className="text-zinc-800" />} title="Complete Data Control" desc="You own your data. Permanently wipe your account, profiles, and scan histories from our servers at any time." />
-  <FeatureCard icon={<Battery size={24} className="text-orange-500" />} title="Zero Battery Required" desc="Unlike bulky GPS collars that constantly die and require charging, KinTag relies on the battery and cellular data of the Good Samaritan's smartphone. Your tag will never run out of power." />
-
-</div>
+          </div>
         </div>
       </section>
 
