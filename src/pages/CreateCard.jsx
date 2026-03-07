@@ -3,7 +3,7 @@ import { db, auth } from '../firebase';
 import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
-import { Download, Plus, X, MapPin, Loader2, Check, FileText, Info } from 'lucide-react';
+import { Download, Plus, X, MapPin, Loader2, Check, Info } from 'lucide-react';
 import { sortedCountryCodes } from '../data/countryCodes';
 
 const QR_STYLES = {
@@ -30,7 +30,6 @@ export default function CreateCard() {
   ]);
   const [primaryContactId, setPrimaryContactId] = useState(contacts[0].id);
 
-  // 🌟 NEW: Document Vault State
   const [documents, setDocuments] = useState([]);
 
   const [formData, setFormData] = useState({
@@ -76,7 +75,6 @@ export default function CreateCard() {
     if (primaryContactId === id) setPrimaryContactId(updatedContacts[0].id);
   };
 
-  // 🌟 NEW: Document Handlers
   const addDocument = () => {
     setDocuments([...documents, { id: Date.now().toString(), name: '', file: null, url: '' }]);
   };
@@ -120,6 +118,7 @@ export default function CreateCard() {
     );
   };
 
+  // 🌟 FIXED: Changed API to /auto/upload to properly handle PDFs and Doc files
   const uploadToCloudinary = async (file) => {
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME; 
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET; 
@@ -127,7 +126,7 @@ export default function CreateCard() {
     uploadData.append('file', file);
     uploadData.append('upload_preset', uploadPreset);
     try {
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: uploadData });
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, { method: 'POST', body: uploadData });
       const data = await response.json();
       return data.secure_url; 
     } catch (err) {
@@ -151,7 +150,6 @@ export default function CreateCard() {
     setLoading(true);
 
     try {
-      // 🌟 NEW: Process Document Uploads First
       const processedDocs = [];
       for (const docItem of documents) {
         if (docItem.file) {
@@ -168,7 +166,7 @@ export default function CreateCard() {
         imageUrl, 
         contacts, 
         primaryContactId, 
-        documents: processedDocs, // 🌟 Save to Firestore
+        documents: processedDocs, 
         userId: auth.currentUser.uid, 
         familyId: familyId,
         isActive: true,
@@ -438,15 +436,9 @@ export default function CreateCard() {
 
             <hr className="border-zinc-200" />
 
-            {/* 🌟 NEW: Important Documents (Vault) Section */}
+            {/* 🌟 FIXED: Proper sizing, no icon, and accepting PDFs */}
             <div className="flex justify-between items-center mb-2">
-              <div>
-                <h3 className="text-xl font-extrabold text-brandDark tracking-tight flex items-center gap-2">
-                  <FileText size={20} />
-                  Important Documents
-                  <span className="bg-zinc-200 text-zinc-500 text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-md">Optional</span>
-                </h3>
-              </div>
+              <h3 className="text-xl font-extrabold text-brandDark tracking-tight">Important Documents (Optional)</h3>
               <button type="button" onClick={addDocument} className="flex items-center space-x-1 text-sm bg-brandMuted text-brandDark font-bold px-4 py-2 rounded-lg hover:bg-zinc-200 transition-colors shrink-0">
                 <Plus size={16} /> <span className="hidden sm:inline">Add</span>
               </button>
@@ -474,13 +466,20 @@ export default function CreateCard() {
                       required 
                       className="w-full p-3 border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark" 
                     />
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={(e) => handleDocumentChange(doc.id, 'file', e.target.files[0])} 
-                      required={!doc.url} 
-                      className="w-full p-2.5 bg-white border border-zinc-200 rounded-xl text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-brandMuted file:text-brandDark hover:file:bg-zinc-200 transition-all cursor-pointer text-zinc-600 font-medium" 
-                    />
+                    <div className="relative">
+                      {doc.url && !doc.file && (
+                        <div className="absolute top-2 right-2 bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase px-2 py-1 rounded shadow-sm z-10 pointer-events-none">
+                           Uploaded
+                        </div>
+                      )}
+                      <input 
+                        type="file" 
+                        accept="image/*,application/pdf,.doc,.docx" 
+                        onChange={(e) => handleDocumentChange(doc.id, 'file', e.target.files[0])} 
+                        required={!doc.url} 
+                        className="w-full p-2.5 bg-white border border-zinc-200 rounded-xl text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-brandMuted file:text-brandDark hover:file:bg-zinc-200 transition-all cursor-pointer text-zinc-600 font-medium" 
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
