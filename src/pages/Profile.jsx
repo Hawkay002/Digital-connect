@@ -3,7 +3,7 @@ import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore'; 
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, ArrowLeft, Users, Mail, Link as LinkIcon, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2, UserMinus, MapPin, Share2, LifeBuoy, MessageCircle, Send } from 'lucide-react'; 
+import { User, LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2, UserMinus, MapPin, Share2, LifeBuoy, MessageCircle, Send, Info, ChevronDown, Check } from 'lucide-react'; 
 import { sortedCountryCodes } from '../data/countryCodes'; 
 
 export default function Profile() {
@@ -37,6 +37,12 @@ export default function Profile() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   
+  // 🌟 NEW: Support Ticket States
+  const [supportTickets, setSupportTickets] = useState([]);
+  const [expandedTicketId, setExpandedTicketId] = useState(null);
+  const [resolvingTicketId, setResolvingTicketId] = useState(null);
+  const [copiedId, setCopiedId] = useState(false);
+  
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportLoading, setSupportLoading] = useState(false);
   const [supportMessage, setSupportMessage] = useState('');
@@ -63,6 +69,14 @@ export default function Profile() {
         const familyQuery = query(collection(db, "users"), where("familyId", "==", activeFamilyId));
         const familySnaps = await getDocs(familyQuery);
         setFamilyMembers(familySnaps.docs.map(d => ({ id: d.id, ...d.data() })));
+
+        // 🌟 NEW: Fetch user's active support tickets
+        const ticketsQuery = query(collection(db, "support_tickets"), where("userId", "==", auth.currentUser.uid));
+        const ticketsSnaps = await getDocs(ticketsQuery);
+        const fetchedTickets = ticketsSnaps.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Sort newest first
+        setSupportTickets(fetchedTickets.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+
       } catch (err) {
         console.error(err);
       } finally {
@@ -94,9 +108,7 @@ export default function Profile() {
     if (!editZipValue.trim()) return;
     setProfileError(''); setProfileSuccess('');
     try {
-      // 🌟 FORMAT: Remove all spaces and make uppercase before saving!
       const formattedZip = editZipValue.replace(/\s+/g, '').toUpperCase();
-      
       await updateDoc(doc(db, "users", auth.currentUser.uid), { zipCode: formattedZip });
       setUserData(prev => ({ ...prev, zipCode: formattedZip }));
       setIsEditingZip(false);
@@ -118,9 +130,7 @@ export default function Profile() {
         await navigator.share(shareData);
         setShareMessage("Thanks for sharing KinTag!");
         setTimeout(() => setShareMessage(''), 3000);
-      } catch (e) {
-        // User likely canceled the share, ignore silently
-      }
+      } catch (e) {}
     } else {
       try {
         await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
@@ -132,6 +142,7 @@ export default function Profile() {
     }
   };
 
+  // 🌟 NEW: Support Logic
   const openSupport = () => {
     const sId = 'SUP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
     setSupportForm({
@@ -149,6 +160,12 @@ export default function Profile() {
     setShowSupportModal(true);
   };
 
+  const copySupportId = (id) => {
+    navigator.clipboard.writeText(id);
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 2000);
+  };
+
   const handleSupportSubmit = async (e) => {
     e.preventDefault();
     setSupportLoading(true);
@@ -162,24 +179,63 @@ export default function Profile() {
     }
 
     try {
+      // 1. Send to Telegram via backend API
       const res = await fetch('/api/support', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(supportForm)
       });
       const data = await res.json();
-      
       if (!res.ok) throw new Error(data.error || "Failed to send support request.");
       
-      setSupportMessage("Request sent successfully! We will reach out to you shortly.");
+      // 2. Save ticket to Firestore
+      const ticketData = {
+        supportId: supportForm.supportId,
+        message: supportForm.message,
+        platform: supportForm.platform,
+        contactValue: supportForm.platform === 'whatsapp' ? `${supportForm.countryCode} ${supportForm.contactValue}` : `@${supportForm.contactValue.replace(/^@/, '')}`,
+        userId: auth.currentUser.uid,
+        email: supportForm.email,
+        timestamp: new Date().toISOString()
+      };
+      const docRef = await addDoc(collection(db, "support_tickets"), ticketData);
+      
+      // 3. Prepend to local state for instant rendering
+      setSupportTickets([{ id: docRef.id, ...ticketData }, ...supportTickets]);
+      
+      setSupportMessage("Request sent successfully! Your ticket has been logged.");
       setTimeout(() => { 
         setShowSupportModal(false); 
         setSupportMessage(''); 
-      }, 4000);
+      }, 3000);
     } catch(err) {
       setSupportError(err.message);
     } finally {
       setSupportLoading(false);
+    }
+  };
+
+  const handleResolveTicket = async (ticket) => {
+    setResolvingTicketId(ticket.id);
+    try {
+      // 1. Trigger the email send
+      const res = await fetch('/api/resolve-ticket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ supportId: ticket.supportId, email: ticket.email || auth.currentUser.email })
+      });
+      if (!res.ok) throw new Error("Failed to send resolution email.");
+
+      // 2. Delete from database
+      await deleteDoc(doc(db, "support_tickets", ticket.id));
+      
+      // 3. Remove instantly from UI
+      setSupportTickets(prev => prev.filter(t => t.id !== ticket.id));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to resolve ticket. Please try again.");
+    } finally {
+      setResolvingTicketId(null);
     }
   };
 
@@ -212,11 +268,7 @@ export default function Profile() {
       
       if (navigator.share) {
         try {
-          await navigator.share({
-            title: 'KinTag Co-Guardian Invite',
-            text: `${userData?.name || 'A family member'} invited you to co-manage their KinTag profiles.`,
-            url: link
-          });
+          await navigator.share({ title: 'KinTag Co-Guardian Invite', text: `${userData?.name || 'A family member'} invited you to co-manage their KinTag profiles.`, url: link });
           sharedNative = true;
           setInviteSuccess("Invite sent successfully!");
         } catch (shareErr) {}
@@ -230,14 +282,9 @@ export default function Profile() {
           setInviteSuccess("Invite saved! Ask them to sign up with that exact email.");
         }
       }
-      
       setInviteEmail('');
     } catch (err) {
-      if (err.message.includes("Missing or insufficient permissions") || err.code === "permission-denied") {
-        setInviteError("Firebase Error: You need to update your Firestore Security Rules to allow writing to the 'invites' collection.");
-      } else {
-        setInviteError(err.message || "Failed to send invite. Please try again.");
-      }
+      setInviteError(err.message || "Failed to send invite.");
     } finally {
       setInviteLoading(false);
     }
@@ -259,7 +306,7 @@ export default function Profile() {
       setFamilyMembers(prev => prev.filter(m => m.id !== guardianToRemove.id));
       setInviteSuccess(`${guardianToRemove.name || guardianToRemove.email} was removed successfully.`);
     } catch (err) {
-      setInviteError("Failed to remove guardian. Ensure your Firebase rules are updated.");
+      setInviteError("Failed to remove guardian.");
     } finally {
       setGuardianToRemove(null);
     }
@@ -353,7 +400,6 @@ export default function Profile() {
             <p className="text-zinc-500 font-medium">{auth.currentUser?.email}</p>
           </div>
 
-          {/* Zip Code Field Section */}
           <div className="max-w-xs mx-auto bg-zinc-50 p-4 rounded-2xl border border-zinc-200 mt-6 relative">
             <div className="flex items-center justify-center gap-2 mb-2 text-brandDark font-bold">
               <MapPin size={16} className="text-brandGold" />
@@ -377,7 +423,6 @@ export default function Profile() {
               </div>
             )}
           </div>
-
           {profileError && <div className="mt-6 mx-auto max-w-xs p-4 bg-red-50 text-red-600 text-sm font-bold rounded-xl border border-red-100">{profileError}</div>}
           {profileSuccess && <div className="mt-6 mx-auto max-w-xs p-4 bg-emerald-50 text-emerald-600 text-sm font-bold rounded-xl border border-emerald-100 flex items-center justify-center gap-2"><CheckCircle2 size={18} /> {profileSuccess}</div>}
         </div>
@@ -439,7 +484,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Support Card */}
+        {/* Support Block */}
         <div className="bg-white rounded-3xl shadow-premium border border-zinc-100 p-6 md:p-8 mb-8 flex flex-col sm:flex-row items-center justify-between transition-all hover:shadow-md gap-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
              <div className="w-14 h-14 bg-brandGold/10 text-brandGold rounded-full flex items-center justify-center shrink-0">
@@ -455,7 +500,56 @@ export default function Profile() {
           </button>
         </div>
 
-        {/* Elegant Separator */}
+        {/* 🌟 NEW: Active Support Tickets UI */}
+        {supportTickets.length > 0 && (
+          <div className="bg-white rounded-3xl shadow-sm border border-zinc-200 p-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <h3 className="text-sm font-extrabold text-zinc-400 uppercase tracking-widest mb-4">Active Support Tickets</h3>
+            <div className="space-y-3">
+              {supportTickets.map((ticket) => (
+                <div key={ticket.id} className="bg-zinc-50 rounded-2xl border border-zinc-200 overflow-hidden transition-all duration-300">
+                  
+                  {/* Accordion Header */}
+                  <button 
+                    onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)} 
+                    className="w-full px-5 py-4 flex items-center justify-between hover:bg-zinc-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
+                      <span className="font-mono font-bold text-brandDark tracking-wide">{ticket.supportId}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm font-bold text-zinc-500">
+                      <span className="hidden sm:inline">View Details</span>
+                      <ChevronDown size={18} className={`transition-transform duration-300 ${expandedTicketId === ticket.id ? 'rotate-180' : ''}`} />
+                    </div>
+                  </button>
+
+                  {/* Accordion Body */}
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedTicketId === ticket.id ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <div className="p-5 pt-0 border-t border-zinc-200 mt-2">
+                      <div className="flex items-center gap-2 mb-3 mt-4 text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                        <span>Submitted on:</span>
+                        <span className="text-zinc-600">{new Date(ticket.timestamp).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                      </div>
+                      <p className="text-sm text-brandDark font-medium bg-white p-4 rounded-xl border border-zinc-200 mb-4 whitespace-pre-wrap leading-relaxed shadow-sm">
+                        "{ticket.message}"
+                      </p>
+                      
+                      <button 
+                        onClick={() => handleResolveTicket(ticket)}
+                        disabled={resolvingTicketId === ticket.id}
+                        className="w-full bg-emerald-500 text-white py-3 rounded-xl font-bold shadow-sm hover:bg-emerald-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {resolvingTicketId === ticket.id ? <Loader2 size={18} className="animate-spin"/> : <CheckCircle2 size={18} />}
+                        {resolvingTicketId === ticket.id ? 'Resolving...' : 'Mark as Resolved'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-center mb-8 relative">
           <div className="w-full h-px bg-zinc-200"></div>
           <span className="absolute bg-zinc-50 px-4 text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
@@ -463,7 +557,7 @@ export default function Profile() {
           </span>
         </div>
 
-        {/* Danger Zone for Account Deletion */}
+        {/* Danger Zone */}
         <div className="bg-red-50/50 rounded-3xl border border-red-100 p-8">
           <div className="flex items-center gap-3 mb-2">
             <AlertOctagon size={24} className="text-red-500" />
@@ -472,54 +566,12 @@ export default function Profile() {
           <p className="text-red-800/70 font-medium mb-6 leading-relaxed">
             Permanently delete your account, all profiles, and all scan history. This action cannot be undone.
           </p>
-          
           <button onClick={() => setShowDeleteZone(true)} className="bg-red-100 text-red-600 font-bold px-6 py-3 rounded-xl hover:bg-red-200 transition-colors shadow-sm">
             Delete Account
           </button>
         </div>
 
         {/* --- MODALS --- */}
-
-        {/* Guardian Removal Modal */}
-        {guardianToRemove && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
-            <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200">
-              <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-5">
-                <UserMinus size={32} />
-              </div>
-              <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">Remove Guardian?</h2>
-              <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">
-                Are you sure you want to remove <strong className="text-brandDark">{guardianToRemove.name || guardianToRemove.email}</strong>? They will instantly lose access to your family dashboard, profiles, and notifications.
-              </p>
-              <div className="flex gap-3">
-                <button onClick={() => setGuardianToRemove(null)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-colors">Cancel</button>
-                <button onClick={confirmRemoveGuardian} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">Yes, Remove</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Share Modal */}
-        {showShareModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
-            <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200 relative">
-              <button onClick={() => setShowShareModal(false)} className="absolute top-6 right-6 text-zinc-400 hover:bg-zinc-100 p-2 rounded-full transition-colors">
-                <X size={20} />
-              </button>
-              <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Share2 size={32} />
-              </div>
-              <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">Share KinTag</h2>
-              <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">
-                Enjoying KinTag? Help us build a safer community by sharing it with your friends and family.
-              </p>
-              <button onClick={handleShareApp} className="w-full bg-emerald-500 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2">
-                <Share2 size={18} /> Share Now
-              </button>
-              {shareMessage && <p className="text-xs text-emerald-600 font-bold mt-4 animate-in fade-in duration-300">{shareMessage}</p>}
-            </div>
-          </div>
-        )}
 
         {/* Support Form Modal */}
         {showSupportModal && (
@@ -543,9 +595,21 @@ export default function Profile() {
                 <form onSubmit={handleSupportSubmit} className="space-y-4">
                    {supportError && <div className="p-3 bg-red-50 text-red-600 text-sm font-bold rounded-xl border border-red-100">{supportError}</div>}
 
-                   <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-200 flex justify-between items-center">
-                     <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Ticket ID</span>
-                     <span className="font-mono font-bold text-brandDark">{supportForm.supportId}</span>
+                   {/* 🌟 UPDATED: Ticket ID Box with Tooltip & Copy */}
+                   <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-200 flex justify-between items-center relative group transition-colors hover:border-zinc-300">
+                     <div className="flex items-center gap-1.5">
+                       <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Ticket ID</span>
+                       <div className="relative flex items-center justify-center">
+                          <Info size={14} className="text-brandGold cursor-help peer" />
+                          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 bg-brandDark text-white text-[10px] p-2 rounded-lg opacity-0 peer-hover:opacity-100 transition-opacity pointer-events-none z-10 text-center shadow-xl">
+                            Copy and save this ID for future reference.
+                          </div>
+                       </div>
+                     </div>
+                     <button type="button" onClick={() => copySupportId(supportForm.supportId)} className="flex items-center gap-2 text-brandDark hover:text-brandGold transition-colors" title="Copy ID">
+                       <span className="font-mono font-bold tracking-wide">{supportForm.supportId}</span>
+                       {copiedId ? <Check size={16} className="text-emerald-500"/> : <Copy size={16}/>}
+                     </button>
                    </div>
 
                    <div className="grid grid-cols-2 gap-3">
@@ -607,7 +671,46 @@ export default function Profile() {
           </div>
         )}
 
-        {/* Delete Account Modal */}
+        {/* Delete Account Modal & Remove Guardian Modals Remained Unchanged Below */}
+        {guardianToRemove && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
+            <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200">
+              <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-5">
+                <UserMinus size={32} />
+              </div>
+              <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">Remove Guardian?</h2>
+              <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">
+                Are you sure you want to remove <strong className="text-brandDark">{guardianToRemove.name || guardianToRemove.email}</strong>? They will instantly lose access to your family dashboard, profiles, and notifications.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setGuardianToRemove(null)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-colors">Cancel</button>
+                <button onClick={confirmRemoveGuardian} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">Yes, Remove</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showShareModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
+            <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200 relative">
+              <button onClick={() => setShowShareModal(false)} className="absolute top-6 right-6 text-zinc-400 hover:bg-zinc-100 p-2 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+              <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Share2 size={32} />
+              </div>
+              <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">Share KinTag</h2>
+              <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">
+                Enjoying KinTag? Help us build a safer community by sharing it with your friends and family.
+              </p>
+              <button onClick={handleShareApp} className="w-full bg-emerald-500 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2">
+                <Share2 size={18} /> Share Now
+              </button>
+              {shareMessage && <p className="text-xs text-emerald-600 font-bold mt-4 animate-in fade-in duration-300">{shareMessage}</p>}
+            </div>
+          </div>
+        )}
+
         {showDeleteZone && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
             <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200 relative">
@@ -621,15 +724,11 @@ export default function Profile() {
               <p className="text-zinc-500 mb-6 text-sm font-medium leading-relaxed">
                 This action cannot be undone. To proceed, type the following phrase exactly as shown below:
               </p>
-              
               {deleteError && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm font-bold rounded-xl border border-red-100">{deleteError}</div>}
-
               <div className="bg-zinc-100 p-3 rounded-lg mb-4 text-sm text-zinc-600 font-mono select-all">
                 {deleteConfirmationPhrase}
               </div>
-              
               <input type="text" value={deleteInput} onChange={(e) => setDeleteInput(e.target.value)} placeholder="Type the confirmation phrase here..." className="w-full p-3.5 bg-white border border-zinc-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all font-medium mb-6 text-center" />
-              
               <div className="flex gap-3">
                 <button onClick={() => { setShowDeleteZone(false); setDeleteError(''); setDeleteInput(''); }} className="flex-1 bg-zinc-100 text-zinc-600 font-bold py-3.5 rounded-xl hover:bg-zinc-200 transition-colors">Cancel</button>
                 <button onClick={handleDeleteAccount} disabled={deleteInput !== deleteConfirmationPhrase || isDeleting} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors disabled:opacity-50">
