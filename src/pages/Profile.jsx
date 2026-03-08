@@ -34,7 +34,6 @@ export default function Profile() {
   const [isDeleting, setIsDeleting] = useState(false);
   const deleteConfirmationPhrase = auth.currentUser ? `I know this will delete all data related to this account, still i want to delete my account, ${auth.currentUser.email}` : '';
 
-  // 🌟 NEW: Share Modal State
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   
@@ -173,7 +172,7 @@ export default function Profile() {
       setTimeout(() => { 
         setShowSupportModal(false); 
         setSupportMessage(''); 
-      }, 3000);
+      }, 4000);
     } catch(err) {
       setSupportError(err.message);
     } finally {
@@ -306,7 +305,6 @@ export default function Profile() {
         {/* Profile Card */}
         <div className="bg-white rounded-3xl shadow-premium border border-zinc-100 p-8 mb-8 text-center relative overflow-hidden">
           
-          {/* 🌟 NEW: Expanding Top-Left Share Button */}
           <button 
             onClick={() => setShowShareModal(true)} 
             className="absolute top-6 left-6 flex items-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 p-3 rounded-full transition-all duration-300 shadow-sm group"
@@ -318,7 +316,6 @@ export default function Profile() {
             </span>
           </button>
 
-          {/* 🌟 NEW: Expanding Top-Right Log Out Button */}
           <button 
             onClick={handleLogout} 
             className="absolute top-6 right-6 flex items-center bg-red-50 text-red-600 hover:bg-red-100 p-3 rounded-full transition-all duration-300 shadow-sm group"
@@ -439,7 +436,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* 🌟 NEW: Full Width Support Card */}
+        {/* Support Card */}
         <div className="bg-white rounded-3xl shadow-premium border border-zinc-100 p-6 md:p-8 mb-8 flex flex-col sm:flex-row items-center justify-between transition-all hover:shadow-md gap-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
              <div className="w-14 h-14 bg-brandGold/10 text-brandGold rounded-full flex items-center justify-center shrink-0">
@@ -455,7 +452,7 @@ export default function Profile() {
           </button>
         </div>
 
-        {/* 🌟 NEW: Elegant Separator */}
+        {/* Elegant Separator */}
         <div className="flex items-center justify-center mb-8 relative">
           <div className="w-full h-px bg-zinc-200"></div>
           <span className="absolute bg-zinc-50 px-4 text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
@@ -518,7 +515,7 @@ export default function Profile() {
           </div>
         )}
 
-        {/* 🌟 NEW: Share Modal */}
+        {/* Share Modal */}
         {showShareModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
             <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200 relative">
@@ -581,6 +578,7 @@ export default function Profile() {
                       </button>
                    </div>
 
+                   {/* 🌟 UPDATED: Telegram @ Input Block */}
                    {supportForm.platform === 'whatsapp' ? (
                      <div className="flex w-full border border-zinc-300 rounded-xl focus-within:border-brandDark focus-within:ring-1 focus-within:ring-brandDark bg-white overflow-hidden transition-all relative">
                         <div className="relative flex items-center bg-zinc-50 hover:bg-zinc-100 border-r border-zinc-200 px-3 cursor-pointer shrink-0 transition-colors">
@@ -593,10 +591,29 @@ export default function Profile() {
                         <input type="tel" placeholder="WhatsApp Number" required value={supportForm.contactValue} onChange={e => setSupportForm({...supportForm, contactValue: e.target.value})} className="flex-1 p-3 outline-none w-full bg-transparent font-medium" />
                      </div>
                    ) : (
-                     <input type="text" placeholder="Telegram @username" required value={supportForm.contactValue} onChange={e => setSupportForm({...supportForm, contactValue: e.target.value})} className="w-full p-3 border border-zinc-300 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark font-medium" />
+                     <div className="flex w-full border border-zinc-300 rounded-xl focus-within:border-brandDark focus-within:ring-1 focus-within:ring-brandDark bg-white overflow-hidden transition-all">
+                        <div className="flex items-center bg-zinc-50 border-r border-zinc-200 px-4 text-zinc-500 font-bold shrink-0">
+                          @
+                        </div>
+                        <input 
+                          type="text" 
+                          placeholder="username" 
+                          required 
+                          value={supportForm.contactValue} 
+                          onChange={e => setSupportForm({...supportForm, contactValue: e.target.value.replace(/^@/, '')})} 
+                          className="flex-1 p-3 outline-none w-full bg-transparent font-medium" 
+                        />
+                     </div>
                    )}
 
                    <textarea placeholder="How can we help you?" required rows="4" value={supportForm.message} onChange={e => setSupportForm({...supportForm, message: e.target.value})} className="w-full p-3 border border-zinc-300 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark font-medium resize-none"></textarea>
+
+                   {/* 🌟 NEW: Dynamic Contact Expectations Note */}
+                   <div className="bg-brandGold/10 p-3 rounded-xl border border-brandGold/20 mt-1">
+                      <p className="text-xs text-brandDark font-medium leading-relaxed">
+                        <strong>Note:</strong> After sending your request, you'll be contacted by <strong className="font-extrabold">{supportForm.platform === 'whatsapp' ? '+91 87778 45713' : '@X_o_x_o_002'}</strong> on {supportForm.platform === 'whatsapp' ? 'WhatsApp' : 'Telegram'} within 36 hours. Please be patient.
+                      </p>
+                   </div>
 
                    <button type="submit" disabled={supportLoading} className="w-full bg-brandDark text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-all disabled:opacity-50 flex items-center justify-center gap-2">
                      {supportLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
