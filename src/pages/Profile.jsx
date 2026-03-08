@@ -3,7 +3,8 @@ import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore'; 
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, ArrowLeft, Users, Mail, Link as LinkIcon, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2, UserMinus, MapPin } from 'lucide-react'; 
+import { User, LogOut, ArrowLeft, Users, Mail, Link as LinkIcon, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2, UserMinus, MapPin, Share2, LifeBuoy, MessageCircle, Send } from 'lucide-react'; 
+import { sortedCountryCodes } from '../data/countryCodes'; // Needed for the Support WhatsApp dropdown
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -14,18 +15,15 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [inviteLoading, setInviteLoading] = useState(false);
   
-  // 🌟 FIXED: Split the shared error/success states into section-specific states!
   const [profileError, setProfileError] = useState('');
   const [profileSuccess, setProfileSuccess] = useState('');
   const [inviteError, setInviteError] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState('');
   const [deleteError, setDeleteError] = useState('');
 
-  // Edit Name State
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState("");
 
-  // Edit Zip Code State
   const [isEditingZip, setIsEditingZip] = useState(false);
   const [editZipValue, setEditZipValue] = useState("");
 
@@ -35,6 +33,17 @@ export default function Profile() {
   const [deleteInput, setDeleteInput] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const deleteConfirmationPhrase = auth.currentUser ? `I know this will delete all data related to this account, still i want to delete my account, ${auth.currentUser.email}` : '';
+
+  // 🌟 NEW: Share & Support States
+  const [shareMessage, setShareMessage] = useState('');
+  
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportLoading, setSupportLoading] = useState(false);
+  const [supportMessage, setSupportMessage] = useState('');
+  const [supportError, setSupportError] = useState('');
+  const [supportForm, setSupportForm] = useState({
+    supportId: '', name: '', email: '', platform: 'whatsapp', countryCode: '+1', countryIso: 'us', contactValue: '', message: ''
+  });
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -91,6 +100,85 @@ export default function Profile() {
       setProfileSuccess("Zip Code updated successfully! You will now receive local KinAlerts.");
     } catch (err) {
       setProfileError("Failed to update Zip Code.");
+    }
+  };
+
+  // 🌟 NEW: Share Handler
+  const handleShareApp = async () => {
+    const shareData = {
+      title: 'KinTag - Digital Safety Net',
+      text: "I use KinTag to secure my family with digital IDs and instant GPS alerts. It's 100% free! Check it out and create your own tags.",
+      url: window.location.origin
+    };
+    
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        setShareMessage("Thanks for sharing KinTag!");
+        setTimeout(() => setShareMessage(''), 3000);
+      } catch (e) {
+        // User likely canceled the share, ignore silently
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+        setShareMessage("Link copied to clipboard!");
+        setTimeout(() => setShareMessage(''), 3000);
+      } catch (err) {
+        setShareMessage("Failed to copy link.");
+      }
+    }
+  };
+
+  // 🌟 NEW: Support Handlers
+  const openSupport = () => {
+    const sId = 'SUP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    setSupportForm({
+      supportId: sId,
+      name: userData?.name || '',
+      email: auth.currentUser?.email || '',
+      platform: 'whatsapp',
+      countryCode: '+1',
+      countryIso: 'us',
+      contactValue: '',
+      message: ''
+    });
+    setSupportMessage('');
+    setSupportError('');
+    setShowSupportModal(true);
+  };
+
+  const handleSupportSubmit = async (e) => {
+    e.preventDefault();
+    setSupportLoading(true);
+    setSupportError('');
+    setSupportMessage('');
+
+    if (!supportForm.contactValue || !supportForm.message) {
+      setSupportError("Please fill out all fields.");
+      setSupportLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/support', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(supportForm)
+      });
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || "Failed to send support request.");
+      
+      setSupportMessage("Request sent successfully! We will reach out to you shortly.");
+      setTimeout(() => { 
+        setShowSupportModal(false); 
+        setSupportMessage(''); 
+      }, 3000);
+    } catch(err) {
+      setSupportError(err.message);
+    } finally {
+      setSupportLoading(false);
     }
   };
 
@@ -206,7 +294,7 @@ export default function Profile() {
   const invitedGuardians = familyMembers.filter(m => m.id !== currentFamilyId);
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-4 md:p-8 relative">
+    <div className="min-h-screen bg-zinc-50 p-4 md:p-8 relative pb-20">
       <div className="max-w-2xl mx-auto">
         
         <div className="flex justify-between items-center mb-6">
@@ -270,7 +358,6 @@ export default function Profile() {
             )}
           </div>
 
-          {/* 🌟 FIXED: Specific error/success messages for Profile/Zip updates */}
           {profileError && <div className="mt-6 mx-auto max-w-xs p-4 bg-red-50 text-red-600 text-sm font-bold rounded-xl border border-red-100">{profileError}</div>}
           {profileSuccess && <div className="mt-6 mx-auto max-w-xs p-4 bg-emerald-50 text-emerald-600 text-sm font-bold rounded-xl border border-emerald-100 flex items-center justify-center gap-2"><CheckCircle2 size={18} /> {profileSuccess}</div>}
         </div>
@@ -285,7 +372,6 @@ export default function Profile() {
             Invite up to 5 family members to manage profiles and receive emergency scan notifications on their own phones.
           </p>
 
-          {/* 🌟 FIXED: Specific error/success messages for Invites */}
           {inviteError && <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm font-bold rounded-xl border border-red-100">{inviteError}</div>}
           {inviteSuccess && <div className="mb-6 p-4 bg-emerald-50 text-emerald-600 text-sm font-bold rounded-xl border border-emerald-100 flex items-center justify-between gap-2">
             <span className="flex items-center gap-2"><CheckCircle2 size={18} /> {inviteSuccess}</span>
@@ -333,6 +419,34 @@ export default function Profile() {
           </div>
         </div>
 
+        {/* 🌟 NEW: Share & Support Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {/* Share Card */}
+            <div className="bg-white rounded-3xl shadow-premium border border-zinc-100 p-8 text-center flex flex-col items-center justify-center transition-all hover:shadow-md">
+               <div className="w-14 h-14 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-4">
+                  <Share2 size={24} />
+               </div>
+               <h3 className="text-xl font-extrabold text-brandDark mb-2">Share KinTag</h3>
+               <p className="text-sm text-zinc-500 font-medium mb-6">Enjoying KinTag? Help us build a safer community by sharing it with your friends and family.</p>
+               <button onClick={handleShareApp} className="w-full bg-emerald-500 text-white py-3 rounded-xl font-bold shadow-md hover:bg-emerald-600 transition-colors">
+                 Share Now
+               </button>
+               {shareMessage && <p className="text-xs text-emerald-600 font-bold mt-3 animate-in fade-in duration-300">{shareMessage}</p>}
+            </div>
+
+            {/* Support Card */}
+            <div className="bg-white rounded-3xl shadow-premium border border-zinc-100 p-8 text-center flex flex-col items-center justify-center transition-all hover:shadow-md">
+               <div className="w-14 h-14 bg-brandGold/10 text-brandGold rounded-full flex items-center justify-center mb-4">
+                  <LifeBuoy size={24} />
+               </div>
+               <h3 className="text-xl font-extrabold text-brandDark mb-2">Help & Support</h3>
+               <p className="text-sm text-zinc-500 font-medium mb-6">Need help with your account or tags? Contact the developer directly via WhatsApp or Telegram.</p>
+               <button onClick={openSupport} className="w-full bg-brandDark text-white py-3 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-colors">
+                 Contact Support
+               </button>
+            </div>
+        </div>
+
         {/* Danger Zone for Account Deletion */}
         <div className="bg-red-50/50 rounded-3xl border border-red-100 p-8">
           <div className="flex items-center gap-3 mb-2">
@@ -343,7 +457,6 @@ export default function Profile() {
             Permanently delete your account, all profiles, and all scan history. This action cannot be undone.
           </p>
 
-          {/* 🌟 FIXED: Specific error message for Deletions */}
           {deleteError && <div className="mb-6 p-4 bg-white text-red-600 text-sm font-bold rounded-xl border border-red-200">{deleteError}</div>}
 
           {!showDeleteZone ? (
@@ -385,6 +498,74 @@ export default function Profile() {
                 <button onClick={() => setGuardianToRemove(null)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-colors">Cancel</button>
                 <button onClick={confirmRemoveGuardian} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">Yes, Remove</button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* 🌟 NEW: Support Form Modal */}
+        {showSupportModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm overflow-y-auto">
+            <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-zinc-100 my-8 animate-in zoom-in-95 duration-200">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-extrabold text-brandDark tracking-tight flex items-center gap-2">
+                  <LifeBuoy size={24} className="text-brandGold"/> Support Ticket
+                </h2>
+                <button onClick={() => setShowSupportModal(false)} className="text-zinc-400 hover:bg-zinc-100 p-2 rounded-full transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+
+              {supportMessage ? (
+                 <div className="bg-emerald-50 text-emerald-600 p-6 rounded-2xl text-center font-bold border border-emerald-100 flex flex-col items-center justify-center gap-3">
+                   <CheckCircle2 size={40} className="text-emerald-500" />
+                   <p>{supportMessage}</p>
+                 </div>
+              ) : (
+                <form onSubmit={handleSupportSubmit} className="space-y-4">
+                   {supportError && <div className="p-3 bg-red-50 text-red-600 text-sm font-bold rounded-xl border border-red-100">{supportError}</div>}
+
+                   <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-200 flex justify-between items-center">
+                     <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Ticket ID</span>
+                     <span className="font-mono font-bold text-brandDark">{supportForm.supportId}</span>
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-3">
+                     <input type="text" placeholder="Your Name" required value={supportForm.name} onChange={e => setSupportForm({...supportForm, name: e.target.value})} className="p-3 bg-white border border-zinc-300 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark font-medium" />
+                     <input type="email" placeholder="Your Email" required value={supportForm.email} onChange={e => setSupportForm({...supportForm, email: e.target.value})} className="p-3 bg-white border border-zinc-300 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark font-medium" />
+                   </div>
+
+                   <div className="flex bg-zinc-100 p-1 rounded-xl">
+                      <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'whatsapp', contactValue: ''})} className={`flex-1 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${supportForm.platform === 'whatsapp' ? 'bg-white shadow-sm text-emerald-600' : 'text-zinc-500 hover:text-brandDark'}`}>
+                        <MessageCircle size={16} /> WhatsApp
+                      </button>
+                      <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'telegram', contactValue: ''})} className={`flex-1 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${supportForm.platform === 'telegram' ? 'bg-white shadow-sm text-sky-500' : 'text-zinc-500 hover:text-brandDark'}`}>
+                        <Send size={16} /> Telegram
+                      </button>
+                   </div>
+
+                   {supportForm.platform === 'whatsapp' ? (
+                     <div className="flex w-full border border-zinc-300 rounded-xl focus-within:border-brandDark focus-within:ring-1 focus-within:ring-brandDark bg-white overflow-hidden transition-all relative">
+                        <div className="relative flex items-center bg-zinc-50 hover:bg-zinc-100 border-r border-zinc-200 px-3 cursor-pointer shrink-0 transition-colors">
+                          <img src={`https://flagcdn.com/w20/${supportForm.countryIso || 'us'}.png`} alt="flag" className="w-5 h-auto rounded-sm shrink-0 shadow-[0_0_2px_rgba(0,0,0,0.2)]" />
+                          <span className="ml-2 text-sm font-bold text-brandDark">{supportForm.countryCode || '+1'}</span>
+                          <select value={`${supportForm.countryCode}|${supportForm.countryIso}`} onChange={(e) => { const [code, iso] = e.target.value.split('|'); setSupportForm({...supportForm, countryCode: code, countryIso: iso}); }} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                            {sortedCountryCodes.map((c, i) => <option key={`${c.iso}-${i}`} value={`${c.code}|${c.iso}`}>{c.country} ({c.code})</option>)}
+                          </select>
+                        </div>
+                        <input type="tel" placeholder="WhatsApp Number" required value={supportForm.contactValue} onChange={e => setSupportForm({...supportForm, contactValue: e.target.value})} className="flex-1 p-3 outline-none w-full bg-transparent font-medium" />
+                     </div>
+                   ) : (
+                     <input type="text" placeholder="Telegram @username" required value={supportForm.contactValue} onChange={e => setSupportForm({...supportForm, contactValue: e.target.value})} className="w-full p-3 border border-zinc-300 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark font-medium" />
+                   )}
+
+                   <textarea placeholder="How can we help you?" required rows="4" value={supportForm.message} onChange={e => setSupportForm({...supportForm, message: e.target.value})} className="w-full p-3 border border-zinc-300 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark font-medium resize-none"></textarea>
+
+                   <button type="submit" disabled={supportLoading} className="w-full bg-brandDark text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                     {supportLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                     {supportLoading ? 'Sending...' : 'Send Request'}
+                   </button>
+                </form>
+              )}
             </div>
           </div>
         )}
