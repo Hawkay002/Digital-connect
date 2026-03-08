@@ -94,8 +94,11 @@ export default function Profile() {
     if (!editZipValue.trim()) return;
     setProfileError(''); setProfileSuccess('');
     try {
-      await updateDoc(doc(db, "users", auth.currentUser.uid), { zipCode: editZipValue.trim() });
-      setUserData(prev => ({ ...prev, zipCode: editZipValue.trim() }));
+      // 🌟 FORMAT: Remove all spaces and make uppercase before saving!
+      const formattedZip = editZipValue.replace(/\s+/g, '').toUpperCase();
+      
+      await updateDoc(doc(db, "users", auth.currentUser.uid), { zipCode: formattedZip });
+      setUserData(prev => ({ ...prev, zipCode: formattedZip }));
       setIsEditingZip(false);
       setProfileSuccess("Zip Code updated successfully! You will now receive local KinAlerts.");
     } catch (err) {
@@ -470,7 +473,6 @@ export default function Profile() {
             Permanently delete your account, all profiles, and all scan history. This action cannot be undone.
           </p>
           
-          {/* 🌟 NEW: Button to open Modal instead of inline form */}
           <button onClick={() => setShowDeleteZone(true)} className="bg-red-100 text-red-600 font-bold px-6 py-3 rounded-xl hover:bg-red-200 transition-colors shadow-sm">
             Delete Account
           </button>
@@ -605,7 +607,7 @@ export default function Profile() {
           </div>
         )}
 
-        {/* 🌟 NEW: Delete Account Modal */}
+        {/* Delete Account Modal */}
         {showDeleteZone && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
             <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200 relative">
