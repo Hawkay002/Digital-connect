@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useLocation } from 'react-router-dom'; 
 import { db } from '../firebase';
 import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart, BellRing, Loader2, CheckCircle2, Cake, ShieldAlert, Siren, FileText, Lock, Unlock } from 'lucide-react';
 
 const getComputedAge = (profile) => {
@@ -33,6 +34,9 @@ export default function PublicCard() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isImageEnlarged, setIsImageEnlarged] = useState(false);
+  
+  // 🌟 NEW: Gatekeeper State (Auto-verified if it's a Homepage iframe preview)
+  const [isVerified, setIsVerified] = useState(isPreview);
   
   const [isIslandExpanded, setIsIslandExpanded] = useState(false);
   const [isLogoExpanded, setIsLogoExpanded] = useState(true);
@@ -77,9 +81,10 @@ export default function PublicCard() {
     };
   }, [profileId]);
 
+  // 🌟 UPDATED: Passive alert now strictly waits until CAPTCHA is solved
   useEffect(() => {
     const sendPassiveAlert = async () => {
-      if (!profile || profile.isActive === false || passiveAlertSent.current || isPreview) return; 
+      if (!isVerified || !profile || profile.isActive === false || passiveAlertSent.current || isPreview) return; 
       passiveAlertSent.current = true; 
       
       try {
@@ -115,12 +120,15 @@ export default function PublicCard() {
       }
     };
 
-    const timer = setTimeout(() => {
-      sendPassiveAlert();
-    }, 1500);
+    let timer;
+    if (isVerified && profile && profile.isActive !== false && !passiveAlertSent.current && !isPreview) {
+      timer = setTimeout(() => {
+        sendPassiveAlert();
+      }, 1500);
+    }
 
     return () => clearTimeout(timer);
-  }, [profile, profileId, isPreview]);
+  }, [profile, profileId, isPreview, isVerified]);
 
   const unlockVault = () => {
     if (isPreview) return;
@@ -196,6 +204,30 @@ export default function PublicCard() {
     setIsLogoExpanded(true);
     startLogoTimer();
   };
+
+  // 🌟 NEW: The Gatekeeper Screen
+  if (!isVerified) {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex flex-col items-center justify-center p-4 selection:bg-brandGold selection:text-white">
+        <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="w-20 h-20 bg-white rounded-3xl shadow-xl flex items-center justify-center mx-auto mb-6 border border-zinc-100">
+            <img src="/kintag-logo.png" alt="KinTag Logo" className="w-12 h-12 rounded-xl animate-pulse" />
+          </div>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-brandDark tracking-tight mb-2">Securing Connection...</h1>
+          <p className="text-zinc-500 font-medium max-w-sm mx-auto leading-relaxed">
+            Checking your browser before securely accessing this digital ID.
+          </p>
+        </div>
+        
+        <div className="animate-in fade-in zoom-in-95 duration-500 delay-300 min-h-[65px]">
+          <Turnstile 
+            siteKey={import.meta.env.VITE_CLOUDFLARE_SITE_KEY || '1x00000000000000000000AA'} 
+            onSuccess={() => setIsVerified(true)}
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (loading) return <PublicCardSkeleton />;
   if (!profile) return <div className="min-h-screen flex items-center justify-center bg-zinc-50 font-bold text-red-500">Identity not found.</div>;
@@ -592,7 +624,7 @@ export default function PublicCard() {
         </div>
       )}
 
-      {/* 🌟 FIXED: PDF-to-JPG Image Conversion for Perfect Cross-Platform Rendering & Anti-Download */}
+      {/* 🌟 FIXED: Ultra-aggressive regex to strip any trailing Cloudinary queries from PDFs */}
       {viewingDocument && !isPreview && (
         <div className="fixed inset-0 z-[120] bg-brandDark/95 flex flex-col items-center justify-center p-4 backdrop-blur-lg animate-in fade-in duration-200">
           <div className="absolute top-4 w-full px-6 flex justify-between items-center z-[130]">
@@ -611,7 +643,7 @@ export default function PublicCard() {
               </div>
             ) : (
               <img 
-                src={viewingDocument.url.toLowerCase().includes('.pdf') ? viewingDocument.url.replace(/\.pdf$/i, '.jpg') : viewingDocument.url} 
+                src={viewingDocument.url.toLowerCase().includes('.pdf') ? viewingDocument.url.replace(/\.pdf/i, '.jpg') : viewingDocument.url} 
                 alt={viewingDocument.name} 
                 onContextMenu={(e) => e.preventDefault()} 
                 draggable="false" 
