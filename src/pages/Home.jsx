@@ -13,15 +13,24 @@ export default function Home() {
   const [isFaqExpanded, setIsFaqExpanded] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   
-  // 🌟 NEW: PWA Install State
+  // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
+  // 🌟 UPDATED: Listen for Install Prompt and check window variable
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      window.pwaDeferredPrompt = e;
     };
+    
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    
+    // Grab it if it fired early
+    if (window.pwaDeferredPrompt) {
+      setDeferredPrompt(window.pwaDeferredPrompt);
+    }
+
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
@@ -31,6 +40,7 @@ export default function Home() {
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
       setDeferredPrompt(null);
+      window.pwaDeferredPrompt = null;
     }
   };
 
@@ -208,7 +218,6 @@ export default function Home() {
                 <ArrowRight size={18} />
               </Link>
               
-              {/* 🌟 NEW: Dynamic Install App Button */}
               {deferredPrompt ? (
                 <button onClick={handleInstallApp} className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-zinc-900 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-black transition-all shadow-lg hover:-translate-y-0.5">
                   <Download size={18} />
