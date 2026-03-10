@@ -408,7 +408,7 @@ export default function Dashboard() {
         const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
         let swRegistration = null;
         if ('serviceWorker' in navigator) {
-          swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+          // 🌟 FIXED: Instead of registering a conflicting Firebase SW, grab the existing PWA SW
           swRegistration = await navigator.serviceWorker.ready; 
         }
         const currentToken = await getToken(messaging, { vapidKey, serviceWorkerRegistration: swRegistration });
