@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Send, Trash2, ShieldAlert, Loader2, ChevronLeft, BellRing, CheckCircle2, AlertOctagon, AlertTriangle, Info } from 'lucide-react';
+import { Send, Trash2, ShieldAlert, Loader2, ChevronLeft, BellRing, CheckCircle2, AlertOctagon, AlertTriangle, Info, Edit2, X } from 'lucide-react'; // 🌟 Added Edit2 and X
 
-// 🌟 NEW: Lightweight Markdown Parser for Admin Preview
+// Lightweight Markdown Parser for Admin Preview
 const renderFormattedText = (text) => {
   if (!text) return null;
   return text.split('\n').map((line, i) => {
@@ -32,13 +32,16 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   
+  // 🌟 NEW: Editing State
+  const [editingId, setEditingId] = useState(null);
+
   const [customAlert, setCustomAlert] = useState({ isOpen: false, title: '', message: '', type: 'info', onClose: null });
   const [messageToDelete, setMessageToDelete] = useState(null);
   
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  // 🌟 SECURITY LOCK: Now securely using environment variables!
+  // SECURITY LOCK: Now securely using environment variables!
   const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL; 
 
   const showMessage = (alertTitle, alertMessage, type = 'info', onClose = null) => {
@@ -71,6 +74,20 @@ export default function Admin() {
     }
   };
 
+  // 🌟 NEW: Handle the click of the Edit button
+  const handleEditClick = (msg) => {
+    setTitle(msg.title);
+    setBody(msg.body);
+    setEditingId(msg.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // Smooth scroll back to form
+  };
+
+  const cancelEdit = () => {
+    setTitle('');
+    setBody('');
+    setEditingId(null);
+  };
+
   const handleSend = async (e) => {
     e.preventDefault();
     
@@ -81,24 +98,38 @@ export default function Admin() {
     setSending(true);
 
     try {
-      await addDoc(collection(db, "systemMessages"), {
-        title,
-        body,
-        timestamp: serverTimestamp() 
-      });
+      if (editingId) {
+        // 🌟 UPDATED: Update existing document
+        await updateDoc(doc(db, "systemMessages", editingId), {
+          title,
+          body,
+          // We intentionally don't update timestamp so it stays in its original chronological order
+        });
+        
+        showMessage("Update Saved! ✏️", "The campaign has been updated in the inbox (Note: This does not resend push notifications to devices).", "success");
+        setEditingId(null);
+      } else {
+        // Create new document & Broadcast
+        await addDoc(collection(db, "systemMessages"), {
+          title,
+          body,
+          timestamp: serverTimestamp() 
+        });
 
-      await fetch('/api/broadcast', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, body })
-      });
+        await fetch('/api/broadcast', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, body })
+        });
 
-      showMessage("Broadcast Sent! 🚀", "Your campaign was successfully saved and broadcasted to all users.", "success");
+        showMessage("Broadcast Sent! 🚀", "Your campaign was successfully saved and broadcasted to all users.", "success");
+      }
+      
       setTitle('');
       setBody('');
       fetchMessages(); 
     } catch (error) {
-      showMessage("Error", "Failed to send the campaign. Please check your connection and try again.", "error");
+      showMessage("Error", "Failed to process the request. Please check your connection and try again.", "error");
     } finally {
       setSending(false);
     }
@@ -109,6 +140,10 @@ export default function Admin() {
     try {
       await deleteDoc(doc(db, "systemMessages", messageToDelete));
       setMessages(messages.filter(m => m.id !== messageToDelete));
+      // If we delete the message we are currently editing, clear the form
+      if (editingId === messageToDelete) {
+        cancelEdit();
+      }
     } catch (error) {
       showMessage("Error", "Failed to delete the message.", "error");
     } finally {
@@ -135,11 +170,20 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* Create Campaign Card */}
-        <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-zinc-100">
-          <h2 className="text-xl font-bold text-brandDark mb-6 flex items-center gap-2">
-            <BellRing size={20} className="text-brandGold"/> Draft New Campaign
-          </h2>
+        {/* Create / Edit Campaign Card */}
+        <div className={`p-6 md:p-8 rounded-3xl shadow-sm border transition-colors ${editingId ? 'bg-brandGold/5 border-brandGold/30' : 'bg-white border-zinc-100'}`}>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-brandDark flex items-center gap-2">
+              {editingId ? <Edit2 size={20} className="text-brandGold"/> : <BellRing size={20} className="text-brandGold"/>}
+              {editingId ? 'Edit Existing Campaign' : 'Draft New Campaign'}
+            </h2>
+            {editingId && (
+              <button onClick={cancelEdit} className="text-zinc-500 hover:text-brandDark bg-white px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5">
+                <X size={14} /> Cancel
+              </button>
+            )}
+          </div>
+
           <form onSubmit={handleSend} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Notification Title</label>
@@ -148,7 +192,7 @@ export default function Admin() {
                 value={title} 
                 onChange={(e) => setTitle(e.target.value)} 
                 placeholder="e.g., 🚀 New Feature Available!"
-                className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl focus:border-brandDark outline-none font-medium"
+                className="w-full p-4 bg-white border border-zinc-200 rounded-2xl focus:border-brandDark outline-none font-medium shadow-sm"
               />
             </div>
             <div>
@@ -158,9 +202,9 @@ export default function Admin() {
                 onChange={(e) => setBody(e.target.value)} 
                 placeholder="What do you want to tell your users?"
                 rows="4"
-                className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl focus:border-brandDark outline-none font-medium resize-none"
+                className="w-full p-4 bg-white border border-zinc-200 rounded-2xl focus:border-brandDark outline-none font-medium resize-none shadow-sm"
               ></textarea>
-              {/* 🌟 NEW: Markdown Cheat Sheet */}
+              {/* Markdown Cheat Sheet */}
               <div className="flex flex-wrap gap-4 mt-2 px-1 text-[11px] text-zinc-400 font-semibold tracking-wide uppercase">
                  <span><b className="text-brandDark">**Bold**</b></span>
                  <span><i className="text-brandDark">*Italic*</i></span>
@@ -168,13 +212,14 @@ export default function Admin() {
                  <span>(Enter) New Line</span>
               </div>
             </div>
+            
             <button 
               type="submit" 
               disabled={sending}
-              className="w-full flex items-center justify-center space-x-2 bg-brandGold text-white p-4 rounded-2xl font-bold hover:bg-amber-500 transition-all shadow-md disabled:opacity-50 mt-2"
+              className={`w-full flex items-center justify-center space-x-2 text-white p-4 rounded-2xl font-bold transition-all shadow-md disabled:opacity-50 mt-2 ${editingId ? 'bg-brandDark hover:bg-brandAccent' : 'bg-brandGold hover:bg-amber-500'}`}
             >
-              {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
-              <span>{sending ? 'Broadcasting to all phones...' : 'Send Campaign Now'}</span>
+              {sending ? <Loader2 size={20} className="animate-spin" /> : (editingId ? <CheckCircle2 size={20} /> : <Send size={20} />)}
+              <span>{sending ? 'Processing...' : (editingId ? 'Save Changes' : 'Send Campaign Now')}</span>
             </button>
           </form>
         </div>
@@ -188,10 +233,10 @@ export default function Admin() {
           ) : (
             <div className="space-y-4">
               {messages.map((msg) => (
-                <div key={msg.id} className="bg-zinc-50 p-5 rounded-2xl border border-zinc-200 flex justify-between items-start gap-4">
+                <div key={msg.id} className={`p-5 rounded-2xl border flex flex-col sm:flex-row justify-between items-start gap-4 transition-colors ${editingId === msg.id ? 'bg-brandGold/5 border-brandGold/30' : 'bg-zinc-50 border-zinc-200'}`}>
                   <div className="w-full overflow-hidden">
                     <h3 className="font-extrabold text-brandDark flex items-center gap-2 mb-2">{msg.title}</h3>
-                    {/* 🌟 NEW: Passes the message through the rendering engine for accurate preview */}
+                    {/* Passes the message through the rendering engine for accurate preview */}
                     <div className="text-sm text-zinc-600 font-medium leading-relaxed mb-4">
                       {renderFormattedText(msg.body)}
                     </div>
@@ -200,13 +245,23 @@ export default function Admin() {
                     </span>
                   </div>
                   
-                  <button 
-                    onClick={() => setMessageToDelete(msg.id)} 
-                    className="p-2 text-zinc-400 hover:text-red-500 bg-white border border-zinc-200 hover:border-red-200 hover:bg-red-50 rounded-xl transition-all shrink-0"
-                    title="Delete Message"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  {/* 🌟 NEW: Action Buttons Container */}
+                  <div className="flex sm:flex-col gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                    <button 
+                      onClick={() => handleEditClick(msg)} 
+                      className="flex-1 sm:flex-none p-2 text-zinc-500 hover:text-brandDark bg-white border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-100 rounded-xl transition-all flex items-center justify-center"
+                      title="Edit Message"
+                    >
+                      <Edit2 size={18} />
+                    </button>
+                    <button 
+                      onClick={() => setMessageToDelete(msg.id)} 
+                      className="flex-1 sm:flex-none p-2 text-zinc-400 hover:text-red-500 bg-white border border-zinc-200 hover:border-red-200 hover:bg-red-50 rounded-xl transition-all flex items-center justify-center"
+                      title="Delete Message"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -214,6 +269,8 @@ export default function Admin() {
         </div>
       </div>
 
+      {/* --- MODALS --- */}
+      
       {customAlert.isOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
