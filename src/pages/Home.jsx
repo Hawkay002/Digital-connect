@@ -412,7 +412,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 NEW: NATIVE APP & APK DOWNLOAD SECTION */}
+      {/* NATIVE APP SECTION */}
       <section className="py-24 bg-white border-y border-zinc-100">
         <div className="max-w-5xl mx-auto px-4 md:px-8">
           <ScrollReveal>
@@ -430,7 +430,7 @@ export default function Home() {
                   Get the KinTag App
                 </h2>
                 <p className="text-zinc-400 font-medium text-lg leading-relaxed mb-8">
-                  For the best, full-screen experience without browser distractions, install KinTag directly to your device. Choose between our seamless Web App or download the Android APK.
+                  For the best, full-screen experience without browser distractions, install the KinTag Web App directly to your device.
                 </p>
                 
                 <div className="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start">
@@ -446,17 +446,6 @@ export default function Home() {
                       <span>Web App Installed</span>
                     </div>
                   )}
-
-                  {/* Direct APK Download Link */}
-                  {/* NOTE: Change this href to the exact raw link of your APK in your GitHub repo */}
-                  <a 
-                    href="/KinTag.apk" 
-                    download="KinTag.apk"
-                    className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-white text-zinc-900 px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-zinc-200 transition-all hover:-translate-y-0.5"
-                  >
-                    <Smartphone size={20} />
-                    <span>Download APK</span>
-                  </a>
                 </div>
                 
                 <p className="text-zinc-500 text-xs font-medium mt-6 max-w-md mx-auto md:mx-0">
