@@ -1,50 +1,28 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react"; // 🌟 NEW IMPORT FOR BUTTON
+import React, { useEffect, useState } from "react";
+import { ChevronDown } from "lucide-react";
 
 const INTRO_STYLE_ID = "faq1-animations";
 
-const palettes = {
-  dark: {
-    surface: "bg-zinc-950 text-zinc-100",
-    panel: "bg-zinc-900/50",
-    border: "border-white/10",
-    heading: "text-white",
-    muted: "text-zinc-400",
-    iconRing: "border-white/20",
-    iconSurface: "bg-white/5",
-    icon: "text-white",
-    toggle: "border-white/20 text-white",
-    toggleSurface: "bg-white/10 hover:bg-white/20",
-    glow: "rgba(255, 255, 255, 0.08)",
-    aurora: "radial-gradient(ellipse 50% 100% at 10% 0%, rgba(226, 232, 240, 0.15), transparent 65%), #09090b",
-    shadow: "shadow-[0_36px_140px_-60px_rgba(10,10,10,0.95)]",
-    overlay: "linear-gradient(130deg, rgba(255,255,255,0.04) 0%, transparent 65%)",
-  },
-  light: {
-    surface: "bg-zinc-50 text-zinc-900",
-    panel: "bg-white",
-    border: "border-zinc-200",
-    heading: "text-zinc-900",
-    muted: "text-zinc-500",
-    iconRing: "border-zinc-200",
-    iconSurface: "bg-zinc-50",
-    icon: "text-zinc-900",
-    toggle: "border-zinc-200 text-zinc-900",
-    toggleSurface: "bg-white hover:bg-zinc-100",
-    glow: "rgba(15, 15, 15, 0.04)",
-    aurora: "radial-gradient(ellipse 50% 100% at 10% 0%, rgba(15, 23, 42, 0.04), rgba(255, 255, 255, 1) 70%)",
-    shadow: "shadow-sm",
-    overlay: "linear-gradient(130deg, rgba(15,23,42,0.04) 0%, transparent 70%)",
-  },
+// Locked exclusively to the Dark palette
+const palette = {
+  surface: "bg-zinc-950 text-zinc-100",
+  panel: "bg-zinc-900/50",
+  border: "border-white/10",
+  heading: "text-white",
+  muted: "text-zinc-400",
+  iconRing: "border-white/20",
+  iconSurface: "bg-white/5",
+  icon: "text-white",
+  glow: "rgba(255, 255, 255, 0.08)",
+  aurora: "radial-gradient(ellipse 50% 100% at 10% 0%, rgba(226, 232, 240, 0.15), transparent 65%), #09090b",
+  shadow: "shadow-[0_36px_140px_-60px_rgba(10,10,10,0.95)]",
+  overlay: "linear-gradient(130deg, rgba(255,255,255,0.04) 0%, transparent 65%)",
 };
 
 export function FAQMonochrome({ faqs = [] }) {
-  const [theme, setTheme] = useState("light"); 
   const [introReady, setIntroReady] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [hasEntered, setHasEntered] = useState(false);
-  
-  // 🌟 NEW: State for Show More / Hide FAQs
   const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
@@ -52,6 +30,8 @@ export function FAQMonochrome({ faqs = [] }) {
     if (document.getElementById(INTRO_STYLE_ID)) return;
     const style = document.createElement("style");
     style.id = INTRO_STYLE_ID;
+    
+    // Cleaned up CSS: Only dark mode animations remaining
     style.innerHTML = `
       @keyframes faq1-fade-up {
         0% { transform: translate3d(0, 20px, 0); opacity: 0; filter: blur(6px); }
@@ -101,12 +81,6 @@ export function FAQMonochrome({ faqs = [] }) {
         transition: opacity 720ms ease, transform 720ms ease, filter 720ms ease;
         isolation: isolate;
       }
-      .faq1-intro--light {
-        border-color: rgba(17, 17, 17, 0.12);
-        background: rgba(248, 250, 252, 0.88);
-        color: rgba(15, 23, 42, 0.78);
-        mix-blend-mode: multiply;
-      }
       .faq1-intro--active {
         opacity: 1;
         transform: translate3d(0, 0, 0);
@@ -123,9 +97,6 @@ export function FAQMonochrome({ faqs = [] }) {
         background: conic-gradient(from 160deg, rgba(226, 232, 240, 0.25), transparent 32%, rgba(148, 163, 184, 0.22) 58%, transparent 78%, rgba(148, 163, 184, 0.18));
         animation: faq1-beam-spin 18s linear infinite;
         opacity: 0.55;
-      }
-      .faq1-intro--light .faq1-intro__beam {
-        background: conic-gradient(from 180deg, rgba(15, 23, 42, 0.18), transparent 30%, rgba(71, 85, 105, 0.18) 58%, transparent 80%, rgba(15, 23, 42, 0.14));
       }
       .faq1-intro__pulse {
         border: 1px solid currentColor;
@@ -159,9 +130,6 @@ export function FAQMonochrome({ faqs = [] }) {
         box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1);
         animation: faq1-tick 3.2s ease-in-out infinite;
       }
-      .faq1-intro--light .faq1-intro__tick {
-        box-shadow: 0 0 0 4px rgba(15, 15, 15, 0.08);
-      }
       .faq1-fade {
         opacity: 0;
         transform: translate3d(0, 24px, 0);
@@ -193,12 +161,6 @@ export function FAQMonochrome({ faqs = [] }) {
     return () => { window.removeEventListener("load", onLoad); window.clearTimeout(timeout); };
   }, []);
 
-  const palette = useMemo(() => palettes[theme], [theme]);
-
-  const toggleTheme = () => {
-    setTheme(prev => prev === "dark" ? "light" : "dark");
-  };
-
   const toggleQuestion = (index) => setActiveIndex((prev) => (prev === index ? -1 : index));
 
   const setCardGlow = (event) => {
@@ -214,7 +176,6 @@ export function FAQMonochrome({ faqs = [] }) {
     target.style.removeProperty("--faq-y");
   };
 
-  // Determine how many FAQs to show
   const displayedFaqs = isExpanded ? faqs : faqs.slice(0, 6);
 
   return (
@@ -222,7 +183,7 @@ export function FAQMonochrome({ faqs = [] }) {
       <div className="absolute inset-0 z-0" style={{ background: palette.aurora }} />
       <div
         className="pointer-events-none absolute inset-0 z-0 opacity-80"
-        style={{ background: palette.overlay, mixBlendMode: theme === "dark" ? "screen" : "multiply" }}
+        style={{ background: palette.overlay, mixBlendMode: "screen" }}
       />
 
       <section
@@ -230,11 +191,7 @@ export function FAQMonochrome({ faqs = [] }) {
           hasEntered ? "faq1-fade--ready" : "faq1-fade"
         }`}
       >
-        <div
-          className={`faq1-intro ${introReady ? "faq1-intro--active" : ""} ${
-            theme === "light" ? "faq1-intro--light" : "faq1-intro--dark"
-          }`}
-        >
+        <div className={`faq1-intro ${introReady ? "faq1-intro--active" : ""}`}>
           <span className="faq1-intro__beam" aria-hidden="true" />
           <span className="faq1-intro__pulse" aria-hidden="true" />
           <span className="faq1-intro__label">System FAQs</span>
@@ -242,35 +199,15 @@ export function FAQMonochrome({ faqs = [] }) {
           <span className="faq1-intro__tick" aria-hidden="true" />
         </div>
 
-        <header className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-          <div className="space-y-4">
+        <header className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between text-center md:text-left">
+          <div className="space-y-4 w-full">
             <h2 className={`text-3xl md:text-5xl font-extrabold tracking-tight leading-[1.1] ${palette.heading}`}>
               Everything you need to know about securing your family.
             </h2>
-            <p className={`max-w-xl text-lg font-medium ${palette.muted}`}>
+            <p className={`max-w-xl text-lg font-medium mx-auto md:mx-0 ${palette.muted}`}>
               Clear, transparent answers on how KinTag works, community alerts, and data privacy.
             </p>
           </div>
-
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className={`relative inline-flex h-11 items-center gap-3 rounded-full border px-5 text-sm font-bold transition-colors duration-500 shadow-sm shrink-0 ${palette.toggleSurface} ${palette.toggle}`}
-          >
-            <span className="relative flex h-6 w-6 items-center justify-center">
-              <span
-                className={`pointer-events-none absolute inset-0 rounded-full border opacity-40 ${
-                  theme === "dark" ? "border-white/30 animate-pulse" : "border-neutral-400/50"
-                }`}
-              />
-              <span
-                className={`h-3 w-3 rounded-full transition-all duration-500 ${
-                  theme === "dark" ? "bg-white" : "bg-neutral-900"
-                }`}
-              />
-            </span>
-            {theme === "dark" ? "Night" : "Day"} mode
-          </button>
         </header>
 
         <ul className="space-y-4">
@@ -295,7 +232,6 @@ export function FAQMonochrome({ faqs = [] }) {
                   }}
                 />
 
-                {/* 🌟 FIXED: Changed layout to put the icon on the right */}
                 <button
                   type="button"
                   id={buttonId}
@@ -311,7 +247,7 @@ export function FAQMonochrome({ faqs = [] }) {
                       </h2>
                       {item.meta && (
                         <span
-                          className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] transition-opacity duration-300 ${palette.border} ${theme === 'dark' ? 'text-amber-400 border-amber-400/30 bg-amber-400/10' : 'text-amber-600 border-amber-200 bg-amber-50'}`}
+                          className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] transition-opacity duration-300 text-amber-400 border-amber-400/30 bg-amber-400/10`}
                         >
                           {item.meta}
                         </span>
@@ -356,9 +292,8 @@ export function FAQMonochrome({ faqs = [] }) {
           })}
         </ul>
 
-        {/* 🌟 FIXED: Interactive Show More / Hide Button */}
         {faqs.length > 6 && (
-          <div className="flex justify-center mt-6">
+          <div className="flex justify-center mt-6 relative z-20">
             <button 
               onClick={() => {
                 setIsExpanded(!isExpanded);
@@ -366,7 +301,7 @@ export function FAQMonochrome({ faqs = [] }) {
                   document.getElementById('faq-section')?.scrollIntoView({ behavior: 'smooth' });
                 }
               }} 
-              className={`flex items-center gap-2 bg-gradient-to-r from-brandDark via-zinc-800 to-brandDark bg-[length:200%_auto] hover:bg-[position:right_center] text-white px-8 py-3.5 rounded-full font-bold shadow-lg hover:-translate-y-0.5 transition-all duration-500`}
+              className="flex items-center gap-2 bg-brandGold text-white px-8 py-3.5 rounded-full font-bold shadow-lg hover:bg-amber-500 hover:-translate-y-0.5 transition-all duration-500"
             >
               <span>{isExpanded ? 'Hide FAQs' : `Read All ${faqs.length} FAQs`}</span>
               <ChevronDown size={18} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
