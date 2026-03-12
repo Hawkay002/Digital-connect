@@ -64,7 +64,7 @@ export default function Dashboard() {
   const [profileToDelete, setProfileToDelete] = useState(null); 
   const [downloading, setDownloading] = useState(false);
   
-  // Single and Bulk Scan Deletion states
+  // 🌟 SCAN DELETION STATES
   const [scanToDelete, setScanToDelete] = useState(null);
   const [selectedScans, setSelectedScans] = useState([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
@@ -81,9 +81,14 @@ export default function Dashboard() {
   const [userZipCode, setUserZipCode] = useState(''); 
   const [userAvatarId, setUserAvatarId] = useState(null); 
 
+  // 🌟 ALERT MODAL STATES
   const [lostModalProfile, setLostModalProfile] = useState(null);
+  const [foundModalProfile, setFoundModalProfile] = useState(null);
   const [broadcastModalProfile, setBroadcastModalProfile] = useState(null);
   const [allActiveAlerts, setAllActiveAlerts] = useState([]);
+  const [dismissedAlerts, setDismissedAlerts] = useState([]); 
+  const [foundPopups, setFoundPopups] = useState([]); 
+  const [dismissedFoundAlerts, setDismissedFoundAlerts] = useState([]);
 
   const isInitialScansLoad = useRef(true);
   const isInitialSysLoad = useRef(true);
@@ -216,6 +221,13 @@ export default function Dashboard() {
   }, [currentUser]);
 
   useEffect(() => {
+    if (scans.length > 0) {
+      const recentFound = scans.filter(s => s.type === 'kinAlert_found' && (Date.now() - new Date(s.timestamp).getTime() < 300000));
+      setFoundPopups(recentFound);
+    }
+  }, [scans]);
+
+  useEffect(() => {
     const markAsRead = async () => {
       if (!currentUser || !showNotifCenter) return;
       if (notifTab === 'personal' && scans.length > 0) {
@@ -236,6 +248,7 @@ export default function Dashboard() {
     markAsRead();
   }, [showNotifCenter, notifTab, scans, systemMessages, currentUser, lastViewedPersonal, lastViewedSystem]);
 
+  // 🌟 ALERT BROADCAST LOGIC
   const handleConfirmLost = async () => {
     if (!lostModalProfile) return;
     const profileToUpdate = lostModalProfile;
@@ -243,6 +256,7 @@ export default function Dashboard() {
     
     try {
       await updateDoc(doc(db, "profiles", profileToUpdate.id), { isLost: true });
+      // Instantly open the broadcast modal
       const updatedProfile = { ...profileToUpdate, isLost: true };
       setBroadcastModalProfile(updatedProfile);
     } catch (e) {
@@ -456,6 +470,7 @@ export default function Dashboard() {
     }
   };
 
+  // 🌟 BULK DELETE LOGIC
   const toggleScanSelection = (scanId) => {
     setSelectedScans(prev => prev.includes(scanId) ? prev.filter(id => id !== scanId) : [...prev, scanId]);
   };
@@ -588,6 +603,8 @@ export default function Dashboard() {
   const hasAnyUnread = unreadPersonalCount > 0 || unreadSystemCount > 0 || pendingInvite;
 
   const localAlerts = allActiveAlerts.filter(a => a.pincode === userZipCode && a.familyId !== userFamilyId);
+  const activeAlertToDisplay = localAlerts.find(a => !dismissedAlerts.includes(a.id));
+  const activeFoundPopupToDisplay = foundPopups.find(p => !dismissedFoundAlerts.includes(p.id));
 
   const groupedScans = [];
   scans.forEach(scan => {
@@ -647,7 +664,7 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* TRUE SEAMLESS MARQUEE */}
+        {/* TRUE SEAMLESS MARQUEE FOR LOCAL ALERTS */}
         {localAlerts.length > 0 && (
           <Link to={`/id/${localAlerts[0].id}`} target="_blank" className="block mb-10 overflow-hidden bg-red-600 text-white rounded-[2rem] shadow-[0_10px_30px_rgba(239,68,68,0.4)] border-[6px] border-red-500 relative h-[72px] group cursor-pointer hover:border-red-400 transition-all active:scale-[0.98]">
             <style>{`
@@ -700,16 +717,16 @@ export default function Dashboard() {
                     
                     <div className="absolute top-4 right-4 flex gap-2 z-30">
                        <button 
-                         disabled={!profile.isLost}
-                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); if(profile.isLost && !profile.kinAlertActive) setBroadcastModalProfile(profile); }}
-                         className={`p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-all active:scale-95 ${profile.kinAlertActive ? 'bg-emerald-500 text-white' : profile.isLost ? 'bg-amber-500 text-white hover:scale-110 hover:bg-amber-400' : 'bg-white/50 text-zinc-500 cursor-not-allowed'}`}
+                         disabled={!profile.isLost || profile.kinAlertActive}
+                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBroadcastModalProfile(profile); }}
+                         className={`p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-all active:scale-95 ${profile.kinAlertActive ? 'bg-emerald-500 text-white cursor-default' : profile.isLost ? 'bg-amber-500 text-white hover:scale-110 hover:bg-amber-400' : 'bg-white/50 text-zinc-500 cursor-not-allowed'}`}
                          title={profile.kinAlertActive ? "KinAlert Active" : "Broadcast KinAlert"}
                        >
                           <Megaphone size={18} />
                        </button>
                        <button 
-                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); profile.isLost ? handleDeactivateLost(profile) : setLostModalProfile(profile); }}
-                         className={`p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-all active:scale-95 ${profile.isLost ? 'bg-red-600 text-white animate-pulse' : 'bg-white/80 text-zinc-600 hover:text-red-600 hover:bg-white'}`}
+                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); profile.isLost ? setFoundModalProfile(profile) : setLostModalProfile(profile); }}
+                         className={`p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-all active:scale-95 ${profile.isLost ? 'bg-red-600 text-white animate-pulse hover:bg-red-500' : 'bg-white/80 text-zinc-600 hover:text-red-600 hover:bg-white'}`}
                          title={profile.isLost ? "Mark as Found" : "Mark as Lost"}
                        >
                           <Siren size={18} />
@@ -831,6 +848,7 @@ export default function Dashboard() {
               </button>
             </div>
             
+            {/* BULK DELETE UI */}
             {notifTab === 'personal' && scans.length > 0 && (
               <div className="bg-white px-6 py-4 border-b border-zinc-100 flex justify-between items-center shrink-0">
                 <label className="flex items-center gap-3 cursor-pointer text-sm font-bold text-brandDark select-none">
@@ -978,7 +996,24 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Profile Lost/Found Modals */}
+      {/* 🌟 NEW: Mark as Found Modal */}
+      {foundModalProfile && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
+          <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
+             <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border border-emerald-100">
+                <CheckCircle2 size={36} />
+             </div>
+             <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Mark as Found?</h2>
+             <p className="text-zinc-500 mb-8 text-base font-medium leading-relaxed">This will immediately deactivate the distress signal and notify your local community that {foundModalProfile.name} is safe and sound.</p>
+             <div className="flex flex-col gap-3">
+               <button onClick={() => { handleDeactivateLost(foundModalProfile); setFoundModalProfile(null); }} className="w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-lg hover:bg-emerald-600 hover:-translate-y-0.5 active:scale-95 transition-all">Yes, Safe & Sound</button>
+               <button onClick={() => setFoundModalProfile(null)} className="w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors">Cancel</button>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Lost Confirmation Modal */}
       {lostModalProfile && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
           <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
@@ -995,6 +1030,7 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Broadcast Alert Modal */}
       {broadcastModalProfile && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
           <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
@@ -1007,6 +1043,38 @@ export default function Dashboard() {
                <button onClick={handleConfirmBroadcast} className="w-full bg-amber-500 text-white py-4 rounded-full font-bold shadow-lg hover:bg-amber-600 hover:-translate-y-0.5 active:scale-95 transition-all">Yes, Broadcast</button>
                <button onClick={() => setBroadcastModalProfile(null)} className="w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors">Not Now</button>
              </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🌟 NEW: Local Community Alerts (Popup when someone else broadcasts) */}
+      {activeAlertToDisplay && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-red-950/80 backdrop-blur-md">
+          <div className="bg-white rounded-[3rem] p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-300 relative overflow-hidden border border-red-500/20">
+             <div className="w-24 h-24 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner animate-pulse">
+                <Siren size={48} />
+             </div>
+             <h2 className="text-3xl font-extrabold text-red-600 mb-2 uppercase tracking-tight">Kinalert</h2>
+             <p className="text-zinc-800 font-bold text-lg mb-4">{activeAlertToDisplay.name} is missing near you ({activeAlertToDisplay.pincode})!</p>
+             <p className="text-zinc-500 mb-8 text-sm font-medium">Please keep an eye out and tap below for details.</p>
+             <div className="flex flex-col gap-3">
+               <Link to={`/id/${activeAlertToDisplay.id}`} target="_blank" onClick={() => setDismissedAlerts([...dismissedAlerts, activeAlertToDisplay.id])} className="w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg hover:bg-red-700 active:scale-95 transition-all">View Details</Link>
+               <button onClick={() => setDismissedAlerts([...dismissedAlerts, activeAlertToDisplay.id])} className="w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors">Dismiss</button>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {activeFoundPopupToDisplay && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-emerald-950/80 backdrop-blur-md">
+          <div className="bg-white rounded-[3rem] p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-300 relative overflow-hidden border border-emerald-500/20">
+             <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <CheckCircle2 size={48} />
+             </div>
+             <h2 className="text-3xl font-extrabold text-emerald-600 mb-2 uppercase tracking-tight">Found!</h2>
+             <p className="text-zinc-800 font-bold text-lg mb-4">{activeFoundPopupToDisplay.profileName} is safe.</p>
+             <p className="text-zinc-500 mb-8 text-sm font-medium">{activeFoundPopupToDisplay.message}</p>
+             <button onClick={() => setDismissedFoundAlerts([...dismissedFoundAlerts, activeFoundPopupToDisplay.id])} className="w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-lg hover:bg-emerald-600 active:scale-95 transition-all">Wonderful News</button>
           </div>
         </div>
       )}
