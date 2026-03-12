@@ -86,7 +86,7 @@ export default function Home() {
     { q: "Can my spouse and I both receive alerts?", a: "Yes! With our Family Sharing feature, you can invite up to 5 co-guardians. If your child or pet's tag is scanned, every guardian receives an instant push notification on their own phone, and everyone can manage the profiles.", meta: "Family" },
     { q: "Can I upload medical records or government IDs?", a: "Yes. Our Secure Document Vault allows you to attach sensitive files like Rabies Certificates or Autism Medical IDs. To protect your privacy, these documents remain heavily blurred and locked until the finder physically taps 'Share Location' or calls your emergency contact.", meta: "Vault" },
     { q: "Can strangers download my child's photos or documents?", a: "No. We have implemented strict anti-download protections across all public profiles. Right-clicking, image dragging, and mobile long-press saving are completely disabled to protect your family's data.", meta: "Privacy" },
-    { q: "What is 'Lost Mode' (The Panic Button)?", a: "If your loved one goes missing, you can activate 'Lost Mode' from your dashboard. It instantly transforms their digital ID into a high-alert distress signal with a flashing missing banner and a pulsing emergency dialer to urge finders to call immediately.", meta: "Safety" },
+    { q: "What is 'Lost Mode' (The Panic Button)?", a: "If your loved one goes missing, you can activate 'Lost Mode' from your dashboard. It instantly transforms their digital ID into a high-alert distress signal with a flashing missing banner and pulsing emergency dialer to urge finders to call immediately.", meta: "Safety" },
     { q: "What is a KinAlert Community Broadcast?", a: "When you activate Lost Mode, you can optionally send a 'KinAlert'. This blasts an instant push notification to all other KinTag users in your Zip Code, turning your neighborhood into an active search party.", meta: "Community" },
     { q: "Why do I need to provide my Zip Code?", a: "Your Zip Code securely connects you to the KinAlert network. It ensures you only receive emergency push notifications for kids or pets that go missing in your immediate local area, and allows you to ask locals for help if yours goes missing.", meta: "Location" },
     { q: "How do I let the community know my pet/child was found?", a: "Simply toggle 'Lost Mode' off in your dashboard! This automatically restores their standard digital ID and sends a green 'Safe & Sound' notification to the local community to call off the search.", meta: "Community" },
@@ -123,7 +123,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fafafa] font-sans selection:bg-brandGold selection:text-white relative">
+    <div className="min-h-screen bg-[#fafafa] font-sans selection:bg-brandGold selection:text-white relative w-full">
       
       {/* Global Subtle Architectural Grid Background */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
@@ -138,8 +138,9 @@ export default function Home() {
             <span className="text-xl font-extrabold text-brandDark tracking-tight">KinTag</span>
           </div>
           <div className="flex items-center space-x-3 md:space-x-5">
-            <Link to="/login" className="text-sm font-bold text-zinc-500 hover:text-brandDark transition-colors hidden sm:block">Log In</Link>
-            <Link to="/signup" className="bg-brandDark text-white text-sm font-bold px-6 py-2.5 rounded-full hover:bg-brandAccent hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all">
+            {/* 🌟 FIXED 1: Login button is now always visible on mobile */}
+            <Link to="/login" className="text-sm font-bold text-zinc-600 hover:text-brandDark transition-colors">Log In</Link>
+            <Link to="/signup" className="bg-brandDark text-white text-sm font-bold px-5 py-2 md:px-6 md:py-2.5 rounded-full hover:bg-brandAccent hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all">
               Get Started
             </Link>
           </div>
@@ -148,7 +149,6 @@ export default function Home() {
 
       {/* 🌟 HERO SECTION */}
       <section className="pt-40 pb-20 md:pt-48 md:pb-32 px-4 relative overflow-hidden">
-        {/* Abstract Glowing Orbs */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-r from-brandGold/20 via-emerald-400/10 to-transparent rounded-full blur-[80px] pointer-events-none"></div>
         
         <div className="max-w-5xl mx-auto text-center relative z-10">
@@ -204,7 +204,7 @@ export default function Home() {
             </div>
           </ScrollReveal>
 
-          {/* Device Mockups with new glow */}
+          {/* Device Mockups */}
           <ScrollReveal delay={500}>
             <div className="relative mx-auto max-w-5xl mt-8">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-brandGold/20 rounded-full blur-[100px] pointer-events-none"></div>
@@ -219,7 +219,6 @@ export default function Home() {
               </div>
 
               <div className="flex flex-col md:flex-row justify-center items-center gap-12 md:gap-20 perspective-[1200px] w-full pb-10 md:pb-0 relative z-30">
-                
                 <div className="relative w-[280px] md:w-[320px] aspect-[9/19.5] rounded-[2.25rem] md:rounded-[3rem] border-[8px] md:border-[10px] border-zinc-900 bg-zinc-900 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden transform md:rotate-y-[12deg] md:rotate-x-[5deg] md:hover:rotate-y-[0deg] md:hover:rotate-x-[0deg] hover:scale-[1.03] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group shrink-0">
                   <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50"></div>
                   <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.75rem] md:rounded-[2.4rem]">
@@ -237,14 +236,13 @@ export default function Home() {
                      </div>
                   </div>
                 </div>
-
               </div>
             </div>
           </ScrollReveal>
         </div>
       </section>
 
-      {/* 🌟 HOW IT WORKS (Upgraded with connector lines) */}
+      {/* 🌟 HOW IT WORKS */}
       <section id="how-it-works" className="py-32 bg-white relative scroll-mt-24 border-t border-zinc-100">
         <div className="max-w-6xl mx-auto px-4 md:px-8 relative z-10">
           <ScrollReveal>
@@ -255,7 +253,6 @@ export default function Home() {
           </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
-            {/* Animated Connector Line for Desktop */}
             <div className="hidden md:block absolute top-16 left-[16%] right-[16%] h-1 bg-zinc-100 z-0 rounded-full overflow-hidden">
                <div className="w-full h-full bg-gradient-to-r from-transparent via-brandGold to-transparent opacity-50 animate-[shimmer_3s_infinite]"></div>
             </div>
@@ -369,13 +366,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 NATIVE APP SECTION (Enhanced Mesh Gradient) */}
+      {/* 🌟 NATIVE APP SECTION */}
       <section className="py-8 px-4 bg-white">
         <div className="max-w-6xl mx-auto">
           <ScrollReveal>
             <div className="bg-zinc-950 rounded-[4rem] p-10 md:p-20 shadow-2xl relative overflow-hidden border border-zinc-800 flex flex-col md:flex-row items-center gap-16 group">
-              
-              {/* Dynamic Animated Mesh */}
               <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-brandGold/20 rounded-full blur-[120px] pointer-events-none group-hover:bg-brandGold/30 transition-colors duration-700"></div>
               <div className="absolute -bottom-32 -left-32 w-[600px] h-[600px] bg-emerald-500/20 rounded-full blur-[120px] pointer-events-none group-hover:bg-emerald-500/30 transition-colors duration-700"></div>
 
@@ -405,9 +400,11 @@ export default function Home() {
                   )}
                 </div>
                 
-                <p className="text-zinc-500 text-sm font-medium mt-8 max-w-md mx-auto md:mx-0 flex items-center justify-center md:justify-start gap-2">
-                  <Info size={14}/> iOS Users: Tap Share in Safari → "Add to Home Screen".
-                </p>
+                {/* 🌟 FIXED 2: The info icon and text are cleanly wrapped to avoid layout break */}
+                <div className="flex items-start justify-center md:justify-start gap-2 mt-8 max-w-md mx-auto md:mx-0 text-zinc-500 text-sm font-medium">
+                  <Info size={16} className="shrink-0 mt-0.5" />
+                  <p className="text-left leading-tight">iOS Users: Tap Share in Safari → "Add to Home Screen".</p>
+                </div>
               </div>
 
               <div className="relative z-10 shrink-0 hidden lg:block perspective-[1000px]">
@@ -420,7 +417,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 THE PASSIONATE DEVELOPER STORY (Redesigned as an offset card) */}
+      {/* 🌟 THE PASSIONATE DEVELOPER STORY */}
       <section className="py-24 px-4 bg-white border-b border-zinc-100">
         <ScrollReveal>
           <div className="max-w-6xl mx-auto relative">
@@ -456,8 +453,12 @@ export default function Home() {
                   <li className="flex items-start text-zinc-600 font-bold text-lg gap-4"><Check size={24} className="text-emerald-500 shrink-0 mt-0.5 bg-emerald-50 rounded-full p-1"/> You have absolute ownership of your data</li>
                   <li className="flex items-start text-zinc-600 font-bold text-lg gap-4"><Check size={24} className="text-emerald-500 shrink-0 mt-0.5 bg-emerald-50 rounded-full p-1"/> Built specifically for parents, by a parent</li>
                 </ul>
-                <Link to="/signup" className="w-full flex items-center justify-center bg-brandDark text-white py-5 px-8 rounded-full font-bold text-lg hover:bg-brandAccent hover:-translate-y-1 active:scale-95 transition-all shadow-lg">
-                  Create Your Free KinTag
+                
+                {/* 🌟 FIXED 5: Developer story button is single line with forward/back hover physics */}
+                <Link to="/signup" className="w-full flex items-center justify-center gap-2 bg-brandDark text-white py-4 px-6 rounded-full font-bold text-base hover:bg-brandAccent hover:-translate-y-0.5 active:scale-95 transition-all shadow-lg group/btn relative overflow-hidden">
+                  <span className="whitespace-nowrap z-10">Create Your Free KinTag</span>
+                  <ArrowRight size={18} className="transform transition-transform duration-300 group-hover/btn:translate-x-1.5 z-10" />
+                  <div className="absolute inset-0 w-full h-full bg-white/10 -translate-x-full group-hover/btn:animate-[shimmer_1.5s_infinite]"></div>
                 </Link>
               </div>
 
@@ -481,7 +482,6 @@ export default function Home() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            {/* Self Host Card */}
             <ScrollReveal delay={0}>
               <div className="bg-white rounded-[3rem] p-10 border border-zinc-200 shadow-sm h-full flex flex-col justify-between group hover:shadow-xl transition-all duration-500">
                 <div>
@@ -492,16 +492,19 @@ export default function Home() {
                     Are you a developer? You shouldn't have to rely on third-party servers for your family's safety. KinTag is designed to be completely self-hostable. 
                   </p>
                   
-                  <div className="bg-zinc-950 rounded-2xl p-6 shadow-inner border border-zinc-800 text-left mb-8">
+                  <div className="bg-zinc-950 rounded-2xl p-6 shadow-inner border border-zinc-800 text-left mb-8 max-w-full">
                     <div className="flex gap-2 mb-4">
                       <div className="w-3 h-3 rounded-full bg-red-500"></div>
                       <div className="w-3 h-3 rounded-full bg-amber-500"></div>
                       <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
                     </div>
-                    <pre className="text-emerald-400 font-mono text-sm overflow-x-auto">
+                    {/* 🌟 FIXED 4: Code block font size reduced and text wrapping applied to prevent scrollbar */}
+                    <pre className="text-emerald-400 font-mono text-[11px] sm:text-xs overflow-x-hidden whitespace-pre-wrap">
                       <code>
 <span className="text-zinc-500"># Clone the repository</span><br/>
 <span className="text-blue-400">git clone</span> https://github.com/...<br/><br/>
+<span className="text-zinc-500"># Install dependencies</span><br/>
+<span className="text-blue-400">npm</span> install<br/><br/>
 <span className="text-zinc-500"># Setup your Firebase config</span><br/>
 <span className="text-blue-400">cp</span> .env.example .env<br/><br/>
 <span className="text-zinc-500"># Start local server</span><br/>
@@ -525,7 +528,6 @@ export default function Home() {
               </div>
             </ScrollReveal>
 
-            {/* Contact & Changelog Vertical Stack */}
             <div className="flex flex-col gap-8">
               
               <ScrollReveal delay={150}>
@@ -557,9 +559,9 @@ export default function Home() {
                   <p className="text-zinc-500 font-medium leading-relaxed mb-8">
                     KinTag is actively maintained and frequently updated with new features and community-requested tools.
                   </p>
-                  <Link to="/changelog" className="inline-flex w-max items-center justify-center space-x-2 bg-zinc-50 text-brandDark px-8 py-3.5 rounded-full font-bold border border-zinc-200 hover:bg-zinc-100 hover:border-zinc-300 transition-all shadow-sm">
+                  <Link to="/changelog" className="inline-flex w-max items-center justify-center space-x-2 bg-zinc-50 text-brandDark px-8 py-3.5 rounded-full font-bold border border-zinc-200 hover:bg-zinc-100 hover:border-zinc-300 transition-all shadow-sm group/btn">
                     <span>Read the Changelog</span>
-                    <ArrowRight size={16} />
+                    <ArrowRight size={16} className="transform transition-transform duration-300 group-hover/btn:translate-x-1" />
                   </Link>
                 </div>
               </ScrollReveal>
@@ -572,14 +574,15 @@ export default function Home() {
       {/* FINAL CALL TO ACTION */}
       <section className="py-32 bg-white text-center px-4 border-t border-zinc-100">
         <ScrollReveal>
-          <div className="w-20 h-20 bg-brandGold/10 rounded-[2rem] flex items-center justify-center mx-auto mb-8 transform rotate-12">
+          {/* 🌟 FIXED 3: Shield icon is no longer tilted */}
+          <div className="w-20 h-20 bg-brandGold/10 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
              <Shield size={40} className="text-brandGold" />
           </div>
           <h2 className="text-5xl md:text-6xl font-extrabold text-brandDark tracking-tight mb-6">Ready to secure them?</h2>
           <p className="text-zinc-500 font-medium text-xl mb-10 max-w-lg mx-auto">Join the platform and create your first highly-secured digital tag in under 2 minutes.</p>
           <Link to="/signup" className="inline-flex items-center justify-center space-x-3 bg-brandDark text-white px-12 py-5 rounded-full font-bold text-xl hover:bg-brandAccent transition-all shadow-[0_10px_40px_rgb(24,24,27,0.3)] hover:-translate-y-1 active:scale-95 group">
             <span>Get Started for Free</span>
-            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+            <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform duration-300" />
           </Link>
         </ScrollReveal>
       </section>
