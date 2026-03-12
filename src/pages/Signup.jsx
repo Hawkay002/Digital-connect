@@ -3,14 +3,21 @@ import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getAdditionalUserInfo } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc, addDoc, collection } from 'firebase/firestore'; 
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { Eye, EyeOff, CheckCircle2, Circle, Loader2, Mail } from 'lucide-react';
-import ReCAPTCHA from "react-google-recaptcha"; // 🌟 NEW
+import { Eye, EyeOff, CheckCircle2, Circle, Loader2, Mail, ArrowRight, ArrowLeft, ShieldCheck, User, KeyRound } from 'lucide-react';
+import ReCAPTCHA from "react-google-recaptcha";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Signup() {
   const navigate = useNavigate();
   const location = useLocation();
   const prefilledEmail = new URLSearchParams(location.search).get('email') || '';
 
+  // Stepper State
+  const [activeStep, setActiveStep] = useState(1);
+  const [direction, setDirection] = useState(1);
+  const totalSteps = 4;
+
+  // Form State
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -23,18 +30,36 @@ export default function Signup() {
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState(null); // 🌟 NEW
+  const [captchaToken, setCaptchaToken] = useState(null);
 
   // OTP Verification State
   const [isEmailVerified, setIsEmailVerified] = useState(false);
-  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [showOtpInput, setShowOtpInput] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [otpError, setOtpError] = useState('');
-  
   const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
   const inputRefs = useRef([]);
 
+  // --- NAVIGATION LOGIC ---
+  const goToStep = (newStep) => {
+    setDirection(newStep > activeStep ? 1 : -1);
+    setActiveStep(newStep);
+    setError('');
+  };
+
+  const nextStep = () => goToStep(Math.min(activeStep + 1, totalSteps));
+  const prevStep = () => goToStep(Math.max(activeStep - 1, 1));
+
+  const isNextDisabled = () => {
+    if (activeStep === 1) return !isEmailVerified;
+    if (activeStep === 2) return password.length < 8 || password !== confirmPassword || !password;
+    if (activeStep === 3) return !firstName.trim() || !lastName.trim();
+    if (activeStep === 4) return !captchaToken || loading;
+    return false;
+  };
+
+  // --- FIREBASE LOGIC ---
   const processUserDatabase = async (user, displayName) => {
     const emailLower = user.email.toLowerCase();
     const inviteRef = doc(db, "invites", emailLower);
@@ -61,7 +86,7 @@ export default function Signup() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ownerId: inviterUid,
-          title: `🤝 Guardian Joined!`,
+          title: `👥 Guardian Joined!`,
           body: `${displayName || emailLower} created an account and joined your family.`,
           link: `https://kintag.vercel.app/#/?view=notifications` 
         })
@@ -82,6 +107,7 @@ export default function Signup() {
     }).catch(err => console.log("Welcome email failed:", err));
   };
 
+  // --- OTP LOGIC ---
   const handleSendOtp = async () => {
     setError('');
     setOtpLoading(true);
@@ -94,7 +120,7 @@ export default function Signup() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send verification email.");
       
-      setShowOtpModal(true);
+      setShowOtpInput(true);
       setOtpError('');
     } catch (err) {
       setError(err.message);
@@ -118,71 +144,11 @@ export default function Signup() {
       if (!res.ok) throw new Error(data.error || "Invalid Verification Code.");
 
       setIsEmailVerified(true);
-      setShowOtpModal(false);
+      setShowOtpInput(false);
     } catch (err) {
       setOtpError(err.message);
     } finally {
       setVerifyLoading(false);
-    }
-  };
-
-  const handleEmailSignup = async (e) => {
-    e.preventDefault();
-    setError('');
-    
-    if (!captchaToken) {
-      setError("Please complete the security check.");
-      return;
-    }
-    if (!isEmailVerified) {
-      setError("Please verify your email address first.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-    if (password.length < 8) {
-      setError("Please ensure your password is at least 8 characters long.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const fullName = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
-      
-      await processUserDatabase(userCredential.user, fullName);
-      navigate('/'); 
-    } catch (err) {
-      setError(err.message.replace('Firebase: ', ''));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleSignup = async () => {
-    setError('');
-    if (!captchaToken) {
-      setError("Please complete the security check.");
-      return;
-    }
-
-    setLoading(true);
-    const provider = new GoogleAuthProvider();
-    
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const details = getAdditionalUserInfo(result);
-
-      if (details && details.isNewUser) {
-        await processUserDatabase(result.user, result.user.displayName || '');
-      }
-      navigate('/'); 
-    } catch (err) {
-      setError("Google sign-up failed. Please try again.");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -217,6 +183,46 @@ export default function Signup() {
     }
   };
 
+  // --- SUBMISSION LOGIC ---
+  const handleEmailSignup = async () => {
+    setError('');
+    if (!captchaToken) return setError("Please complete the security check.");
+    
+    setLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const fullName = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
+      await processUserDatabase(userCredential.user, fullName);
+      navigate('/'); 
+    } catch (err) {
+      setError(err.message.replace('Firebase: ', ''));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    setError('');
+    if (!captchaToken) return setError("Please complete the security check first.");
+
+    setLoading(true);
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const details = getAdditionalUserInfo(result);
+
+      if (details && details.isNewUser) {
+        await processUserDatabase(result.user, result.user.displayName || '');
+      }
+      navigate('/'); 
+    } catch (err) {
+      setError("Google sign-up failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- PASSWORD STRENGTH LOGIC ---
   const criteria = {
     length: password.length >= 8,
     uppercase: /[A-Z]/.test(password),
@@ -235,177 +241,278 @@ export default function Signup() {
     </li>
   );
 
+  // --- FRAMER MOTION VARIANTS ---
+  const slideVariants = {
+    enter: (dir) => ({ x: dir > 0 ? 40 : -40, opacity: 0, filter: "blur(4px)" }),
+    center: { x: 0, opacity: 1, filter: "blur(0px)" },
+    exit: (dir) => ({ x: dir < 0 ? 40 : -40, opacity: 0, filter: "blur(4px)", position: "absolute" })
+  };
+
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center bg-zinc-50 p-4 py-12">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-premium p-8 border border-zinc-100">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-[#fafafa] p-4 py-12 relative overflow-hidden selection:bg-brandGold selection:text-white">
+      
+      {/* Premium Background Elements */}
+      <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[500px] bg-gradient-to-r from-brandGold/20 via-emerald-400/10 to-transparent rounded-full blur-[80px] pointer-events-none"></div>
+
+      <div className="max-w-md w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.08)] p-8 border border-zinc-200/80 relative z-10 flex flex-col min-h-[600px]">
         
-        <div className="text-center mb-8">
+        {/* Header */}
+        <div className="text-center mb-8 shrink-0">
           <div className="flex items-center justify-center space-x-3 mb-4">
-            <img src="/kintag-logo.png" alt="KinTag Logo" className="w-12 h-12 rounded-xl shadow-sm" />
-            <h1 className="text-4xl font-extrabold text-brandDark tracking-tight">KinTag</h1>
+            <img src="/kintag-logo.png" alt="KinTag Logo" className="w-10 h-10 rounded-xl shadow-sm" />
+            <h1 className="text-3xl font-extrabold text-brandDark tracking-tight">KinTag</h1>
           </div>
-          <p className="text-zinc-500 mt-2 font-medium">Create an account to secure your family.</p>
-          {prefilledEmail && <span className="inline-block mt-2 bg-brandGold/20 text-brandGold px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">Invited by Guardian</span>}
+          <p className="text-zinc-500 font-medium">Create an account to secure your family.</p>
         </div>
 
-        {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-4 text-sm text-center border border-red-100">{error}</div>}
-
-        <form onSubmit={handleEmailSignup} className="space-y-4 mb-6">
-          <input type="text" placeholder="First Name" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" />
-          <input type="text" placeholder="Middle Name (Optional)" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className="w-full p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" />
-          <input type="text" placeholder="Last Name" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" />
-          
-          <div className="relative">
-            <input 
-              type="email" 
-              placeholder="Email Address" 
-              required 
-              value={email} 
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (isEmailVerified) setIsEmailVerified(false);
-              }} 
-              disabled={isEmailVerified}
-              className="w-full p-3.5 pr-24 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all disabled:opacity-70 disabled:bg-zinc-100" 
-            />
-            {!isEmailVerified ? (
-              <button 
-                type="button" 
-                onClick={handleSendOtp} 
-                disabled={otpLoading || !email.includes('@')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-brandDark text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-brandAccent transition-all shadow-sm disabled:opacity-50"
-              >
-                {otpLoading ? <Loader2 size={14} className="animate-spin" /> : 'Verify'}
-              </button>
-            ) : (
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
-                <CheckCircle2 size={16} /> Verified
-              </div>
-            )}
-          </div>
-          
-          <div className="relative">
-            <input 
-              type={showPassword ? "text" : "password"} 
-              placeholder="Create a Password" 
-              required 
-              maxLength={16}
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              onFocus={() => setIsPasswordFocused(true)}
-              onBlur={() => setTimeout(() => setIsPasswordFocused(false), 200)}
-              className="w-full p-3.5 pr-12 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" 
-            />
-            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-brandDark transition-colors">
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
-          </div>
-
-          <div className="relative">
-            <input 
-              type={showConfirmPassword ? "text" : "password"} 
-              placeholder="Confirm Password" 
-              required 
-              maxLength={16}
-              value={confirmPassword} 
-              onChange={(e) => setConfirmPassword(e.target.value)} 
-              className={`w-full p-3.5 pr-12 bg-brandMuted border rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all ${confirmPassword && password !== confirmPassword ? 'border-red-300' : 'border-transparent'}`} 
-            />
-            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-brandDark transition-colors">
-              {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
-          </div>
-
-          <div className={`overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${isPasswordFocused ? 'max-h-[300px] opacity-100 mt-2' : 'max-h-0 opacity-0 mt-0'}`}>
-            <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200">
-              <div className="flex justify-between items-center mb-2.5">
-                <span className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Password Strength</span>
-                <span className={`text-[10px] font-extrabold uppercase tracking-widest ${strengthScore >= 4 ? 'text-emerald-600' : strengthScore >= 2 ? 'text-amber-600' : 'text-red-600'}`}>
-                  {password.length === 0 ? 'None' : strengthLabels[strengthScore]}
-                </span>
-              </div>
-              <div className="flex gap-1 mb-4">
-                {[1, 2, 3, 4, 5].map((level) => (
-                  <div key={level} className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${password.length > 0 && strengthScore >= level ? strengthColors[strengthScore] : 'bg-zinc-200'}`}></div>
-                ))}
-              </div>
-              <ul className="space-y-2">
-                <CriteriaItem met={criteria.length} text="At least 8 characters long" />
-                <CriteriaItem met={criteria.uppercase} text="Contains an uppercase letter" />
-                <CriteriaItem met={criteria.lowercase} text="Contains a lowercase letter" />
-                <CriteriaItem met={criteria.number} text="Contains a number" />
-                <CriteriaItem met={criteria.special} text="Contains a special character (@, $, !, etc)" />
-              </ul>
-            </div>
-          </div>
-
-          {/* 🌟 NEW: Google reCAPTCHA */}
-          <div className="flex justify-center mt-4">
-            <ReCAPTCHA
-              sitekey={import.meta.env.VITE_GOOGLE_RECAPTCHA_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
-              onChange={(token) => setCaptchaToken(token)}
-            />
-          </div>
-          
-          {/* 🌟 UPDATED: Disabled if Captcha isn't completed */}
-          <button type="submit" disabled={loading || password.length < 8 || password !== confirmPassword || !isEmailVerified || !captchaToken} className="w-full bg-brandDark text-white p-3.5 rounded-xl font-bold hover:bg-brandAccent transition-all shadow-md mt-2 disabled:opacity-50">
-            {loading ? 'Processing...' : 'Create Account'}
-          </button>
-        </form>
-
-        <div className="relative flex items-center justify-center mb-6">
-          <hr className="w-full border-zinc-200" />
-          <span className="absolute bg-white px-4 text-xs font-bold text-zinc-400 tracking-wider">OR</span>
+        {/* Custom Stepper Indicator */}
+        <div className="flex w-full justify-between items-center mb-10 relative px-2 shrink-0">
+           <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 h-1.5 bg-zinc-100 rounded-full z-0"></div>
+           <div className="absolute left-2 top-1/2 -translate-y-1/2 h-1.5 bg-brandDark rounded-full z-0 transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]" style={{ width: `calc(${((activeStep - 1) / 3) * 100}% - 16px)` }}></div>
+           
+           {[
+             { id: 1, icon: <Mail size={16}/> },
+             { id: 2, icon: <KeyRound size={16}/> },
+             { id: 3, icon: <User size={16}/> },
+             { id: 4, icon: <ShieldCheck size={16}/> }
+           ].map((step) => {
+             const isPast = step.id < activeStep;
+             const isActive = step.id === activeStep;
+             return (
+               <button
+                 key={step.id}
+                 onClick={() => {
+                   // Allow navigation to past steps or the immediate next step if valid
+                   if (step.id < activeStep || (step.id === activeStep + 1 && !isNextDisabled())) {
+                     goToStep(step.id);
+                   }
+                 }}
+                 disabled={step.id > activeStep && isNextDisabled()}
+                 className={`relative flex items-center justify-center w-10 h-10 rounded-full font-extrabold text-sm transition-all duration-500 z-10 ${
+                   isActive ? "bg-white border-[3px] border-brandDark text-brandDark shadow-md scale-110" 
+                   : isPast ? "bg-brandDark text-white border-2 border-brandDark shadow-sm" 
+                   : "bg-zinc-50 border-2 border-zinc-200 text-zinc-400"
+                 }`}
+               >
+                 {isPast ? <CheckCircle2 size={18} /> : step.icon}
+               </button>
+             );
+           })}
         </div>
 
-        {/* 🌟 UPDATED: Disabled if Captcha isn't completed */}
-        <button onClick={handleGoogleSignup} disabled={loading || !captchaToken} className="w-full flex items-center justify-center space-x-2 bg-white border border-zinc-200 text-brandDark p-3.5 rounded-xl font-bold hover:bg-zinc-50 transition-all shadow-sm disabled:opacity-50">
-          <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
-          <span>Sign up with Google</span>
-        </button>
+        {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-6 text-sm font-bold text-center border border-red-100 shrink-0 animate-in fade-in">{error}</div>}
 
-        <p className="text-center mt-8 text-sm text-zinc-600 font-medium">
-          Already have an account? <Link to="/login" className="text-brandDark font-bold hover:text-brandGold transition-colors">Log In</Link>
-        </p>
+        {/* Form Area - Framer Motion Wrapper */}
+        <div className="flex-1 relative flex flex-col justify-center">
+          <AnimatePresence mode="popLayout" custom={direction}>
+            
+            {/* STEP 1: EMAIL & VERIFICATION */}
+            {activeStep === 1 && (
+              <motion.div key="step1" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.4, type: "spring", bounce: 0.2 }} className="w-full space-y-5">
+                <div className="text-center mb-6">
+                  <h2 className="text-2xl font-extrabold text-brandDark mb-2">Email Address</h2>
+                  <p className="text-zinc-500 text-sm font-medium">We'll use this to send you emergency scan alerts.</p>
+                </div>
 
-        {showOtpModal && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-brandDark/90 backdrop-blur-sm">
-            <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
-              <div className="w-16 h-16 bg-brandGold/10 text-brandGold rounded-full flex items-center justify-center mx-auto mb-4">
-                <Mail size={32} />
-              </div>
-              <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">Verify Email</h2>
-              <p className="text-zinc-500 mb-6 text-sm font-medium leading-relaxed">
-                We sent a 6-digit verification code to <strong className="text-brandDark">{email}</strong>.
-              </p>
-
-              {otpError && <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-6 text-sm font-bold border border-red-100">{otpError}</div>}
-
-              <div className="flex justify-center gap-2 mb-8">
-                {otpValues.map((val, index) => (
+                <div className="relative">
                   <input 
-                    key={index}
-                    ref={el => inputRefs.current[index] = el}
-                    type="text"
-                    maxLength={1}
-                    value={val}
-                    onChange={e => handleOtpChange(index, e.target.value)}
-                    onKeyDown={e => handleOtpKeyDown(index, e)}
-                    onPaste={handleOtpPaste}
-                    className="w-10 h-12 sm:w-12 sm:h-14 text-center text-xl sm:text-2xl font-black bg-zinc-50 border-2 border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark outline-none transition-all"
+                    type="email" 
+                    placeholder="Enter your email" 
+                    required 
+                    value={email} 
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (isEmailVerified) setIsEmailVerified(false);
+                      if (showOtpInput) setShowOtpInput(false);
+                    }} 
+                    disabled={isEmailVerified || showOtpInput}
+                    className="w-full p-4 pl-12 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-all disabled:opacity-70 disabled:bg-zinc-100 font-medium" 
                   />
-                ))}
-              </div>
+                  <Mail size={20} className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${isEmailVerified ? 'text-emerald-500' : 'text-zinc-400'}`} />
+                  
+                  {isEmailVerified && (
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
+                      <CheckCircle2 size={16} /> Verified
+                    </div>
+                  )}
+                </div>
 
-              <button 
-                onClick={handleVerifyOtp} 
-                disabled={verifyLoading || otpValues.join('').length !== 6}
-                className="w-full bg-brandDark text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {verifyLoading ? <Loader2 size={18} className="animate-spin" /> : 'Proceed'}
-              </button>
-            </div>
+                {!isEmailVerified && !showOtpInput && (
+                  <button type="button" onClick={handleSendOtp} disabled={otpLoading || !email.includes('@')} className="w-full bg-brandDark text-white p-4 rounded-xl font-bold hover:bg-brandAccent transition-all shadow-md disabled:opacity-50 flex justify-center items-center gap-2">
+                    {otpLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                    {otpLoading ? 'Sending...' : 'Send Verification Code'}
+                  </button>
+                )}
+
+                {showOtpInput && !isEmailVerified && (
+                  <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-200 shadow-inner animate-in fade-in slide-in-from-top-4">
+                    <p className="text-sm font-medium text-zinc-500 text-center mb-4">Enter the 6-digit code sent to your email.</p>
+                    {otpError && <p className="text-xs text-red-600 font-bold text-center mb-4">{otpError}</p>}
+                    <div className="flex justify-center gap-2 mb-6">
+                      {otpValues.map((val, index) => (
+                        <input 
+                          key={index}
+                          ref={el => inputRefs.current[index] = el}
+                          type="text"
+                          maxLength={1}
+                          value={val}
+                          onChange={e => handleOtpChange(index, e.target.value)}
+                          onKeyDown={e => handleOtpKeyDown(index, e)}
+                          onPaste={handleOtpPaste}
+                          className="w-10 h-12 text-center text-xl font-black bg-white border-2 border-zinc-200 rounded-xl focus:border-brandDark outline-none transition-all shadow-sm"
+                        />
+                      ))}
+                    </div>
+                    <button type="button" onClick={handleVerifyOtp} disabled={verifyLoading || otpValues.join('').length !== 6} className="w-full bg-emerald-500 text-white p-3.5 rounded-xl font-bold hover:bg-emerald-600 transition-all shadow-md disabled:opacity-50 flex justify-center items-center gap-2">
+                      {verifyLoading ? <Loader2 size={18} className="animate-spin" /> : 'Verify Code'}
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* STEP 2: PASSWORD */}
+            {activeStep === 2 && (
+              <motion.div key="step2" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.4, type: "spring", bounce: 0.2 }} className="w-full space-y-4">
+                <div className="text-center mb-6">
+                  <h2 className="text-2xl font-extrabold text-brandDark mb-2">Secure Account</h2>
+                  <p className="text-zinc-500 text-sm font-medium">Create a strong password to protect your data.</p>
+                </div>
+
+                <div className="relative">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="Create a Password" 
+                    required 
+                    maxLength={16}
+                    value={password} 
+                    onChange={(e) => setPassword(e.target.value)} 
+                    onFocus={() => setIsPasswordFocused(true)}
+                    onBlur={() => setTimeout(() => setIsPasswordFocused(false), 200)}
+                    className="w-full p-4 pr-12 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-all font-medium" 
+                  />
+                  <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-brandDark transition-colors">
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <input 
+                    type={showConfirmPassword ? "text" : "password"} 
+                    placeholder="Confirm Password" 
+                    required 
+                    maxLength={16}
+                    value={confirmPassword} 
+                    onChange={(e) => setConfirmPassword(e.target.value)} 
+                    className={`w-full p-4 pr-12 bg-zinc-50 border rounded-xl focus:bg-white focus:outline-none transition-all font-medium ${confirmPassword && password !== confirmPassword ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20' : 'border-zinc-200 focus:border-brandDark focus:ring-2 focus:ring-brandDark/10'}`} 
+                  />
+                  <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-brandDark transition-colors">
+                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+
+                <div className={`overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${isPasswordFocused || password.length > 0 ? 'max-h-[300px] opacity-100 mt-4' : 'max-h-0 opacity-0 mt-0'}`}>
+                  <div className="bg-zinc-50 p-5 rounded-2xl border border-zinc-200 shadow-sm">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Password Strength</span>
+                      <span className={`text-[10px] font-extrabold uppercase tracking-widest ${strengthScore >= 4 ? 'text-emerald-600' : strengthScore >= 2 ? 'text-amber-600' : 'text-red-600'}`}>
+                        {password.length === 0 ? 'None' : strengthLabels[strengthScore]}
+                      </span>
+                    </div>
+                    <div className="flex gap-1.5 mb-5">
+                      {[1, 2, 3, 4, 5].map((level) => (
+                        <div key={level} className={`h-1.5 flex-1 rounded-full transition-colors duration-500 ${password.length > 0 && strengthScore >= level ? strengthColors[strengthScore] : 'bg-zinc-200'}`}></div>
+                      ))}
+                    </div>
+                    <ul className="space-y-2.5">
+                      <CriteriaItem met={criteria.length} text="At least 8 characters long" />
+                      <CriteriaItem met={criteria.uppercase} text="Contains an uppercase letter" />
+                      <CriteriaItem met={criteria.lowercase} text="Contains a lowercase letter" />
+                      <CriteriaItem met={criteria.number} text="Contains a number" />
+                      <CriteriaItem met={criteria.special} text="Contains a special character (@, $, !, etc)" />
+                    </ul>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* STEP 3: NAME */}
+            {activeStep === 3 && (
+              <motion.div key="step3" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.4, type: "spring", bounce: 0.2 }} className="w-full space-y-4">
+                <div className="text-center mb-6">
+                  <h2 className="text-2xl font-extrabold text-brandDark mb-2">Personal Details</h2>
+                  <p className="text-zinc-500 text-sm font-medium">What should we call you on the dashboard?</p>
+                </div>
+                <input type="text" placeholder="First Name" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-all font-medium" />
+                <input type="text" placeholder="Middle Name (Optional)" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-all font-medium" />
+                <input type="text" placeholder="Last Name" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-all font-medium" />
+              </motion.div>
+            )}
+
+            {/* STEP 4: CAPTCHA & FINAL SUBMIT */}
+            {activeStep === 4 && (
+              <motion.div key="step4" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.4, type: "spring", bounce: 0.2 }} className="w-full space-y-6 flex flex-col items-center">
+                <div className="text-center mb-2">
+                  <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-100 shadow-sm">
+                    <ShieldCheck size={32} />
+                  </div>
+                  <h2 className="text-2xl font-extrabold text-brandDark mb-2">Final Step</h2>
+                  <p className="text-zinc-500 text-sm font-medium px-4">Complete the security check below to create your KinTag account.</p>
+                </div>
+
+                <div className="flex justify-center w-full bg-zinc-50 p-4 rounded-2xl border border-zinc-200 shadow-inner">
+                  <ReCAPTCHA
+                    sitekey={import.meta.env.VITE_GOOGLE_RECAPTCHA_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
+                    onChange={(token) => setCaptchaToken(token)}
+                  />
+                </div>
+
+                <button type="button" onClick={handleEmailSignup} disabled={loading || !captchaToken} className="w-full bg-brandDark text-white py-4 rounded-xl font-bold hover:bg-brandAccent transition-all shadow-lg hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0 flex justify-center items-center gap-2">
+                  {loading ? <Loader2 size={18} className="animate-spin" /> : 'Create Account'}
+                </button>
+
+                <div className="relative flex items-center justify-center w-full my-2">
+                  <hr className="w-full border-zinc-200" />
+                  <span className="absolute bg-white px-4 text-[10px] font-extrabold text-zinc-400 tracking-widest uppercase">OR</span>
+                </div>
+
+                <button type="button" onClick={handleGoogleSignup} disabled={loading || !captchaToken} className="w-full flex items-center justify-center space-x-3 bg-white border border-zinc-200 text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-50 hover:border-zinc-300 transition-all shadow-sm disabled:opacity-50">
+                  <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+                  <span>Sign up with Google</span>
+                </button>
+              </motion.div>
+            )}
+
+          </AnimatePresence>
+        </div>
+
+        {/* Footer Navigation Buttons (Hidden on final step to force form submission) */}
+        {activeStep < 4 && (
+          <div className="flex justify-between w-full mt-10 pt-6 border-t border-zinc-100 shrink-0">
+            <button 
+              type="button" 
+              onClick={prevStep} 
+              className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all text-sm ${activeStep === 1 ? 'opacity-0 pointer-events-none' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-brandDark'}`}
+            >
+              <ArrowLeft size={16} /> Back
+            </button>
+            <button 
+              type="button" 
+              onClick={nextStep} 
+              disabled={isNextDisabled()} 
+              className="flex items-center gap-2 bg-brandDark text-white px-8 py-3 rounded-full font-bold text-sm shadow-md hover:bg-brandAccent hover:shadow-lg transition-all disabled:opacity-50 disabled:hover:shadow-md active:scale-95 group"
+            >
+              Next Step <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </button>
           </div>
+        )}
+
+        {/* Back to Login Global Link */}
+        {activeStep === 1 && (
+          <p className="text-center mt-8 text-sm text-zinc-500 font-medium">
+            Already have an account? <Link to="/login" className="text-brandDark font-bold hover:text-brandGold transition-colors">Log In</Link>
+          </p>
         )}
 
       </div>
