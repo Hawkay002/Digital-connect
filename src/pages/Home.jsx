@@ -155,15 +155,15 @@ export default function Home() {
         </nav>
       </div>
 
-      {/* 🌟 HERO SECTION WITH MASSIVE BLENDED GLOBE */}
-      <section className="pt-32 md:pt-40 pb-20 px-4 relative overflow-hidden flex flex-col items-center min-h-[90vh]">
+      {/* 🌟 HERO SECTION WITH MASSIVE EDGE-TO-EDGE BLENDED GLOBE */}
+      <section className="pt-32 md:pt-40 pb-20 relative overflow-hidden flex flex-col items-center min-h-[90vh]">
         
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-r from-brandGold/20 via-emerald-400/10 to-transparent rounded-full blur-[80px] pointer-events-none z-0"></div>
         
-        <div className="max-w-5xl mx-auto text-center relative w-full">
-          
+        {/* V1.1.1 Badge (Inside safe container limits) */}
+        <div className="max-w-5xl mx-auto text-center relative z-30 px-4 w-full">
           <ScrollReveal delay={0}>
-            <div className="inline-flex items-center space-x-2.5 bg-white/50 backdrop-blur-sm border border-zinc-200 px-4 py-2 rounded-full shadow-sm hover:bg-white hover:shadow-md transition-all cursor-default relative z-30">
+            <div className="inline-flex items-center space-x-2.5 bg-white/50 backdrop-blur-sm border border-zinc-200 px-4 py-2 rounded-full shadow-sm hover:bg-white hover:shadow-md transition-all cursor-default">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
@@ -171,36 +171,34 @@ export default function Home() {
               <span className="text-xs font-extrabold uppercase tracking-widest text-zinc-600">V1.1.1 is now live!</span>
             </div>
           </ScrollReveal>
+        </div>
 
-          {/* 🌟 Huge Zoomed-in Globe: 
-              - pointer-events-none on wrapper so text is clickable
-              - pointer-events-auto on globe to allow drag
-              - Negative margins pull the headline up to blend
-              - Linear gradient mask fades the bottom perfectly 
-          */}
-          <ScrollReveal delay={50}>
-            <div className="w-full flex justify-center relative z-10 -mt-12 md:-mt-24 -mb-32 md:-mb-64 [mask-image:linear-gradient(to_bottom,black_50%,transparent_90%)] pointer-events-none">
-              <div className="w-[900px] md:w-[1400px] opacity-80 pointer-events-auto">
-                 <Globe />
-              </div>
+        {/* 🌟 The Globe: Pulled outside of max-w limits so it can overflow screen edges */}
+        {/* The linear-gradient mask aggressively fades out the bottom so it blends with the background */}
+        <ScrollReveal delay={50}>
+          <div className="w-full flex justify-center relative z-10 -mt-6 md:-mt-10 -mb-64 sm:-mb-72 md:-mb-[22rem] lg:-mb-[28rem] [mask-image:linear-gradient(to_bottom,black_50%,transparent_85%)] pointer-events-none">
+            <div className="w-[180vw] sm:w-[150vw] md:w-[120vw] lg:w-[100vw] opacity-80 pointer-events-auto shrink-0 flex justify-center">
+               <Globe className="!max-w-none w-full" />
             </div>
-          </ScrollReveal>
-          
-          {/* 🌟 Headline is pulled up over the faded bottom of the globe */}
+          </div>
+        </ScrollReveal>
+        
+        {/* Headline & Buttons (Pulled up via the globe's negative bottom margin) */}
+        <div className="max-w-5xl mx-auto text-center relative z-20 px-4 w-full">
           <ScrollReveal delay={100}>
-            <h1 className="text-5xl md:text-[5.5rem] font-extrabold text-brandDark tracking-tight leading-[1.05] relative z-20 drop-shadow-sm px-4">
+            <h1 className="text-5xl md:text-[5.5rem] font-extrabold text-brandDark tracking-tight leading-[1.05] drop-shadow-md">
               The ultimate digital <br className="hidden md:block"/> safety net for your family.
             </h1>
           </ScrollReveal>
           
           <ScrollReveal delay={200}>
-            <p className="text-lg md:text-xl text-zinc-500 font-medium max-w-2xl mx-auto mt-8 mb-10 leading-relaxed relative z-20">
+            <p className="text-lg md:text-xl text-zinc-500 font-medium max-w-2xl mx-auto mt-8 mb-10 leading-relaxed">
               Link custom QR codes or NFC tags to life-saving digital profiles for your kids and pets. If they ever wander off, a simple scan sends you their exact GPS location instantly.
             </p>
           </ScrollReveal>
           
           <ScrollReveal delay={300}>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 relative z-20">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
               <Link to={currentUser ? "/dashboard" : "/signup"} className="group w-full sm:w-auto flex items-center justify-center space-x-3 bg-brandDark text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-brandAccent transition-all shadow-[0_8px_30px_rgb(24,24,27,0.3)] hover:shadow-[0_8px_40px_rgb(24,24,27,0.4)] hover:-translate-y-1 active:scale-95 relative overflow-hidden">
                 <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
                 <span>{currentUser ? "Go to your Dashboard" : "Try KinTag for Free"}</span>
@@ -221,7 +219,7 @@ export default function Home() {
           </ScrollReveal>
 
           <ScrollReveal delay={400}>
-            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs font-extrabold text-zinc-400 uppercase tracking-widest mb-16 relative z-20">
+            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs font-extrabold text-zinc-400 uppercase tracking-widest mb-16">
               <span className="flex items-center gap-2 bg-white/50 backdrop-blur-sm px-3 py-1.5 rounded-md"><CheckCircle2 size={16} className="text-emerald-500"/> 100% Free Forever</span>
               <span className="flex items-center gap-2 bg-white/50 backdrop-blur-sm px-3 py-1.5 rounded-md"><Lock size={16} className="text-brandGold"/> Secure & Encrypted</span>
               <span className="flex items-center gap-2 bg-white/50 backdrop-blur-sm px-3 py-1.5 rounded-md"><Shield size={16} className="text-blue-500"/> No App Required</span>
