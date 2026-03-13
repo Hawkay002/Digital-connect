@@ -180,7 +180,7 @@ export default function Home() {
           */}
           <ScrollReveal delay={50}>
             <div className="w-full flex justify-center relative z-10 -mt-12 md:-mt-24 -mb-32 md:-mb-64 [mask-image:linear-gradient(to_bottom,black_50%,transparent_90%)] pointer-events-none">
-              <div className="w-[600px] md:w-[1100px] opacity-80 pointer-events-auto">
+              <div className="w-[900px] md:w-[1400px] opacity-80 pointer-events-auto">
                  <Globe />
               </div>
             </div>
