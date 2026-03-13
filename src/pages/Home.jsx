@@ -6,7 +6,8 @@ import { FAQMonochrome } from '../components/ui/faq-monochrome';
 import { useAuth } from '../context/AuthContext';
 import Globe from '../components/ui/Globe'; 
 import SparklesText from '../components/ui/SparklesText'; 
-import GlassSurface from '../components/ui/GlassSurface'; // 🌟 NEW: Official GlassSurface Component
+import GlassSurface from '../components/ui/GlassSurface';
+import FloatingPhone from '../components/ui/FloatingPhone'; // 🌟 NEW: Imported the FloatingPhone component
 import { 
   Shield, MapPin, BellRing, Heart, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
@@ -132,7 +133,6 @@ export default function Home() {
       
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
 
-      {/* 🌟 REACT BITS "GLASS SURFACE" NAVBAR */}
       <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-4 pointer-events-none">
         <div className={`pointer-events-auto w-full max-w-5xl transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isScrolled ? 'translate-y-0 scale-100' : 'translate-y-2 scale-[1.01]'}`}>
           <GlassSurface width="100%" borderRadius={40}>
@@ -181,7 +181,7 @@ export default function Home() {
           </ScrollReveal>
         </div>
 
-        {/* The Globe: Pulled outside of max-w limits so it can overflow screen edges */}
+        {/* The Globe */}
         <ScrollReveal delay={50}>
           <div className="w-full flex justify-center relative z-10 -mt-6 md:-mt-10 -mb-64 sm:-mb-72 md:-mb-[22rem] lg:-mb-[28rem] [mask-image:linear-gradient(to_bottom,black_50%,transparent_85%)] pointer-events-none">
             <div className="w-[180vw] sm:w-[150vw] md:w-[120vw] lg:w-[100vw] opacity-80 pointer-events-none shrink-0 flex justify-center">
@@ -190,7 +190,7 @@ export default function Home() {
           </div>
         </ScrollReveal>
         
-        {/* Headline & Buttons (Pulled up via the globe's negative bottom margin) */}
+        {/* Headline & Buttons */}
         <div className="max-w-5xl mx-auto text-center relative z-20 px-4 w-full">
           <ScrollReveal delay={100}>
             <h1 className="text-5xl md:text-[5.5rem] font-extrabold text-brandDark tracking-tight leading-[1.05] drop-shadow-md">
@@ -233,6 +233,7 @@ export default function Home() {
             </div>
           </ScrollReveal>
 
+          {/* 🌟 NEW: Animated 3D Floating Phone Mockups replacing the static frames */}
           <ScrollReveal delay={500}>
             <div className="relative mx-auto max-w-5xl mt-12 md:mt-24">
               
@@ -245,24 +246,25 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="flex flex-col md:flex-row justify-center items-center gap-12 md:gap-20 perspective-[1200px] w-full pb-10 md:pb-0 relative z-30">
-                <div className="relative w-[280px] md:w-[320px] aspect-[9/19.5] rounded-[2.25rem] md:rounded-[3rem] border-[8px] md:border-[10px] border-zinc-900 bg-zinc-900 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden transform md:rotate-y-[12deg] md:rotate-x-[5deg] md:hover:rotate-y-[0deg] md:hover:rotate-x-[0deg] hover:scale-[1.03] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group shrink-0">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50"></div>
-                  <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.75rem] md:rounded-[2.4rem]">
-                     <div className="absolute top-0 left-0 w-[375px] h-[813px] origin-top-left max-md:[transform:scale(0.704)] md:[transform:scale(0.8)]">
-                        <iframe src="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3?preview=true" className="w-full h-full border-0 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} title="Live Kid Profile View" />
-                     </div>
-                  </div>
-                </div>
-
-                <div className="relative w-[280px] md:w-[310px] aspect-[9/20] rounded-[2rem] md:rounded-[2.75rem] border-[8px] md:border-[10px] border-zinc-800 bg-zinc-800 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden transform md:rotate-y-[-12deg] md:rotate-x-[5deg] md:hover:rotate-y-[0deg] md:hover:rotate-x-[0deg] hover:scale-[1.03] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group shrink-0">
-                  <div className="absolute inset-0 bg-gradient-to-tl from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50"></div>
-                  <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.5rem] md:rounded-[2.1rem]">
-                     <div className="absolute top-0 left-0 w-[375px] h-[834px] origin-top-left max-md:[transform:scale(0.704)] md:[transform:scale(0.7733)]">
-                        <iframe src="https://kintag.vercel.app/#/id/OSCIDGkJXSIh9mTmOVtr?preview=true" className="w-full h-full border-0 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} title="Live Pet Profile View" />
-                     </div>
-                  </div>
-                </div>
+              {/* 🌟 The new Flex container stacks vertically on mobile, side-by-side horizontally on desktop */}
+              <div className="flex flex-col md:flex-row justify-center items-center gap-16 md:gap-24 perspective-[1200px] w-full pb-10 md:pb-0 relative z-30 mt-12">
+                
+                {/* Kid Profile (Faces Left) */}
+                <FloatingPhone 
+                  iframeSrc="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3?preview=true"
+                  facing="left"
+                  className="w-[280px] md:w-[320px] aspect-[9/19.5]"
+                  scaleClass="max-md:[transform:scale(0.704)] md:[transform:scale(0.8)]"
+                />
+                
+                {/* Pet Profile (Faces Right) */}
+                <FloatingPhone 
+                  iframeSrc="https://kintag.vercel.app/#/id/OSCIDGkJXSIh9mTmOVtr?preview=true"
+                  facing="right"
+                  className="w-[280px] md:w-[310px] aspect-[9/20]"
+                  scaleClass="max-md:[transform:scale(0.704)] md:[transform:scale(0.7733)]"
+                />
+                
               </div>
             </div>
           </ScrollReveal>
