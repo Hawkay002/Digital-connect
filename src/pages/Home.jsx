@@ -4,7 +4,7 @@ import { Turnstile } from '@marsidev/react-turnstile';
 import { CardStack } from '../components/ui/card-stack'; 
 import { FAQMonochrome } from '../components/ui/faq-monochrome'; 
 import { useAuth } from '../context/AuthContext';
-import Globe from '../components/ui/Globe'; // 🌟 NEW: Imported the Globe
+import Globe from '../components/ui/Globe'; 
 import { 
   Shield, MapPin, BellRing, Heart, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
@@ -155,19 +155,14 @@ export default function Home() {
         </nav>
       </div>
 
-      {/* 🌟 HERO SECTION WITH GLOBE BACKGROUND */}
-      <section className="pt-40 pb-20 md:pt-48 md:pb-32 px-4 relative overflow-hidden flex flex-col items-center min-h-[90vh]">
+      <section className="pt-40 pb-20 md:pt-48 md:pb-32 px-4 relative overflow-hidden flex flex-col items-center">
         
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-r from-brandGold/20 via-emerald-400/10 to-transparent rounded-full blur-[80px] pointer-events-none z-0"></div>
         
-        {/* Magic UI Globe embedded behind text with a fading mask */}
-        <div className="absolute top-10 left-0 right-0 bottom-0 flex items-center justify-center pointer-events-auto z-0 opacity-40 md:opacity-60 [mask-image:radial-gradient(ellipse_at_center_50%,black_30%,transparent_70%)]">
-           <Globe className="translate-y-24 md:translate-y-48 scale-[1.3] md:scale-[1.1]" />
-        </div>
-
-        <div className="max-w-5xl mx-auto text-center relative z-10 w-full">
+        <div className="max-w-5xl mx-auto text-center relative w-full">
+          
           <ScrollReveal delay={0}>
-            <div className="inline-flex items-center space-x-2.5 bg-white/50 backdrop-blur-sm border border-zinc-200 px-4 py-2 rounded-full mb-8 shadow-sm hover:bg-white hover:shadow-md transition-all cursor-default">
+            <div className="inline-flex items-center space-x-2.5 bg-white/50 backdrop-blur-sm border border-zinc-200 px-4 py-2 rounded-full mb-6 md:mb-8 shadow-sm hover:bg-white hover:shadow-md transition-all cursor-default relative z-20">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
@@ -175,21 +170,30 @@ export default function Home() {
               <span className="text-xs font-extrabold uppercase tracking-widest text-zinc-600">V1.1.1 is now live!</span>
             </div>
           </ScrollReveal>
+
+          {/* 🌟 Magic UI Globe perfectly slotted between the text elements */}
+          <ScrollReveal delay={50}>
+            <div className="w-full flex justify-center -my-8 md:-my-12 relative z-10 opacity-90 [mask-image:radial-gradient(ellipse_at_center_50%,black_50%,transparent_75%)]">
+              <div className="w-[300px] md:w-[500px]">
+                 <Globe />
+              </div>
+            </div>
+          </ScrollReveal>
           
           <ScrollReveal delay={100}>
-            <h1 className="text-5xl md:text-[5.5rem] font-extrabold text-brandDark tracking-tight leading-[1.05] mb-8">
+            <h1 className="text-5xl md:text-[5.5rem] font-extrabold text-brandDark tracking-tight leading-[1.05] mb-8 relative z-20 mt-4 md:mt-8 drop-shadow-sm">
               The ultimate digital <br className="hidden md:block"/> safety net for your family.
             </h1>
           </ScrollReveal>
           
           <ScrollReveal delay={200}>
-            <p className="text-lg md:text-xl text-zinc-500 font-medium max-w-2xl mx-auto mb-10 leading-relaxed">
+            <p className="text-lg md:text-xl text-zinc-500 font-medium max-w-2xl mx-auto mb-10 leading-relaxed relative z-20">
               Link custom QR codes or NFC tags to life-saving digital profiles for your kids and pets. If they ever wander off, a simple scan sends you their exact GPS location instantly.
             </p>
           </ScrollReveal>
           
           <ScrollReveal delay={300}>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 relative z-20">
               <Link to={currentUser ? "/dashboard" : "/signup"} className="group w-full sm:w-auto flex items-center justify-center space-x-3 bg-brandDark text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-brandAccent transition-all shadow-[0_8px_30px_rgb(24,24,27,0.3)] hover:shadow-[0_8px_40px_rgb(24,24,27,0.4)] hover:-translate-y-1 active:scale-95 relative overflow-hidden">
                 <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
                 <span>{currentUser ? "Go to your Dashboard" : "Try KinTag for Free"}</span>
@@ -210,10 +214,10 @@ export default function Home() {
           </ScrollReveal>
 
           <ScrollReveal delay={400}>
-            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs font-extrabold text-zinc-400 uppercase tracking-widest mb-16">
-              <span className="flex items-center gap-2 bg-white/50 px-3 py-1.5 rounded-md"><CheckCircle2 size={16} className="text-emerald-500"/> 100% Free Forever</span>
-              <span className="flex items-center gap-2 bg-white/50 px-3 py-1.5 rounded-md"><Lock size={16} className="text-brandGold"/> Secure & Encrypted</span>
-              <span className="flex items-center gap-2 bg-white/50 px-3 py-1.5 rounded-md"><Shield size={16} className="text-blue-500"/> No App Required</span>
+            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs font-extrabold text-zinc-400 uppercase tracking-widest mb-16 relative z-20">
+              <span className="flex items-center gap-2 bg-white/50 backdrop-blur-sm px-3 py-1.5 rounded-md"><CheckCircle2 size={16} className="text-emerald-500"/> 100% Free Forever</span>
+              <span className="flex items-center gap-2 bg-white/50 backdrop-blur-sm px-3 py-1.5 rounded-md"><Lock size={16} className="text-brandGold"/> Secure & Encrypted</span>
+              <span className="flex items-center gap-2 bg-white/50 backdrop-blur-sm px-3 py-1.5 rounded-md"><Shield size={16} className="text-blue-500"/> No App Required</span>
             </div>
           </ScrollReveal>
 
