@@ -1,14 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import createGlobe from "cobe";
 
 export default function Globe({ className }) {
   const canvasRef = useRef();
-  const pointerInteracting = useRef(null);
-  const pointerInteractionMovement = useRef(0);
-  const [r, setR] = useState(0);
 
   useEffect(() => {
-    let phi = 0;
+    // phi: 1.4 perfectly centers India/Asia on initial load
+    let phi = 1.4; 
     let width = 0;
     
     const onResize = () => canvasRef.current && (width = canvasRef.current.offsetWidth);
@@ -21,17 +19,16 @@ export default function Globe({ className }) {
       devicePixelRatio: 2,
       width: width * 2,
       height: width * 2,
-      phi: 0,
+      phi: phi,
       theta: 0.3,
-      dark: 0, // Light theme to match your #fafafa background
+      dark: 0, 
       diffuse: 1.2,
       mapSamples: 16000,
       mapBrightness: 6,
-      baseColor: [0.95, 0.95, 0.95], // Light grey oceans
-      markerColor: [0.05, 0.8, 0.5], // KinTag Emerald Green
+      baseColor: [0.95, 0.95, 0.95], 
+      markerColor: [0.05, 0.8, 0.5], 
       glowColor: [1, 1, 1],
       markers: [
-        // Worldwide "Active Tag" Markers
         { location: [37.7595, -122.4367], size: 0.05 }, // SF
         { location: [40.7128, -74.006], size: 0.05 },   // NY
         { location: [51.5072, -0.1276], size: 0.05 },   // London
@@ -42,11 +39,9 @@ export default function Globe({ className }) {
         { location: [35.6895, 139.6917], size: 0.08 },  // Tokyo
       ],
       onRender: (state) => {
-        // Auto-rotation and interactive dragging
-        if (!pointerInteracting.current) {
-          phi += 0.003;
-        }
-        state.phi = phi + r;
+        // Continuous free-spinning without interruption
+        phi += 0.003;
+        state.phi = phi;
         state.width = width * 2;
         state.height = width * 2;
       }
@@ -56,40 +51,14 @@ export default function Globe({ className }) {
       globe.destroy();
       window.removeEventListener('resize', onResize);
     };
-  }, [r]);
+  }, []);
 
   return (
-    <div className={`relative mx-auto aspect-square w-full max-w-[800px] ${className}`}>
+    <div className={`relative mx-auto aspect-square w-full max-w-[800px] pointer-events-none ${className}`}>
       <canvas
         ref={canvasRef}
-        className="w-full h-full cursor-grab active:cursor-grabbing"
+        className="w-full h-full pointer-events-none"
         style={{ width: "100%", height: "100%", contain: "layout paint size" }}
-        onPointerDown={(e) => {
-          pointerInteracting.current = e.clientX;
-          canvasRef.current.style.cursor = 'grabbing';
-        }}
-        onPointerUp={() => {
-          pointerInteracting.current = null;
-          canvasRef.current.style.cursor = 'grab';
-        }}
-        onPointerOut={() => {
-          pointerInteracting.current = null;
-          canvasRef.current.style.cursor = 'grab';
-        }}
-        onMouseMove={(e) => {
-          if (pointerInteracting.current !== null) {
-            const delta = e.clientX - pointerInteracting.current;
-            pointerInteractionMovement.current = delta;
-            setR(delta / 200);
-          }
-        }}
-        onTouchMove={(e) => {
-          if (pointerInteracting.current !== null && e.touches[0]) {
-            const delta = e.touches[0].clientX - pointerInteracting.current;
-            pointerInteractionMovement.current = delta;
-            setR(delta / 100);
-          }
-        }}
       />
     </div>
   );
