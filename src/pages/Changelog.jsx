@@ -117,11 +117,11 @@ const updates = [
 
 const getTagStyle = (type) => {
   switch (type) {
-    case 'ADDED': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-    case 'UPDATED': return 'bg-sky-100 text-sky-700 border-sky-200';
-    case 'FIXED': return 'bg-amber-100 text-amber-700 border-amber-200';
-    case 'REMOVED': return 'bg-red-100 text-red-700 border-red-200';
-    default: return 'bg-zinc-100 text-zinc-700 border-zinc-200';
+    case 'ADDED': return 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-sm';
+    case 'UPDATED': return 'bg-sky-50 text-sky-700 border-sky-200 shadow-sm';
+    case 'FIXED': return 'bg-amber-50 text-amber-700 border-amber-200 shadow-sm';
+    case 'REMOVED': return 'bg-red-50 text-red-700 border-red-200 shadow-sm';
+    default: return 'bg-zinc-50 text-zinc-700 border-zinc-200 shadow-sm';
   }
 };
 
@@ -137,24 +137,28 @@ const getTagIcon = (type) => {
 
 export default function Changelog() {
   return (
-    <div className="min-h-screen bg-zinc-50 font-sans selection:bg-brandGold selection:text-white pb-24">
+    <div className="min-h-[100dvh] bg-[#fafafa] font-sans selection:bg-brandGold selection:text-white pb-24 relative overflow-hidden">
       
-      {/* NAVBAR */}
-      <nav className="sticky top-0 z-50 bg-zinc-50/80 backdrop-blur-md border-b border-zinc-200/50">
-        <div className="max-w-4xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-2 text-zinc-500 hover:text-brandDark font-bold transition-colors">
-            <ArrowLeft size={20} />
+      {/* Premium Background Elements */}
+      <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-brandGold/10 via-emerald-400/5 to-transparent rounded-full blur-[100px] pointer-events-none z-0"></div>
+
+      {/* 🌟 FLOATING NAVBAR */}
+      <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-4 pointer-events-none">
+        <nav className="pointer-events-auto w-full max-w-4xl bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2rem] px-5 py-3 md:py-4 md:px-8 flex items-center justify-between shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-500">
+          <Link to="/" className="group flex items-center space-x-2 text-zinc-600 hover:text-brandDark font-bold transition-colors active:scale-95">
+            <ArrowLeft size={18} className="transform group-hover:-translate-x-1 transition-transform" />
             <span className="hidden sm:inline">Back to Home</span>
           </Link>
-          <div className="flex items-center space-x-2.5">
-            <img src="/kintag-logo.png" alt="KinTag Logo" className="w-8 h-8 rounded-lg shadow-sm" />
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
+            <img src="/kintag-logo.png" alt="KinTag Logo" className="w-8 h-8 rounded-xl shadow-sm transform hover:scale-110 transition-transform duration-500" />
             <span className="text-xl font-extrabold text-brandDark tracking-tight">KinTag</span>
           </div>
-        </div>
-      </nav>
+        </nav>
+      </div>
 
       {/* HEADER */}
-      <header className="max-w-4xl mx-auto px-4 md:px-8 pt-16 pb-12 text-center">
+      <header className="max-w-4xl mx-auto px-4 md:px-8 pt-40 pb-16 text-center relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <h1 className="text-4xl md:text-6xl font-extrabold text-brandDark tracking-tight mb-4">Official Changelog</h1>
         <p className="text-lg md:text-xl text-zinc-500 font-medium max-w-2xl mx-auto leading-relaxed">
           Tracking the evolution of the ultimate digital safety net.
@@ -162,7 +166,7 @@ export default function Changelog() {
       </header>
 
       {/* TIMELINE */}
-      <div className="max-w-3xl mx-auto px-4 md:px-8">
+      <div className="max-w-3xl mx-auto px-4 md:px-8 relative z-10 animate-in fade-in duration-1000 delay-300">
         
         <div className="relative border-l-2 border-zinc-200/80 ml-4 md:ml-8 space-y-16 py-2">
           
@@ -171,8 +175,8 @@ export default function Changelog() {
             <div key={update.version} className="relative group pl-12 md:pl-16">
               
               {/* TIMELINE DOT & ICON */}
-              <div className="absolute -left-[25px] top-0 w-12 h-12 bg-zinc-50 rounded-full flex items-center justify-center border-4 border-white shadow-sm transition-transform duration-300 group-hover:scale-110 z-10">
-                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-inner border border-zinc-100">
+              <div className="absolute -left-[25px] top-0 w-12 h-12 bg-[#fafafa] rounded-full flex items-center justify-center border-[4px] border-[#fafafa] transition-transform duration-500 group-hover:scale-110 z-10">
+                <div className="w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center shadow-sm border border-zinc-200/80">
                   {update.icon}
                 </div>
               </div>
@@ -189,12 +193,12 @@ export default function Changelog() {
                 </p>
               </div>
 
-              {/* CHANGES LIST */}
-              <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-zinc-200 transition-all hover:shadow-md">
+              {/* CHANGES LIST (Glassmorphic Card) */}
+              <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-6 md:p-8 shadow-[0_8px_40px_rgb(0,0,0,0.04)] border border-zinc-200/80 transition-all duration-500 hover:shadow-[0_8px_40px_rgb(0,0,0,0.08)] hover:border-brandDark/20">
                 <ul className="space-y-4">
                   {update.changes.map((change, idx) => (
                     <li key={idx} className="flex items-start gap-3">
-                      <span className={`shrink-0 flex items-center justify-center gap-1 w-24 text-[10px] font-extrabold uppercase tracking-widest px-2 py-1.5 rounded border ${getTagStyle(change.type)} mt-0.5`}>
+                      <span className={`shrink-0 flex items-center justify-center gap-1 w-24 text-[10px] font-extrabold uppercase tracking-widest px-2 py-1.5 rounded-lg border ${getTagStyle(change.type)} mt-0.5`}>
                         {getTagIcon(change.type)}
                         {change.type}
                       </span>
