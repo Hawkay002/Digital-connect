@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
-import { Send, Trash2, ShieldAlert, Loader2, ChevronLeft, BellRing, CheckCircle2, AlertOctagon, AlertTriangle, Info, Edit2, X } from 'lucide-react'; // 🌟 Added Edit2 and X
+import { useNavigate } from 'react-router-dom';
+import { Send, Trash2, ShieldAlert, Loader2, ArrowLeft, BellRing, CheckCircle2, AlertOctagon, AlertTriangle, Info, Edit2, X } from 'lucide-react'; 
 
 // Lightweight Markdown Parser for Admin Preview
 const renderFormattedText = (text) => {
@@ -32,7 +32,6 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   
-  // 🌟 NEW: Editing State
   const [editingId, setEditingId] = useState(null);
 
   const [customAlert, setCustomAlert] = useState({ isOpen: false, title: '', message: '', type: 'info', onClose: null });
@@ -41,7 +40,6 @@ export default function Admin() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  // SECURITY LOCK: Now securely using environment variables!
   const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL; 
 
   const showMessage = (alertTitle, alertMessage, type = 'info', onClose = null) => {
@@ -54,7 +52,8 @@ export default function Admin() {
       return;
     }
     if (currentUser.email !== ADMIN_EMAIL) {
-      showMessage("Access Denied", "You are not authorized to view the admin control center.", "error", () => navigate('/'));
+      // 🌟 FIXED: Route to /dashboard if non-admin tries to access
+      showMessage("Access Denied", "You are not authorized to view the admin control center.", "error", () => navigate('/dashboard'));
       return;
     }
 
@@ -74,12 +73,11 @@ export default function Admin() {
     }
   };
 
-  // 🌟 NEW: Handle the click of the Edit button
   const handleEditClick = (msg) => {
     setTitle(msg.title);
     setBody(msg.body);
     setEditingId(msg.id);
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // Smooth scroll back to form
+    window.scrollTo({ top: 0, behavior: 'smooth' }); 
   };
 
   const cancelEdit = () => {
@@ -99,17 +97,14 @@ export default function Admin() {
 
     try {
       if (editingId) {
-        // 🌟 UPDATED: Update existing document
         await updateDoc(doc(db, "systemMessages", editingId), {
           title,
           body,
-          // We intentionally don't update timestamp so it stays in its original chronological order
         });
         
         showMessage("Update Saved! ✏️", "The campaign has been updated in the inbox (Note: This does not resend push notifications to devices).", "success");
         setEditingId(null);
       } else {
-        // Create new document & Broadcast
         await addDoc(collection(db, "systemMessages"), {
           title,
           body,
@@ -140,7 +135,6 @@ export default function Admin() {
     try {
       await deleteDoc(doc(db, "systemMessages", messageToDelete));
       setMessages(messages.filter(m => m.id !== messageToDelete));
-      // If we delete the message we are currently editing, clear the form
       if (editingId === messageToDelete) {
         cancelEdit();
       }
@@ -151,112 +145,137 @@ export default function Admin() {
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-zinc-50 flex items-center justify-center"><Loader2 className="animate-spin text-brandDark" size={40}/></div>;
+  const inputStyles = "w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-all font-medium text-brandDark";
+  const labelStyles = "block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2 ml-1";
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
+      <div className="flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="animate-spin text-brandDark w-10 h-10" />
+        <span className="font-bold text-zinc-500 tracking-wider uppercase text-sm">Verifying Access...</span>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-4 md:p-8 relative">
-      <div className="max-w-2xl mx-auto space-y-8">
+    <div className="min-h-[100dvh] bg-[#fafafa] p-4 md:p-8 relative pb-24 selection:bg-brandGold selection:text-white">
+      
+      {/* Premium Background Elements */}
+      <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-brandGold/10 via-emerald-400/5 to-transparent rounded-full blur-[100px] pointer-events-none z-0"></div>
+
+      <div className="max-w-3xl mx-auto relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pt-4">
         
-        {/* Header */}
-        <div className="flex items-center space-x-4 bg-brandDark text-white p-6 rounded-3xl shadow-lg">
-          <Link to="/" className="bg-white/10 p-2 rounded-xl hover:bg-white/20 transition">
-            <ChevronLeft size={24} />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-extrabold flex items-center gap-2">
-              <ShieldAlert className="text-brandGold"/> Admin Control Center
-            </h1>
-            <p className="text-white/60 text-sm font-medium mt-1">Broadcast system updates to all KinTag users.</p>
+        {/* 🌟 FIXED: Route back to /dashboard */}
+        <button onClick={() => navigate('/dashboard')} className="group flex items-center space-x-2 bg-white/60 backdrop-blur-md border border-zinc-200 text-zinc-600 px-5 py-2.5 rounded-full font-bold shadow-sm hover:shadow-md hover:bg-white transition-all mb-8 active:scale-95">
+          <ArrowLeft size={18} className="transform group-hover:-translate-x-1 transition-transform" />
+          <span>Back to Dashboard</span>
+        </button>
+
+        <div className="mb-10 text-center md:text-left">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-brandDark text-brandGold rounded-2xl shadow-lg mb-6 transform -rotate-6">
+             <ShieldAlert size={32} />
           </div>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-2">
+            Admin Control Center
+          </h1>
+          <p className="text-zinc-500 font-medium">Broadcast system updates and alerts to all KinTag users.</p>
         </div>
 
         {/* Create / Edit Campaign Card */}
-        <div className={`p-6 md:p-8 rounded-3xl shadow-sm border transition-colors ${editingId ? 'bg-brandGold/5 border-brandGold/30' : 'bg-white border-zinc-100'}`}>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-brandDark flex items-center gap-2">
-              {editingId ? <Edit2 size={20} className="text-brandGold"/> : <BellRing size={20} className="text-brandGold"/>}
+        <div className={`bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border p-6 md:p-10 mb-8 transition-colors duration-500 relative overflow-hidden ${editingId ? 'border-brandGold/40 bg-brandGold/5' : 'border-zinc-200/80'}`}>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-brandGold/5 rounded-full blur-[60px] pointer-events-none"></div>
+          
+          <div className="flex justify-between items-center mb-8 relative z-10">
+            <h2 className="text-2xl font-extrabold text-brandDark flex items-center gap-3">
+              {editingId ? (
+                <div className="w-10 h-10 bg-brandGold/20 text-brandGold rounded-xl flex items-center justify-center"><Edit2 size={20} /></div>
+              ) : (
+                <div className="w-10 h-10 bg-zinc-100 text-brandDark rounded-xl flex items-center justify-center"><BellRing size={20} /></div>
+              )}
               {editingId ? 'Edit Existing Campaign' : 'Draft New Campaign'}
             </h2>
             {editingId && (
-              <button onClick={cancelEdit} className="text-zinc-500 hover:text-brandDark bg-white px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5">
+              <button onClick={cancelEdit} className="text-zinc-500 hover:text-brandDark bg-white px-4 py-2 rounded-full border border-zinc-200 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 active:scale-95">
                 <X size={14} /> Cancel
               </button>
             )}
           </div>
 
-          <form onSubmit={handleSend} className="space-y-4">
+          <form onSubmit={handleSend} className="space-y-6 relative z-10">
             <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Notification Title</label>
+              <label className={labelStyles}>Notification Title</label>
               <input 
                 type="text" 
                 value={title} 
                 onChange={(e) => setTitle(e.target.value)} 
                 placeholder="e.g., 🚀 New Feature Available!"
-                className="w-full p-4 bg-white border border-zinc-200 rounded-2xl focus:border-brandDark outline-none font-medium shadow-sm"
+                className={inputStyles}
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Message Body</label>
+              <label className={labelStyles}>Message Body</label>
               <textarea 
                 value={body} 
                 onChange={(e) => setBody(e.target.value)} 
                 placeholder="What do you want to tell your users?"
-                rows="4"
-                className="w-full p-4 bg-white border border-zinc-200 rounded-2xl focus:border-brandDark outline-none font-medium resize-none shadow-sm"
+                rows="5"
+                className={`${inputStyles} resize-none leading-relaxed`}
               ></textarea>
-              {/* Markdown Cheat Sheet */}
-              <div className="flex flex-wrap gap-4 mt-2 px-1 text-[11px] text-zinc-400 font-semibold tracking-wide uppercase">
-                 <span><b className="text-brandDark">**Bold**</b></span>
-                 <span><i className="text-brandDark">*Italic*</i></span>
-                 <span>- Bullet Point</span>
-                 <span>(Enter) New Line</span>
+              
+              <div className="flex flex-wrap gap-4 mt-3 ml-2 text-[10px] text-zinc-400 font-extrabold tracking-widest uppercase">
+                 <span className="bg-white/50 px-2 py-1 rounded border border-zinc-200"><b className="text-brandDark">**Bold**</b></span>
+                 <span className="bg-white/50 px-2 py-1 rounded border border-zinc-200"><i className="text-brandDark">*Italic*</i></span>
+                 <span className="bg-white/50 px-2 py-1 rounded border border-zinc-200">- Bullet Point</span>
+                 <span className="bg-white/50 px-2 py-1 rounded border border-zinc-200">(Enter) New Line</span>
               </div>
             </div>
             
             <button 
               type="submit" 
               disabled={sending}
-              className={`w-full flex items-center justify-center space-x-2 text-white p-4 rounded-2xl font-bold transition-all shadow-md disabled:opacity-50 mt-2 ${editingId ? 'bg-brandDark hover:bg-brandAccent' : 'bg-brandGold hover:bg-amber-500'}`}
+              className={`w-full flex items-center justify-center space-x-2 text-white p-4 rounded-xl font-bold text-lg transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0 ${editingId ? 'bg-brandDark hover:bg-brandAccent hover:-translate-y-0.5' : 'bg-brandGold hover:bg-amber-500 hover:-translate-y-0.5'}`}
             >
               {sending ? <Loader2 size={20} className="animate-spin" /> : (editingId ? <CheckCircle2 size={20} /> : <Send size={20} />)}
-              <span>{sending ? 'Processing...' : (editingId ? 'Save Changes' : 'Send Campaign Now')}</span>
+              <span>{sending ? 'Processing...' : (editingId ? 'Save Changes' : 'Broadcast Campaign')}</span>
             </button>
           </form>
         </div>
 
         {/* Existing Messages List */}
-        <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-zinc-100">
-          <h2 className="text-xl font-bold text-brandDark mb-6">Campaign History</h2>
+        <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-6 md:p-10">
+          <h2 className="text-2xl font-extrabold text-brandDark mb-8 tracking-tight">Campaign History</h2>
           
           {messages.length === 0 ? (
-            <p className="text-zinc-500 font-medium text-center py-8">No system messages sent yet.</p>
+            <div className="text-center py-12 border-2 border-dashed border-zinc-200 rounded-[2rem] bg-zinc-50/50">
+              <BellRing size={32} className="mx-auto text-zinc-300 mb-4" />
+              <p className="text-zinc-500 font-medium">No system messages sent yet.</p>
+            </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-5">
               {messages.map((msg) => (
-                <div key={msg.id} className={`p-5 rounded-2xl border flex flex-col sm:flex-row justify-between items-start gap-4 transition-colors ${editingId === msg.id ? 'bg-brandGold/5 border-brandGold/30' : 'bg-zinc-50 border-zinc-200'}`}>
+                <div key={msg.id} className={`p-6 rounded-2xl border flex flex-col sm:flex-row justify-between items-start gap-6 transition-all duration-300 shadow-sm hover:shadow-md ${editingId === msg.id ? 'bg-brandGold/5 border-brandGold/40' : 'bg-zinc-50 border-zinc-200'}`}>
                   <div className="w-full overflow-hidden">
-                    <h3 className="font-extrabold text-brandDark flex items-center gap-2 mb-2">{msg.title}</h3>
-                    {/* Passes the message through the rendering engine for accurate preview */}
-                    <div className="text-sm text-zinc-600 font-medium leading-relaxed mb-4">
+                    <h3 className="font-extrabold text-brandDark flex items-center gap-2 mb-3 text-lg">{msg.title}</h3>
+                    <div className="text-sm text-zinc-600 font-medium leading-relaxed mb-5 bg-white p-4 rounded-xl border border-zinc-100 shadow-inner">
                       {renderFormattedText(msg.body)}
                     </div>
-                    <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
+                    <span className="inline-block bg-white border border-zinc-200 px-3 py-1 rounded-md text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest shadow-sm">
                       {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleString() : new Date(msg.timestamp).toLocaleString()}
                     </span>
                   </div>
                   
-                  {/* 🌟 NEW: Action Buttons Container */}
-                  <div className="flex sm:flex-col gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                  <div className="flex sm:flex-col gap-3 w-full sm:w-auto mt-2 sm:mt-0 shrink-0">
                     <button 
                       onClick={() => handleEditClick(msg)} 
-                      className="flex-1 sm:flex-none p-2 text-zinc-500 hover:text-brandDark bg-white border border-zinc-200 hover:border-zinc-300 hover:bg-zinc-100 rounded-xl transition-all flex items-center justify-center"
+                      className="flex-1 sm:flex-none p-3 text-zinc-500 hover:text-brandDark bg-white border border-zinc-200 hover:border-zinc-300 shadow-sm rounded-xl transition-all flex items-center justify-center active:scale-95"
                       title="Edit Message"
                     >
                       <Edit2 size={18} />
                     </button>
                     <button 
                       onClick={() => setMessageToDelete(msg.id)} 
-                      className="flex-1 sm:flex-none p-2 text-zinc-400 hover:text-red-500 bg-white border border-zinc-200 hover:border-red-200 hover:bg-red-50 rounded-xl transition-all flex items-center justify-center"
+                      className="flex-1 sm:flex-none p-3 text-zinc-400 hover:text-red-500 hover:bg-red-50 bg-white border border-zinc-200 hover:border-red-200 shadow-sm rounded-xl transition-all flex items-center justify-center active:scale-95"
                       title="Delete Message"
                     >
                       <Trash2 size={18} />
@@ -272,27 +291,27 @@ export default function Admin() {
       {/* --- MODALS --- */}
       
       {customAlert.isOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 ${
-              customAlert.type === 'success' ? 'bg-emerald-50 text-emerald-500' :
-              customAlert.type === 'error' ? 'bg-red-50 text-red-600' :
-              customAlert.type === 'warning' ? 'bg-amber-50 text-amber-500' :
-              'bg-brandMuted text-brandDark'
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
+          <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
+            <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border ${
+              customAlert.type === 'success' ? 'bg-emerald-50 text-emerald-500 border-emerald-100' :
+              customAlert.type === 'error' ? 'bg-red-50 text-red-600 border-red-100' :
+              customAlert.type === 'warning' ? 'bg-amber-50 text-amber-500 border-amber-100' :
+              'bg-zinc-50 text-brandDark border-zinc-200'
             }`}>
-              {customAlert.type === 'success' && <CheckCircle2 size={32} />}
-              {customAlert.type === 'error' && <AlertOctagon size={32} />}
-              {customAlert.type === 'warning' && <AlertTriangle size={32} />}
-              {customAlert.type === 'info' && <Info size={32} />}
+              {customAlert.type === 'success' && <CheckCircle2 size={36} />}
+              {customAlert.type === 'error' && <AlertOctagon size={36} />}
+              {customAlert.type === 'warning' && <AlertTriangle size={36} />}
+              {customAlert.type === 'info' && <Info size={36} />}
             </div>
-            <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">{customAlert.title}</h2>
-            <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">{customAlert.message}</p>
+            <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">{customAlert.title}</h2>
+            <p className="text-zinc-500 mb-8 text-base font-medium leading-relaxed">{customAlert.message}</p>
             <button 
               onClick={() => {
                 if(customAlert.onClose) customAlert.onClose();
                 setCustomAlert({ ...customAlert, isOpen: false });
               }} 
-              className="w-full bg-brandDark text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-colors"
+              className="w-full bg-brandDark text-white py-4 rounded-full font-bold shadow-lg hover:bg-brandAccent active:scale-95 transition-all"
             >
               Okay
             </button>
@@ -301,19 +320,19 @@ export default function Admin() {
       )}
 
       {messageToDelete && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-5">
-              <AlertOctagon size={32} />
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
+          <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 bg-red-50 border border-red-100 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
+              <AlertOctagon size={36} />
             </div>
-            <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">Delete Message?</h2>
+            <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Delete Message?</h2>
             <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">This action cannot be undone. This broadcast will be permanently removed from all users' inboxes.</p>
             
             <div className="flex gap-3">
-              <button onClick={() => setMessageToDelete(null)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-colors">
+              <button onClick={() => setMessageToDelete(null)} className="flex-1 bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors">
                 Cancel
               </button>
-              <button onClick={confirmDeleteMessage} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">
+              <button onClick={confirmDeleteMessage} className="flex-1 bg-red-600 text-white py-4 rounded-full font-bold shadow-md hover:bg-red-700 active:scale-95 transition-all">
                 Yes, Delete
               </button>
             </div>
