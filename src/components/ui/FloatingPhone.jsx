@@ -1,6 +1,13 @@
 import { motion } from "framer-motion";
 
-export default function FloatingPhone({ iframeSrc, facing = "left", className = "", scaleClass = "" }) {
+export default function FloatingPhone({ 
+  iframeSrc, 
+  facing = "left", 
+  className = "", 
+  scaleClass = "",
+  iframeWidth = "375px",
+  iframeHeight = "813px" 
+}) {
   // Automatically handles the 3D rotation based on the facing direction
   const rotation = facing === "left" 
     ? "rotateY(-20deg) rotateX(10deg)" 
@@ -12,6 +19,7 @@ export default function FloatingPhone({ iframeSrc, facing = "left", className = 
         transformStyle: "preserve-3d",
         transform: rotation,
       }}
+      // Inherits your original width and aspect-ratio from Home.jsx
       className={`rounded-[2.25rem] md:rounded-[3rem] bg-zinc-800 shadow-[0_30px_60px_rgba(0,0,0,0.4)] ${className}`}
     >
       <motion.div
@@ -24,7 +32,7 @@ export default function FloatingPhone({ iframeSrc, facing = "left", className = 
         transition={{
           repeat: Infinity,
           repeatType: "mirror",
-          duration: 2.5, // Smooth floating duration
+          duration: 2.5, 
           ease: "easeInOut",
         }}
         // Creates the 3D metallic edge styling around the phone
@@ -32,8 +40,11 @@ export default function FloatingPhone({ iframeSrc, facing = "left", className = 
       >
         <div className="relative z-0 h-full w-full overflow-hidden rounded-[1.85rem] md:rounded-[2.6rem] bg-zinc-100">
           
-          {/* Iframe Scaling Container */}
-          <div className={`absolute top-0 left-0 w-[375px] h-[813px] origin-top-left ${scaleClass}`}>
+          {/* Iframe Scaling Container mapping exactly to your original math */}
+          <div 
+            className={`absolute top-0 left-0 origin-top-left ${scaleClass}`}
+            style={{ width: iframeWidth, height: iframeHeight }}
+          >
              <iframe 
                src={iframeSrc} 
                className="w-full h-full border-0 [&::-webkit-scrollbar]:hidden" 
