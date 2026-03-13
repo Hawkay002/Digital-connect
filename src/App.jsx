@@ -12,7 +12,7 @@ import Signup from './pages/Signup';
 import Admin from './pages/Admin'; 
 import Profile from './pages/Profile'; 
 import Changelog from './pages/Changelog';
-import UpdateToast from './components/UpdateToast'; // 🌟 NEW
+import UpdateToast from './components/UpdateToast';
 
 let isAuthRefresh = window.location.hash.includes('/login') || window.location.hash.includes('/signup');
 
@@ -34,15 +34,21 @@ function AppRoutes() {
   useEffect(() => {
     if (isAuthRefresh) {
       isAuthRefresh = false; 
-      navigate('/', { replace: true });
+      // 🌟 Redirect auth refreshes directly to dashboard now
+      navigate('/dashboard', { replace: true });
     }
   }, [navigate]);
 
   return (
     <Routes>
-      <Route path="/" element={currentUser ? <Dashboard /> : <Home />} />
-      <Route path="/login" element={currentUser ? <Navigate to="/" replace /> : <Login />} />
-      <Route path="/signup" element={currentUser ? <Navigate to="/" replace /> : <Signup />} />
+      {/* 🌟 Home page is now always visible to everyone */}
+      <Route path="/" element={<Home />} />
+      
+      {/* 🌟 Dashboard gets its own dedicated protected route */}
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      
+      <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
+      <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" replace /> : <Signup />} />
       <Route path="/create" element={<ProtectedRoute><CreateCard /></ProtectedRoute>} />
       <Route path="/edit/:profileId" element={<ProtectedRoute><EditCard /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
@@ -58,7 +64,7 @@ export default function App() {
   return (
     <AuthProvider>
       <Router>
-        <UpdateToast /> {/* 🌟 NEW */}
+        <UpdateToast />
         <AppRoutes />
       </Router>
     </AuthProvider>
