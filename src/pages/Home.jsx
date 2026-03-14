@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom'; 
 import { Turnstile } from '@marsidev/react-turnstile';
-import { CardStack } from '../components/ui/card-stack'; 
 import { FAQMonochrome } from '../components/ui/faq-monochrome'; 
 import { useAuth } from '../context/AuthContext';
 import Globe from '../components/ui/Globe'; 
 import SparklesText from '../components/ui/SparklesText'; 
 import GlassSurface from '../components/ui/GlassSurface';
 import FloatingPhone from '../components/ui/FloatingPhone'; 
+import ThreeDMarquee from '../components/ui/ThreeDMarquee'; // 🌟 NEW: Imported the 3D Marquee
 import { 
   Shield, MapPin, BellRing, Heart, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
@@ -363,26 +363,19 @@ export default function Home() {
         </div>
       </section>
 
+      {/* 🌟 NEW: The 3D Marquee Feature Section replacing the Card Stack */}
       <section className="py-32 bg-white relative overflow-hidden">
-        <div className="max-w-6xl mx-auto px-4 md:px-8">
+        <div className="w-full relative z-10">
           <ScrollReveal>
-            <div className="text-center mb-20">
+            <div className="text-center mb-16 px-4">
               <h2 className="text-4xl md:text-5xl font-extrabold text-brandDark tracking-tight mb-5">Smarter than a standard ID.</h2>
-              <p className="text-zinc-500 font-medium text-xl">Swipe to explore how KinTag brings them home safely and quickly.</p>
+              <p className="text-zinc-500 font-medium text-xl">Explore how KinTag brings them home safely and quickly.</p>
             </div>
           </ScrollReveal>
 
           <ScrollReveal delay={200}>
-            <div className="w-full max-w-lg mx-auto flex justify-center">
-              <CardStack
-                items={stackFeatures}
-                initialIndex={0}
-                autoAdvance
-                intervalMs={3000}
-                pauseOnHover
-                showDots={false} 
-              />
-            </div>
+            {/* The 3D Marquee component perfectly integrating the 20 feature cards */}
+            <ThreeDMarquee items={stackFeatures} />
           </ScrollReveal>
         </div>
       </section>
