@@ -8,12 +8,13 @@ import SparklesText from '../components/ui/SparklesText';
 import GlassSurface from '../components/ui/GlassSurface';
 import FloatingPhone from '../components/ui/FloatingPhone'; 
 import ThreeDMarquee from '../components/ui/ThreeDMarquee';
-import { WhatsappIcon, TelegramIcon } from "hugeicons-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { WhatsappIcon, TelegramIcon } from "@hugeicons/core-free-icons";
 import { 
   Shield, MapPin, BellRing, Heart, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
-  Lock, Infinity, Zap, Mail, Users, Wifi, Database, Phone, AlertTriangle, 
-  Trash2, Rocket, Siren, Megaphone, FileText, ShieldCheck, Download, Check
+  Lock, Infinity, Zap, Mail, MessageCircle, Send, 
+  Users, Wifi, Database, Phone, AlertTriangle, Trash2, Rocket, Siren, Megaphone, FileText, ShieldCheck, Download, Check
 } from 'lucide-react';
 
 const stackFeatures = [
@@ -134,6 +135,7 @@ export default function Home() {
       
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
 
+      {/* REACT BITS "GLASS SURFACE" NAVBAR */}
       <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-4 pointer-events-none">
         <div className={`pointer-events-auto w-full max-w-5xl transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isScrolled ? 'translate-y-0 scale-100' : 'translate-y-2 scale-[1.01]'}`}>
           <GlassSurface width="100%" borderRadius={40}>
@@ -165,6 +167,7 @@ export default function Home() {
         </div>
       </div>
 
+      {/* HERO SECTION */}
       <section className="pt-32 md:pt-40 pb-20 relative overflow-hidden flex flex-col items-center min-h-[90vh]">
         
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-r from-brandGold/20 via-emerald-400/10 to-transparent rounded-full blur-[80px] pointer-events-none z-0"></div>
@@ -550,10 +553,10 @@ export default function Home() {
                       <Mail size={16} /> Email
                     </a>
                     <a href="https://wa.me/918777845713" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur px-6 py-3 rounded-full font-bold transition-all text-sm">
-                      <WhatsappIcon size={18} variant="solid" /> WhatsApp
+                      <HugeiconsIcon icon={WhatsappIcon} size={18} /> WhatsApp
                     </a>
                     <a href="https://t.me/X_o_x_o_002" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur px-6 py-3 rounded-full font-bold transition-all text-sm">
-                      <TelegramIcon size={18} variant="solid" /> Telegram
+                      <HugeiconsIcon icon={TelegramIcon} size={18} /> Telegram
                     </a>
                   </div>
                 </div>
