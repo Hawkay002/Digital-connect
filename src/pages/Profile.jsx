@@ -3,7 +3,7 @@ import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore'; 
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2, UserMinus, MapPin, Share2, LifeBuoy, Info, ChevronDown, Check, Smartphone, Download, Camera } from 'lucide-react'; 
+import { User, LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2, UserMinus, MapPin, Share2, LifeBuoy, Info, ChevronDown, Check, Smartphone, Download, Camera, Send } from 'lucide-react'; 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { WhatsappIcon, TelegramIcon } from "@hugeicons/core-free-icons";
 import { sortedCountryCodes } from '../data/countryCodes'; 
@@ -382,6 +382,7 @@ export default function Profile() {
 
       <div className="max-w-2xl mx-auto relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pt-4">
         
+        {/* Routing specifically points to /dashboard */}
         <button onClick={() => navigate('/dashboard')} className="group flex items-center space-x-2 bg-white/60 backdrop-blur-md border border-zinc-200 text-zinc-600 px-5 py-2.5 rounded-full font-bold shadow-sm hover:shadow-md hover:bg-white transition-all mb-8 active:scale-95">
           <ArrowLeft size={18} className="transform group-hover:-translate-x-1 transition-transform" />
           <span>Back to Dashboard</span>
@@ -711,7 +712,7 @@ export default function Profile() {
                    </div>
 
                    <div className="flex bg-zinc-100 p-1.5 rounded-[1.25rem] border border-zinc-200">
-                      {/* 🌟 NEW: Hugeicons replacing the generic Lucide icons */}
+                      {/* HUGEICONS INTEGRATION */}
                       <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'whatsapp', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${supportForm.platform === 'whatsapp' ? 'bg-white shadow-sm text-emerald-600 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}>
                         <HugeiconsIcon icon={WhatsappIcon} size={18} /> WhatsApp
                       </button>
