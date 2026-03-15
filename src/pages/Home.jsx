@@ -188,8 +188,8 @@ export default function Home() {
         </div>
 
         <ScrollReveal delay={50}>
-          {/* 🌟 GLOBE POSITION FIX: Adjusted widths and margins so the top 15% isn't cut out by overflow-hidden! */}
-          <div className="w-full flex justify-center relative z-10 mt-8 md:mt-12 -mb-48 sm:-mb-64 md:-mb-[18rem] lg:-mb-[22rem] [mask-image:linear-gradient(to_bottom,black_50%,transparent_85%)] pointer-events-none">
+          {/* 🌟 GLOBE POSITION FIX: Added mt-12 md:mt-24 and translate-y-8 to push the globe down from the top edge boundary */}
+          <div className="w-full flex justify-center relative z-10 mt-12 md:mt-24 -mb-48 sm:-mb-64 md:-mb-[18rem] lg:-mb-[22rem] translate-y-8 md:translate-y-12 [mask-image:linear-gradient(to_bottom,black_50%,transparent_85%)] pointer-events-none">
             <div className="w-[140vw] sm:w-[120vw] md:w-[100vw] lg:w-[900px] opacity-80 pointer-events-none shrink-0 flex justify-center">
                <Globe className="!max-w-none w-full" />
             </div>
@@ -251,22 +251,18 @@ export default function Home() {
               </div>
 
               <div className="flex flex-col md:flex-row justify-center items-center gap-16 md:gap-24 perspective-[1200px] w-full pb-10 md:pb-0 relative z-30 mt-12">
+                {/* 🌟 IMAGE REPLACEMENT: Changed from iframes to images! */}
+                {/* IMPORTANT: Please save 2 screenshot images inside your "public" folder named "preview-left.jpg" and "preview-right.jpg" for these to display! */}
                 <FloatingPhone 
-                  iframeSrc="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3?preview=true"
+                  imageSrc="/preview-left.jpg" 
                   facing="left"
                   className="w-[280px] md:w-[320px] aspect-[9/19.5]"
-                  scaleClass="max-md:[transform:scale(0.704)] md:[transform:scale(0.8)]"
-                  iframeWidth="375px"
-                  iframeHeight="813px"
                 />
                 
                 <FloatingPhone 
-                  iframeSrc="https://kintag.vercel.app/#/id/OSCIDGkJXSIh9mTmOVtr?preview=true"
+                  imageSrc="/preview-right.jpg" 
                   facing="right"
                   className="w-[280px] md:w-[310px] aspect-[9/20]"
-                  scaleClass="max-md:[transform:scale(0.704)] md:[transform:scale(0.7733)]"
-                  iframeWidth="375px"
-                  iframeHeight="834px"
                 />
               </div>
             </div>
@@ -601,7 +597,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 SPARKLES REMOVED COMPLETELY */}
+      {/* 🌟 SPARKLES REMOVED COMPLETELY FROM THE CTA */}
       <section className="py-32 bg-white text-center px-4 border-t border-zinc-100">
         <ScrollReveal>
           <div className="w-20 h-20 bg-brandGold/10 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
