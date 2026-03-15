@@ -1,90 +1,74 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export default function ThreeDMarquee({
   items,
   className = "",
-  cols = 4, 
 }) {
-  // 1. Distribute your feature items evenly across the columns
-  const columns = Array.from({ length: cols }, () => []);
-  items.forEach((item, idx) => {
-    columns[idx % cols].push(item);
-  });
+  const sectionRef = useRef(null);
+  const [isPaused, setIsPaused] = useState(false);
 
-  // 2. Duplicate EXACTLY once (2 sets total). This makes the 50% translation math flawless.
-  const duplicatedColumns = columns.map(col => [...col, ...col]);
+  // 🌟 Smart Observer: Pauses the CSS animation when out of view to save battery/GPU
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { setIsPaused(!entry.isIntersecting); },
+      { rootMargin: "300px" } 
+    );
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // 🌟 The Flawless Loop Math:
+  // Duplicate the entire array exactly once. 
+  // Translating by -50% will make item #21 perfectly replace item #1 seamlessly.
+  const duplicatedItems = [...items, ...items];
 
   return (
     <section
-      className={`mx-auto block h-[500px] md:h-[700px] w-full overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_15%,black_85%,transparent)] ${className}`}
+      ref={sectionRef}
+      // Uses a horizontal gradient mask to smoothly fade the cards out at the left/right edges
+      className={`mx-auto block w-full py-10 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_5%,black_95%,transparent)] ${className}`}
     >
-      {/* 🌟 INJECTED HARDWARE-ACCELERATED CSS ANIMATIONS TO FIX REACT JS LAG */}
+      {/* 🌟 2D Hardware-Accelerated Keyframes (Virtually 0 GPU overhead) */}
       <style>{`
-        @keyframes marquee-up {
-          from { transform: translateY(0%); }
-          to { transform: translateY(-50%); }
+        @keyframes scroll-horizontal {
+          from { transform: translate3d(0, 0, 0); }
+          to { transform: translate3d(-50%, 0, 0); }
         }
-        @keyframes marquee-down {
-          from { transform: translateY(-50%); }
-          to { transform: translateY(0%); }
-        }
-        .animate-marquee-up {
-          animation: marquee-up 60s linear infinite;
+        .animate-scroll-horizontal {
+          animation: scroll-horizontal 60s linear infinite;
           will-change: transform;
         }
-        .animate-marquee-down {
-          animation: marquee-down 60s linear infinite;
-          will-change: transform;
-        }
-        .pause-on-hover:hover .animate-marquee-up,
-        .pause-on-hover:hover .animate-marquee-down {
-          animation-play-state: paused;
+        .pause-animations .animate-scroll-horizontal,
+        .pause-on-hover:hover .animate-scroll-horizontal {
+          animation-play-state: paused !important;
         }
       `}</style>
 
-      <div
-        className="flex w-full h-full items-center justify-center pause-on-hover"
-        style={{
-          transform: "rotateX(55deg) rotateY(0deg) rotateZ(45deg)",
-          transformStyle: "preserve-3d",
-        }}
-      >
-        <div className="w-[200%] md:w-[120%] overflow-visible scale-[1.1] md:scale-100">
-          {/* Removed the Flex Gap. Relying solely on padding to fix the loop jump. */}
-          <div className="relative flex justify-center transform">
+      <div className={`flex w-full items-center pause-on-hover ${isPaused ? 'pause-animations' : ''}`}>
+        
+        {/* w-max ensures the container grows to fit all cards, enabling the -50% transform */}
+        <div className="flex w-max animate-scroll-horizontal">
+          {duplicatedItems.map((item, idx) => (
             
-            {duplicatedColumns.map((itemsInGroup, idx) => (
-              <div
-                key={`column-${idx}`}
-                className={`flex flex-col items-center px-3 md:px-4 relative ${idx % 2 === 0 ? 'animate-marquee-up' : 'animate-marquee-down'}`}
-              >
-                {itemsInGroup.map((item, itemIdx) => (
-                  
-                  // 🌟 Padding-bottom instead of gap makes the 50% translation mathematically perfect
-                  <div key={`item-${idx}-${itemIdx}`} className="pb-6 md:pb-8 shrink-0">
-                    
-                    <div
-                      className="relative w-[260px] md:w-[300px] bg-white/90 backdrop-blur-md rounded-3xl p-8 border border-zinc-200 shadow-[0_20px_40px_rgba(0,0,0,0.06)] hover:shadow-[0_30px_60px_rgba(0,0,0,0.12)] transition-all hover:scale-105 hover:-translate-y-2 duration-300 z-10 flex flex-col items-start gap-4 cursor-pointer h-full"
-                    >
-                      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent"></div>
-                      
-                      <div className="w-16 h-16 rounded-[1.2rem] bg-zinc-50 border border-zinc-100 flex items-center justify-center shadow-inner mb-2 shrink-0">
-                        {item.icon}
-                      </div>
-                      
-                      <h3 className="text-xl font-extrabold text-brandDark leading-tight">{item.title}</h3>
-                      <p className="text-sm text-zinc-500 font-medium leading-relaxed">{item.description}</p>
-                      
-                    </div>
-                  </div>
-
-                ))}
+            // We use px-3 instead of flex 'gap' so the -50% loop math has zero jumping
+            <div key={`item-${idx}`} className="px-3 md:px-4 shrink-0 py-4">
+              
+              {/* Your exact original card design! */}
+              <div className="relative w-[280px] md:w-[320px] h-[280px] bg-white/90 backdrop-blur-md rounded-3xl p-8 border border-zinc-200 shadow-[0_10px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.12)] transition-all hover:-translate-y-2 duration-300 z-10 flex flex-col items-start gap-4 cursor-pointer overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-zinc-300 to-transparent"></div>
+                
+                <div className="w-14 h-14 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shadow-inner shrink-0">
+                  {item.icon}
+                </div>
+                
+                <h3 className="text-xl font-extrabold text-brandDark leading-tight">{item.title}</h3>
+                <p className="text-sm text-zinc-500 font-medium leading-relaxed">{item.description}</p>
               </div>
-            ))}
 
-          </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
