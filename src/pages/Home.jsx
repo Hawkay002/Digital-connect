@@ -171,19 +171,17 @@ export default function Home() {
         </div>
       </div>
 
-      <section className="relative w-full overflow-hidden flex flex-col items-center pt-32 md:pt-40 pb-20 bg-[#fafafa]">
+      <section className="relative w-full overflow-hidden flex flex-col items-center min-h-[90vh] bg-[#fafafa]">
         
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brandGold/20 via-emerald-400/10 to-transparent rounded-full pointer-events-none z-0"></div>
         
-        {/* 🌟 THE GLOBE FIX: Absolutely centered at the top of the section.
-            No margins fighting the view box. Fades out perfectly starting at 45% (the equator). */}
-        <div className="absolute top-0 left-0 w-full h-[70vh] md:h-[85vh] flex items-center justify-center pointer-events-none z-0 [mask-image:linear-gradient(to_bottom,black_45%,transparent_60%)]">
-          <div className="w-[160vw] sm:w-[130vw] md:w-[100vw] lg:w-[900px] opacity-80 mt-10 md:mt-20">
-             <Globe className="!max-w-none w-full" />
-          </div>
+        {/* 🌟 THE PERFECT GLOBE: Absolute dead center, strictly pushed down, 50% mask fade */}
+        <div className="absolute top-24 md:top-32 left-1/2 -translate-x-1/2 w-[160vw] sm:w-[130vw] md:w-[100vw] lg:w-[900px] pointer-events-none z-0 [mask-image:linear-gradient(to_bottom,black_50%,transparent_100%)] opacity-80">
+           <Globe className="!max-w-none w-full" />
         </div>
         
-        <div className="relative z-10 max-w-5xl mx-auto text-center px-4 w-full">
+        {/* Content sits on top (z-10) and is pushed down cleanly to meet the fading equator */}
+        <div className="relative z-10 max-w-5xl mx-auto text-center px-4 w-full mt-48 sm:mt-56 md:mt-64">
           <ScrollReveal delay={0}>
             <div className="inline-flex items-center space-x-2.5 bg-white/50 backdrop-blur-sm border border-zinc-200 px-4 py-2 rounded-full shadow-sm hover:bg-white hover:shadow-md transition-all cursor-default">
               <span className="relative flex h-2.5 w-2.5">
@@ -245,7 +243,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="flex flex-col md:flex-row justify-center items-center gap-16 md:gap-24 perspective-[1200px] w-full pb-10 md:pb-0 relative z-30 mt-12">
+            <div className="flex flex-col md:flex-row justify-center items-center gap-16 md:gap-24 perspective-[1200px] w-full pb-10 md:pb-0 mt-12">
               <FloatingPhone 
                 imageSrc="/preview-left.jpg" 
                 facing="left"
@@ -334,7 +332,7 @@ export default function Home() {
             </ScrollReveal>
             
             <ScrollReveal delay={150}>
-              <div className="group relative bg-white p-10 rounded-[3rem] shadow-sm border border-brandGold/30 hover:shadow-2xl hover:border-brandGold/60 transition-all duration-500 overflow-hidden h-full flex flex-col items-center text-center md:-translate-y-4">
+              <div className="group relative bg-white p-10 rounded-[3rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-brandGold/30 hover:shadow-2xl hover:border-brandGold/60 transition-all duration-500 overflow-hidden h-full flex flex-col items-center text-center md:-translate-y-4">
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                 <div className="absolute top-4 right-4 bg-brandGold/10 text-brandGold text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest">Most Popular</div>
                 <div className="w-24 h-24 bg-amber-50 rounded-[2rem] flex items-center justify-center mb-8 border border-amber-100 group-hover:scale-110 transition-transform duration-500 shadow-sm">
@@ -615,7 +613,7 @@ export default function Home() {
   );
 }
 
-function ScrollReveal({ children, delay = 0 }) {
+function ScrollReveal({ children, delay = 0, className = "" }) {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef(null);
 
@@ -642,7 +640,7 @@ function ScrollReveal({ children, delay = 0 }) {
     <div 
       ref={ref} 
       style={{ transitionDelay: `${delay}ms` }}
-      className={`transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${isVisible ? 'opacity-100 translate-y-0 filter-none' : 'opacity-0 translate-y-12 blur-[4px]'}`}
+      className={`transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${isVisible ? 'opacity-100 translate-y-0 filter-none' : 'opacity-0 translate-y-12 blur-[4px]'} ${className}`}
     >
       {children}
     </div>
