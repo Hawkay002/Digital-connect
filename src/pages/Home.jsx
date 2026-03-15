@@ -176,8 +176,8 @@ export default function Home() {
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brandGold/20 via-emerald-400/10 to-transparent rounded-full pointer-events-none z-0"></div>
         
         {/* 🌟 THE PERFECT GLOBE: Absolute dead center, strictly pushed down, 50% mask fade */}
-        <div className="absolute top-24 md:top-32 left-1/2 -translate-x-1/2 w-[120vw] sm:w-[130vw] md:w-[100vw] lg:w-[900px] pointer-events-none z-0 [mask-image:linear-gradient(to_bottom,black_50%,transparent_100%)] opacity-80">
-           <Globe className="!max-w-none w-full" />
+        <div className="absolute top-[22%] left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brandGold/20 via-emerald-400/10 to-transparent rounded-full pointer-events-none z-0"></div>
+        <Globe className="!max-w-none w-full" />
         </div>
         
         {/* Content sits on top (z-10) and is pushed down cleanly to meet the fading equator */}
