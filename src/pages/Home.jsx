@@ -7,7 +7,7 @@ import Globe from '../components/ui/Globe';
 import SparklesText from '../components/ui/SparklesText'; 
 import GlassSurface from '../components/ui/GlassSurface';
 import FloatingPhone from '../components/ui/FloatingPhone'; 
-import { ContainerScroll, CardSticky } from '../components/ui/CardsStack'; // 🌟 NEW: Imported the Sticky Cards Stack
+import { ContainerScroll, CardSticky } from '../components/ui/CardsStack'; 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { WhatsappIcon, TelegramIcon } from "@hugeicons/core-free-icons";
 import { 
@@ -135,7 +135,6 @@ export default function Home() {
       
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
 
-      {/* REACT BITS "GLASS SURFACE" NAVBAR */}
       <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-4 pointer-events-none">
         <div className={`pointer-events-auto w-full max-w-5xl transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isScrolled ? 'translate-y-0 scale-100' : 'translate-y-2 scale-[1.01]'}`}>
           <GlassSurface width="100%" borderRadius={40}>
@@ -167,7 +166,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* HERO SECTION */}
       <section className="pt-32 md:pt-40 pb-20 relative overflow-hidden flex flex-col items-center min-h-[90vh]">
         
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-r from-brandGold/20 via-emerald-400/10 to-transparent rounded-full blur-[80px] pointer-events-none z-0"></div>
@@ -368,7 +366,8 @@ export default function Home() {
       </section>
 
       {/* 🌟 NEW: THE CARDS STACK SECTION */}
-      <section className="py-32 bg-white relative overflow-hidden">
+      {/* REMOVED overflow-hidden FROM THIS SECTION */}
+      <section className="py-32 bg-white relative">
         <div className="w-full relative z-10 px-4">
           <ScrollReveal>
             <div className="text-center mb-16">
@@ -377,29 +376,27 @@ export default function Home() {
             </div>
           </ScrollReveal>
 
-          <ScrollReveal delay={200}>
-            {/* The ContainerScroll sets up the perspective environment */}
-            <ContainerScroll className="max-w-3xl mx-auto pt-10 pb-32">
-              {stackFeatures.map((feature, index) => (
-                <CardSticky 
-                  key={feature.id} 
-                  index={index} 
-                  incrementY={20} // Creates a 20px staggered gap between stacked cards
-                  className="mb-[24vh] md:mb-[32vh]" // Gives you room to scroll before the next card arrives
-                >
-                  <div className="bg-white/95 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 border border-zinc-200 shadow-[0_20px_40px_rgba(0,0,0,0.08)] flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-6 relative overflow-hidden transition-all duration-300">
-                    <div className="w-16 h-16 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shadow-inner shrink-0 text-brandDark">
-                      {feature.icon}
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-extrabold text-brandDark mb-3 tracking-tight">{feature.title}</h3>
-                      <p className="text-zinc-500 font-medium leading-relaxed text-sm md:text-base">{feature.description}</p>
-                    </div>
+          {/* REMOVED ScrollReveal wrapping the ContainerScroll */}
+          <ContainerScroll className="max-w-3xl mx-auto pt-10 pb-32">
+            {stackFeatures.map((feature, index) => (
+              <CardSticky 
+                key={feature.id} 
+                index={index} 
+                incrementY={20} 
+                className="mb-[20vh] md:mb-[24vh]" // Reduced slightly to feel more natural on mobile
+              >
+                <div className="bg-white/95 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 border border-zinc-200 shadow-[0_20px_40px_rgba(0,0,0,0.08)] flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-6 relative overflow-hidden transition-all duration-300">
+                  <div className="w-16 h-16 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shadow-inner shrink-0 text-brandDark">
+                    {feature.icon}
                   </div>
-                </CardSticky>
-              ))}
-            </ContainerScroll>
-          </ScrollReveal>
+                  <div>
+                    <h3 className="text-2xl font-extrabold text-brandDark mb-3 tracking-tight">{feature.title}</h3>
+                    <p className="text-zinc-500 font-medium leading-relaxed text-sm md:text-base">{feature.description}</p>
+                  </div>
+                </div>
+              </CardSticky>
+            ))}
+          </ContainerScroll>
         </div>
       </section>
 
