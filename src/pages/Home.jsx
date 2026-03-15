@@ -48,8 +48,6 @@ export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
-    // 🌟 FIX: Check if state actually needs to change before calling setState 
-    // This stops React from re-rendering the DOM excessively while scrolling
     const handleScroll = () => {
       const scrolled = window.scrollY > 20;
       if (isScrolled !== scrolled) {
@@ -176,7 +174,8 @@ export default function Home() {
 
       <section className="pt-32 md:pt-40 pb-20 relative overflow-hidden flex flex-col items-center min-h-[90vh]">
         
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-r from-brandGold/20 via-emerald-400/10 to-transparent rounded-full blur-[80px] pointer-events-none z-0"></div>
+        {/* 🌟 GPU FIX: Replaced heavy blur-[80px] with pre-rendered radial gradient */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brandGold/20 via-emerald-400/10 to-transparent rounded-full pointer-events-none z-0"></div>
         
         <div className="max-w-5xl mx-auto text-center relative z-30 px-4 w-full">
           <ScrollReveal delay={0}>
@@ -373,7 +372,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 THE CARDS STACK SECTION - GPU OPTIMIZED (No heavy blurs!) */}
+      {/* 🌟 THE CARDS STACK SECTION */}
       <section className="py-32 bg-white relative">
         <div className="w-full relative z-10 px-4">
           <ScrollReveal>
@@ -391,7 +390,7 @@ export default function Home() {
                 incrementY={20} 
                 className="mb-[20vh] md:mb-[24vh]"
               >
-                {/* 🌟 FIX: Changed bg-white/95 backdrop-blur-xl to bg-white to instantly stop GPU crashing */}
+                {/* 🌟 GPU FIX: Completely flat bg-white with no drop shadow multiplication! */}
                 <div className="bg-white rounded-[2.5rem] p-8 md:p-10 border border-zinc-200 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-6 relative overflow-hidden transition-colors">
                   <div className="w-16 h-16 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0 text-brandDark">
                     {feature.icon}
@@ -411,8 +410,9 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <ScrollReveal>
             <div className="bg-zinc-950 rounded-[4rem] p-10 md:p-20 shadow-2xl relative overflow-hidden border border-zinc-800 flex flex-col md:flex-row items-center gap-16 group">
-              <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-brandGold/20 rounded-full blur-[120px] pointer-events-none group-hover:bg-brandGold/30 transition-colors duration-700"></div>
-              <div className="absolute -bottom-32 -left-32 w-[600px] h-[600px] bg-emerald-500/20 rounded-full blur-[120px] pointer-events-none group-hover:bg-emerald-500/30 transition-colors duration-700"></div>
+              {/* 🌟 GPU FIX: Replaced heavy blurs with simple CSS radial gradients */}
+              <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brandGold/20 via-brandGold/5 to-transparent rounded-full pointer-events-none transition-colors duration-700"></div>
+              <div className="absolute -bottom-32 -left-32 w-[600px] h-[600px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-500/20 via-emerald-500/5 to-transparent rounded-full pointer-events-none transition-colors duration-700"></div>
 
               <div className="flex-1 relative z-10 text-center md:text-left">
                 <div className="inline-flex items-center space-x-2 bg-white/5 backdrop-blur-md border border-white/10 px-5 py-2 rounded-full mb-8">
