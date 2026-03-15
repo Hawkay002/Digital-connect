@@ -188,15 +188,15 @@ export default function Home() {
         </div>
 
         <ScrollReveal delay={50}>
-          {/* 🌟 GLOBE POSITION FIX: Added mt-12 md:mt-24 and translate-y-8 to push the globe down from the top edge boundary */}
-          <div className="w-full flex justify-center relative z-10 mt-12 md:mt-24 -mb-48 sm:-mb-64 md:-mb-[18rem] lg:-mb-[22rem] translate-y-8 md:translate-y-12 [mask-image:linear-gradient(to_bottom,black_50%,transparent_85%)] pointer-events-none">
-            <div className="w-[140vw] sm:w-[120vw] md:w-[100vw] lg:w-[900px] opacity-80 pointer-events-none shrink-0 flex justify-center">
+          {/* 🌟 GLOBE POSITION FIX: Restored width logic and added mt-20/mt-32 to strongly push the globe into view */}
+          <div className="w-full flex justify-center relative z-10 -mt-6 md:-mt-10 -mb-64 sm:-mb-72 md:-mb-[22rem] lg:-mb-[28rem] [mask-image:linear-gradient(to_bottom,black_50%,transparent_85%)] pointer-events-none">
+            <div className="w-[180vw] sm:w-[150vw] md:w-[120vw] lg:w-[100vw] opacity-80 pointer-events-none shrink-0 flex justify-center mt-20 sm:mt-24 md:mt-32">
                <Globe className="!max-w-none w-full" />
             </div>
           </div>
         </ScrollReveal>
         
-        <div className="max-w-5xl mx-auto text-center relative z-20 px-4 w-full">
+        <div className="max-w-5xl mx-auto text-center relative z-20 px-4 w-full mt-4 md:mt-0">
           <ScrollReveal delay={100}>
             <h1 className="text-5xl md:text-[5.5rem] font-extrabold text-brandDark tracking-tight leading-[1.05] drop-shadow-md">
               The ultimate digital <br className="hidden md:block"/> safety net for your family.
@@ -251,8 +251,6 @@ export default function Home() {
               </div>
 
               <div className="flex flex-col md:flex-row justify-center items-center gap-16 md:gap-24 perspective-[1200px] w-full pb-10 md:pb-0 relative z-30 mt-12">
-                {/* 🌟 IMAGE REPLACEMENT: Changed from iframes to images! */}
-                {/* IMPORTANT: Please save 2 screenshot images inside your "public" folder named "preview-left.jpg" and "preview-right.jpg" for these to display! */}
                 <FloatingPhone 
                   imageSrc="/preview-left.jpg" 
                   facing="left"
@@ -342,7 +340,7 @@ export default function Home() {
             </ScrollReveal>
             
             <ScrollReveal delay={150}>
-              <div className="group relative bg-white p-10 rounded-[3rem] shadow-sm border border-brandGold/30 hover:shadow-2xl hover:border-brandGold/60 transition-all duration-500 overflow-hidden h-full flex flex-col items-center text-center md:-translate-y-4">
+              <div className="group relative bg-white p-10 rounded-[3rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-brandGold/30 hover:shadow-2xl hover:border-brandGold/60 transition-all duration-500 overflow-hidden h-full flex flex-col items-center text-center md:-translate-y-4">
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                 <div className="absolute top-4 right-4 bg-brandGold/10 text-brandGold text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest">Most Popular</div>
                 <div className="w-24 h-24 bg-amber-50 rounded-[2rem] flex items-center justify-center mb-8 border border-amber-100 group-hover:scale-110 transition-transform duration-500 shadow-sm">
