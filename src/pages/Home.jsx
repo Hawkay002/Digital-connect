@@ -139,7 +139,6 @@ export default function Home() {
       
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
 
-      {/* REACT BITS "GLASS SURFACE" NAVBAR */}
       <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-4 pointer-events-none">
         <div className={`pointer-events-auto w-full max-w-5xl transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isScrolled ? 'translate-y-0 scale-100' : 'translate-y-2 scale-[1.01]'}`}>
           <GlassSurface width="100%" borderRadius={40}>
@@ -175,7 +174,15 @@ export default function Home() {
         
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brandGold/20 via-emerald-400/10 to-transparent rounded-full pointer-events-none z-0"></div>
         
-        <div className="max-w-5xl mx-auto text-center relative z-30 px-4 w-full">
+        {/* 🌟 GLOBE FIX: Forced absolute positioning completely detaches it from the flex flow. 
+            top-48 guarantees the top boundary renders inside the visible area, so it's impossible to cut off! */}
+        <div className="absolute top-48 sm:top-40 md:top-32 left-1/2 -translate-x-1/2 w-[160vw] sm:w-[130vw] md:w-[100vw] lg:w-[900px] z-10 pointer-events-none [mask-image:linear-gradient(to_bottom,black_40%,transparent_80%)] opacity-80">
+          <ScrollReveal delay={50} className="w-full flex justify-center">
+             <Globe className="!max-w-none w-full" />
+          </ScrollReveal>
+        </div>
+
+        <div className="max-w-5xl mx-auto text-center relative z-30 px-4 w-full mb-10">
           <ScrollReveal delay={0}>
             <div className="inline-flex items-center space-x-2.5 bg-white/50 backdrop-blur-sm border border-zinc-200 px-4 py-2 rounded-full shadow-sm hover:bg-white hover:shadow-md transition-all cursor-default">
               <span className="relative flex h-2.5 w-2.5">
@@ -186,15 +193,6 @@ export default function Home() {
             </div>
           </ScrollReveal>
         </div>
-
-        <ScrollReveal delay={50}>
-          {/* 🌟 GLOBE POSITION FIX: Restored width logic and added mt-20/mt-32 to strongly push the globe into view */}
-          <div className="w-full flex justify-center relative z-10 -mt-6 md:-mt-10 -mb-64 sm:-mb-72 md:-mb-[22rem] lg:-mb-[28rem] [mask-image:linear-gradient(to_bottom,black_50%,transparent_85%)] pointer-events-none">
-            <div className="w-[180vw] sm:w-[150vw] md:w-[120vw] lg:w-[100vw] opacity-80 pointer-events-none shrink-0 flex justify-center mt-20 sm:mt-24 md:mt-32">
-               <Globe className="!max-w-none w-full" />
-            </div>
-          </div>
-        </ScrollReveal>
         
         <div className="max-w-5xl mx-auto text-center relative z-20 px-4 w-full mt-4 md:mt-0">
           <ScrollReveal delay={100}>
@@ -340,7 +338,7 @@ export default function Home() {
             </ScrollReveal>
             
             <ScrollReveal delay={150}>
-              <div className="group relative bg-white p-10 rounded-[3rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-brandGold/30 hover:shadow-2xl hover:border-brandGold/60 transition-all duration-500 overflow-hidden h-full flex flex-col items-center text-center md:-translate-y-4">
+              <div className="group relative bg-white p-10 rounded-[3rem] shadow-sm border border-brandGold/30 hover:shadow-2xl hover:border-brandGold/60 transition-all duration-500 overflow-hidden h-full flex flex-col items-center text-center md:-translate-y-4">
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                 <div className="absolute top-4 right-4 bg-brandGold/10 text-brandGold text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest">Most Popular</div>
                 <div className="w-24 h-24 bg-amber-50 rounded-[2rem] flex items-center justify-center mb-8 border border-amber-100 group-hover:scale-110 transition-transform duration-500 shadow-sm">
@@ -595,7 +593,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 SPARKLES REMOVED COMPLETELY FROM THE CTA */}
+      {/* 🌟 SPARKLES COMPLETELY REMOVED */}
       <section className="py-32 bg-white text-center px-4 border-t border-zinc-100">
         <ScrollReveal>
           <div className="w-20 h-20 bg-brandGold/10 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
@@ -622,7 +620,7 @@ export default function Home() {
   );
 }
 
-function ScrollReveal({ children, delay = 0 }) {
+function ScrollReveal({ children, delay = 0, className = "" }) {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef(null);
 
@@ -649,7 +647,7 @@ function ScrollReveal({ children, delay = 0 }) {
     <div 
       ref={ref} 
       style={{ transitionDelay: `${delay}ms` }}
-      className={`transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${isVisible ? 'opacity-100 translate-y-0 filter-none' : 'opacity-0 translate-y-12 blur-[4px]'}`}
+      className={`transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${isVisible ? 'opacity-100 translate-y-0 filter-none' : 'opacity-0 translate-y-12 blur-[4px]'} ${className}`}
     >
       {children}
     </div>
