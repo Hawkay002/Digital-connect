@@ -3,15 +3,12 @@
 import React from "react"
 import { motion } from "framer-motion"
 
-// A lightweight utility to merge tailwind classes since we removed the TS/lib dependency
-const cn = (...classes) => classes.filter(Boolean).join(" ");
-
 const ContainerScroll = React.forwardRef(({ children, className, ...props }, ref) => {
   return (
     <div
       ref={ref}
-      className={cn("relative w-full", className)}
-      style={{ perspective: "1000px", ...props.style }}
+      // 🌟 FIX: Removed perspective! Transforms on parents break sticky positioning.
+      className={`relative w-full ${className || ""}`}
       {...props}
     >
       {children}
@@ -25,7 +22,6 @@ const CardSticky = React.forwardRef(
     {
       index,
       incrementY = 20, 
-      incrementZ = 10,
       children,
       className,
       style,
@@ -33,21 +29,20 @@ const CardSticky = React.forwardRef(
     },
     ref
   ) => {
-    const y = index * incrementY
-    const z = index * incrementZ
-
     return (
       <motion.div
         ref={ref}
-        layout="position"
+        // 🌟 FIX: Added smooth entry animations and removed buggy layout constraints
+        initial={{ opacity: 0, y: 60 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-50px" }}
         style={{
-          // 🌟 Added '15vh' so it sticks below your Glass Navbar, not at the absolute top of the screen!
-          top: `calc(15vh + ${y}px)`, 
-          zIndex: z,
-          backfaceVisibility: "hidden",
+          // 🌟 Calculates the exact top offset so they stack neatly under the navbar like a deck of cards
+          top: `calc(15vh + ${index * incrementY}px)`, 
+          zIndex: index,
           ...style,
         }}
-        className={cn("sticky", className)}
+        className={`sticky ${className || ""}`}
         {...props}
       >
         {children}
