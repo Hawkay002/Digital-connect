@@ -52,7 +52,6 @@ export default function Admin() {
       return;
     }
     if (currentUser.email !== ADMIN_EMAIL) {
-      // 🌟 ROUTING FIX: Unauthorized users kicked to dashboard, not home
       showMessage("Access Denied", "You are not authorized to view the admin control center.", "error", () => navigate('/dashboard'));
       return;
     }
@@ -111,10 +110,11 @@ export default function Admin() {
           timestamp: serverTimestamp() 
         });
 
-        await fetch('/api/broadcast', {
+        // 🌟 FIX: Trigger the existing notify.js endpoint with the 'broadcast' type
+        await fetch('/api/notify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, body })
+          body: JSON.stringify({ type: 'broadcast', title, body })
         });
 
         showMessage("Broadcast Sent! 🚀", "Your campaign was successfully saved and broadcasted to all users.", "success");
@@ -160,13 +160,11 @@ export default function Admin() {
   return (
     <div className="min-h-[100dvh] bg-[#fafafa] p-4 md:p-8 relative pb-24 selection:bg-brandGold selection:text-white">
       
-      {/* 🌟 NEW: Premium Background Elements */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-brandGold/10 via-emerald-400/5 to-transparent rounded-full blur-[100px] pointer-events-none z-0"></div>
 
       <div className="max-w-3xl mx-auto relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pt-4">
         
-        {/* 🌟 ROUTING FIX: Route back to /dashboard */}
         <Link to="/dashboard" className="group inline-flex items-center space-x-2 bg-white/60 backdrop-blur-md border border-zinc-200 text-zinc-600 px-5 py-2.5 rounded-full font-bold shadow-sm hover:shadow-md hover:bg-white transition-all mb-8 active:scale-95">
           <ArrowLeft size={18} className="transform group-hover:-translate-x-1 transition-transform" />
           <span>Back to Dashboard</span>
