@@ -10,7 +10,6 @@ import FloatingPhone from '../components/ui/FloatingPhone';
 import { ContainerScroll, CardSticky } from '../components/ui/CardsStack'; 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { WhatsappIcon, TelegramIcon } from "@hugeicons/core-free-icons";
-import { motion, useScroll, useTransform, useMotionTemplate } from "framer-motion"; // 🌟 NEW: Added framer motion hooks for scroll tracking
 import { 
   Shield, MapPin, BellRing, Heart, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
@@ -47,19 +46,6 @@ export default function Home() {
   const [isVerified, setIsVerified] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
-
-  // 🌟 NEW: Track scroll progress specifically for the Cards Stack section
-  const stackContainerRef = useRef(null);
-  const { scrollYProgress: stackProgress } = useScroll({
-    target: stackContainerRef,
-    // Start tracking when the bottom of the section is 5% above the bottom of the screen
-    // End tracking when the bottom of the section reaches 40% from the top
-    offset: ["end 95%", "end 60%"] 
-  });
-  
-  // 🌟 NEW: Mathematically fade the shadow opacity from 0.08 down to 0
-  const shadowAlpha = useTransform(stackProgress, [0, 1], [0.08, 0]);
-  const dynamicShadow = useMotionTemplate`0 20px 40px rgba(0, 0, 0, ${shadowAlpha})`;
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -354,7 +340,7 @@ export default function Home() {
             </ScrollReveal>
             
             <ScrollReveal delay={150}>
-              <div className="group relative bg-white p-10 rounded-[3rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-brandGold/30 hover:shadow-2xl hover:border-brandGold/60 transition-all duration-500 overflow-hidden h-full flex flex-col items-center text-center md:-translate-y-4">
+              <div className="group relative bg-white p-10 rounded-[3rem] shadow-sm border border-brandGold/30 hover:shadow-2xl hover:border-brandGold/60 transition-all duration-500 overflow-hidden h-full flex flex-col items-center text-center md:-translate-y-4">
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                 <div className="absolute top-4 right-4 bg-brandGold/10 text-brandGold text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest">Most Popular</div>
                 <div className="w-24 h-24 bg-amber-50 rounded-[2rem] flex items-center justify-center mb-8 border border-amber-100 group-hover:scale-110 transition-transform duration-500 shadow-sm">
@@ -379,8 +365,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 NEW: THE CARDS STACK SECTION WITH DYNAMIC SHADOW FADING */}
-      <section ref={stackContainerRef} className="py-32 bg-white relative">
+      {/* 🌟 NEW: THE CARDS STACK SECTION WITH NO SHADOWS */}
+      <section className="py-32 bg-white relative">
         <div className="w-full relative z-10 px-4">
           <ScrollReveal>
             <div className="text-center mb-16">
@@ -397,19 +383,16 @@ export default function Home() {
                 incrementY={20} 
                 className="mb-[20vh] md:mb-[24vh]"
               >
-                {/* 🌟 Here is the motion.div applying the seamless dynamic box shadow! */}
-                <motion.div 
-                  style={{ boxShadow: dynamicShadow }}
-                  className="bg-white/95 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 border border-zinc-200 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-6 relative overflow-hidden transition-colors"
-                >
-                  <div className="w-16 h-16 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shadow-inner shrink-0 text-brandDark">
+                {/* 🌟 FIXED: Completely removed `shadow-[...]` and `boxShadow` styles for a clean, flat stacking deck! */}
+                <div className="bg-white/95 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 border border-zinc-200 shadow-none flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-6 relative overflow-hidden transition-colors">
+                  <div className="w-16 h-16 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0 text-brandDark">
                     {feature.icon}
                   </div>
                   <div>
                     <h3 className="text-2xl font-extrabold text-brandDark mb-3 tracking-tight">{feature.title}</h3>
                     <p className="text-zinc-500 font-medium leading-relaxed text-sm md:text-base">{feature.description}</p>
                   </div>
-                </motion.div>
+                </div>
               </CardSticky>
             ))}
           </ContainerScroll>
