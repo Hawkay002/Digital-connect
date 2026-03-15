@@ -7,7 +7,7 @@ import Globe from '../components/ui/Globe';
 import SparklesText from '../components/ui/SparklesText'; 
 import GlassSurface from '../components/ui/GlassSurface';
 import FloatingPhone from '../components/ui/FloatingPhone'; 
-import ThreeDMarquee from '../components/ui/ThreeDMarquee';
+import { ContainerScroll, CardSticky } from '../components/ui/CardsStack'; // 🌟 NEW: Imported the Sticky Cards Stack
 import { HugeiconsIcon } from "@hugeicons/react";
 import { WhatsappIcon, TelegramIcon } from "@hugeicons/core-free-icons";
 import { 
@@ -367,18 +367,38 @@ export default function Home() {
         </div>
       </section>
 
-      {/* THE 3D MARQUEE */}
+      {/* 🌟 NEW: THE CARDS STACK SECTION */}
       <section className="py-32 bg-white relative overflow-hidden">
-        <div className="w-full relative z-10">
+        <div className="w-full relative z-10 px-4">
           <ScrollReveal>
-            <div className="text-center mb-16 px-4">
+            <div className="text-center mb-16">
               <h2 className="text-4xl md:text-5xl font-extrabold text-brandDark tracking-tight mb-5">Smarter than a standard ID.</h2>
-              <p className="text-zinc-500 font-medium text-xl">Explore how KinTag brings them home safely and quickly.</p>
+              <p className="text-zinc-500 font-medium text-xl">Scroll to explore how KinTag brings them home safely and quickly.</p>
             </div>
           </ScrollReveal>
 
           <ScrollReveal delay={200}>
-            <ThreeDMarquee items={stackFeatures} />
+            {/* The ContainerScroll sets up the perspective environment */}
+            <ContainerScroll className="max-w-3xl mx-auto pt-10 pb-32">
+              {stackFeatures.map((feature, index) => (
+                <CardSticky 
+                  key={feature.id} 
+                  index={index} 
+                  incrementY={20} // Creates a 20px staggered gap between stacked cards
+                  className="mb-[24vh] md:mb-[32vh]" // Gives you room to scroll before the next card arrives
+                >
+                  <div className="bg-white/95 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 border border-zinc-200 shadow-[0_20px_40px_rgba(0,0,0,0.08)] flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-6 relative overflow-hidden transition-all duration-300">
+                    <div className="w-16 h-16 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shadow-inner shrink-0 text-brandDark">
+                      {feature.icon}
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-extrabold text-brandDark mb-3 tracking-tight">{feature.title}</h3>
+                      <p className="text-zinc-500 font-medium leading-relaxed text-sm md:text-base">{feature.description}</p>
+                    </div>
+                  </div>
+                </CardSticky>
+              ))}
+            </ContainerScroll>
           </ScrollReveal>
         </div>
       </section>
