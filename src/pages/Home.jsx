@@ -171,7 +171,7 @@ export default function Home() {
         </div>
       </div>
 
-      <section className="relative w-full overflow-hidden flex flex-col items-center min-h-[90vh] bg-[#fafafa]">
+      <section className="relative w-full items-center min-h-[90vh] bg-[#fafafa]">
         
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brandGold/20 via-emerald-400/10 to-transparent rounded-full pointer-events-none z-0"></div>
         
