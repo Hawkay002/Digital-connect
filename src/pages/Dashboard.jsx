@@ -63,6 +63,7 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState(''); 
   const [profileToDelete, setProfileToDelete] = useState(null); 
   const [downloading, setDownloading] = useState(false);
+  const [generatingWallet, setGeneratingWallet] = useState(false); // Google Wallet Loading State
   
   // SCAN DELETION STATES
   const [scanToDelete, setScanToDelete] = useState(null);
@@ -110,7 +111,6 @@ export default function Dashboard() {
   useEffect(() => {
     if (window.location.hash.includes('view=notifications')) {
       setShowNotifCenter(true);
-      // UPDATE: Changed to explicitly stay on /dashboard
       window.history.replaceState(null, '', '/#/dashboard'); 
     }
   }, []);
@@ -370,7 +370,6 @@ export default function Dashboard() {
           ownerId: pendingInvite.inviterUid,
           title: `🤝 Guardian Joined!`,
           body: `${acceptName} accepted your invite.`,
-          // UPDATE: explicitly links to dashboard
           link: `https://kintag.vercel.app/#/dashboard?view=notifications` 
         })
       }).catch(()=>{});
@@ -499,6 +498,32 @@ export default function Dashboard() {
       await updateDoc(doc(db, "profiles", profileId), { isActive: !currentStatus });
     } catch (error) {
       showMessage("Error", "Failed to change profile status.", "error");
+    }
+  };
+
+  // Google Wallet Backend Caller
+  const handleAddToWallet = async (profile) => {
+    setGeneratingWallet(true);
+    try {
+      const response = await fetch('/api/generate-wallet-pass', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileId: profile.id, petName: profile.name })
+      });
+      
+      const data = await response.json();
+      
+      if (data.token) {
+        window.location.href = `https://pay.google.com/gp/v/save/${data.token}`;
+      } else {
+        showMessage("Wallet Generation Failed", "Failed to generate the Google Wallet pass. Please check your backend keys.", "error");
+        console.error(data.error);
+      }
+    } catch (error) {
+      console.error("Wallet Error:", error);
+      showMessage("Network Error", "Something went wrong connecting to the Google Wallet server.", "error");
+    } finally {
+      setGeneratingWallet(false);
     }
   };
 
@@ -775,20 +800,36 @@ export default function Dashboard() {
 
       {/* --- MODALS --- */}
 
-      {/* QR Modal */}
+      {/* QR Modal (WITH WALLET BUTTON) */}
       {qrModalProfile && (
         <div className="fixed inset-0 z-[100] bg-zinc-950/90 backdrop-blur-xl overflow-y-auto flex p-4 md:p-8 animate-in fade-in duration-200">
           <button onClick={() => setQrModalProfile(null)} className="absolute top-6 right-6 md:fixed md:top-8 md:right-8 z-[110] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition shadow-xl border border-white/10"><X size={24} /></button>
           <div className="max-w-sm w-full relative m-auto pt-20 pb-8 md:py-8 animate-in zoom-in-95 duration-300">
-            <div className="flex items-center justify-between gap-3 mb-6">
-              <div className="text-left">
+            
+            {/* Modal Header with Dual Buttons */}
+            <div className="flex flex-col gap-4 mb-6">
+              <div className="text-center sm:text-left">
                  <h2 className="text-3xl font-extrabold text-white tracking-tight leading-none mb-1">Mobile ID</h2>
-                 <p className="text-white/60 text-xs font-bold leading-snug">Download this to your photos.</p>
+                 <p className="text-white/60 text-xs font-bold leading-snug">Download or add to your wallet.</p>
               </div>
-              <button onClick={() => downloadFullPass(qrModalProfile)} disabled={downloading} className="shrink-0 flex items-center justify-center space-x-2 bg-brandGold text-brandDark px-5 py-3 rounded-full font-bold shadow-[0_0_20px_rgba(251,191,36,0.3)] hover:shadow-[0_0_30px_rgba(251,191,36,0.5)] transition-all disabled:opacity-50 text-sm active:scale-95">
-                {downloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
-                <span className="hidden sm:inline">{downloading ? 'Wait...' : 'Download ID'}</span>
-              </button>
+              
+              <div className="flex flex-row items-center gap-3 w-full">
+                <button onClick={() => handleAddToWallet(qrModalProfile)} disabled={generatingWallet} className="flex-1 relative flex items-center justify-center h-[46px] px-2 rounded-full border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 transition-all shadow-md overflow-hidden disabled:opacity-50 active:scale-95">
+                  {generatingWallet ? (
+                    <Loader2 className="animate-spin text-white" size={20} />
+                  ) : (
+                    <img 
+                      src="https://developers.google.com/wallet/images/badges/en_us/add_to_google_wallet_add-to-logo-button-1_light.svg" 
+                      alt="Add to Google Wallet" 
+                      className="h-full w-auto object-contain py-1"
+                    />
+                  )}
+                </button>
+                <button onClick={() => downloadFullPass(qrModalProfile)} disabled={downloading} className="flex-1 flex items-center justify-center space-x-2 bg-brandGold text-brandDark h-[46px] rounded-full font-bold shadow-[0_0_20px_rgba(251,191,36,0.3)] hover:shadow-[0_0_30px_rgba(251,191,36,0.5)] transition-all disabled:opacity-50 text-sm active:scale-95">
+                  {downloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
+                  <span className="inline">{downloading ? 'Wait...' : 'Image'}</span>
+                </button>
+              </div>
             </div>
 
             <div className="bg-brandDark rounded-[3rem] overflow-hidden shadow-2xl border border-white/10 w-full aspect-[9/16] flex flex-col relative mx-auto group">
