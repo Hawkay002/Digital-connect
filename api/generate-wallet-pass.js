@@ -6,11 +6,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
   
-  const { profileId, petName } = req.body;
+  // Accept petImageUrl from the dashboard
+  const { profileId, petName, petImageUrl } = req.body;
 
   try {
     const ISSUER_ID = process.env.GOOGLE_WALLET_ISSUER_ID;
-    // This is the exact Class ID you created in the Google Wallet console!
     const CLASS_ID = `${ISSUER_ID}.kintag_id`; 
     
     // Parse the JSON string from your environment variables
@@ -30,6 +30,14 @@ export default async function handler(req, res) {
       },
       header: {
         defaultValue: { language: "en", value: petName || "Emergency Profile" }
+      },
+      // 🌟 FIX: We explicitly include the heroImage module data here.
+      // Once you enable the module in the console, this image will appear.
+      heroImage: {
+        sourceUri: { 
+          // Use the real image URL if available, otherwise use a placeholder
+          uri: petImageUrl || "https://kintag.vercel.app/placeholder-hero.png" 
+        }
       },
       barcode: {
         type: "QR_CODE",
