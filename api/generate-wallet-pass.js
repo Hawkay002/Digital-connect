@@ -10,13 +10,13 @@ export default async function handler(req, res) {
   try {
     const ISSUER_ID = process.env.GOOGLE_WALLET_ISSUER_ID;
     
-    // 🌟 1. UPDATE THIS to match the new Class ID you created in the console
+    // Make sure this matches the new Class you created (e.g., kintag_v2)
     const CLASS_ID = `${ISSUER_ID}.kintag_v2`; 
     
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
 
-    // 🌟 2. NEW ID FORMAT: Using "_v2" bypasses the broken cache completely
-    const uniquePassId = `${ISSUER_ID}.${profileId}_v2`;
+    // Forces a completely new pass generation every time
+    const uniquePassId = `${ISSUER_ID}.${profileId}-${Date.now()}`;
 
     const passObject = {
       id: uniquePassId,
@@ -24,7 +24,9 @@ export default async function handler(req, res) {
       genericType: "GENERIC_TYPE_UNSPECIFIED",
       hexBackgroundColor: "#18181b", 
       logo: {
-        sourceUri: { uri: "https://kintag.vercel.app/kintag-logo.png" }
+        sourceUri: { uri: "https://kintag.vercel.app/kintag-logo.png" },
+        // 🌟 CRITICAL FIX: Google will silently drop images without this tag
+        contentDescription: { defaultValue: { language: "en", value: "KinTag Logo" } }
       },
       cardTitle: {
         defaultValue: { language: "en", value: "KinTag Digital ID" }
@@ -39,12 +41,35 @@ export default async function handler(req, res) {
       }
     };
 
-    // 🌟 3. The exact image code that worked for the kid
-    // IMPORTANT: Make sure the uploaded pet image is UNDER 1 Megabyte!
+    // If an image exists, we force it into the pass in two different ways
     if (petImageUrl) {
+      
+      // Clean the URL if you are using Cloudinary to ensure it's a valid JPEG
+      const safeImageUrl = petImageUrl.includes('cloudinary.com') 
+        ? petImageUrl.replace('/upload/', '/upload/q_auto,f_jpg/') 
+        : petImageUrl;
+
+      // Method 1: The standard Hero Image Banner at the top
       passObject.heroImage = {
-        sourceUri: { uri: petImageUrl }
+        sourceUri: { uri: safeImageUrl },
+        contentDescription: {
+          defaultValue: { language: "en", value: `${petName}'s Photo` }
+        }
       };
+
+      // Method 2: The Foolproof Body Image (Always renders!)
+      // Even if your Console layout hides the top banner, this injects the photo directly into the card body.
+      passObject.imageModulesData = [
+        {
+          mainImage: {
+            sourceUri: { uri: safeImageUrl },
+            contentDescription: {
+              defaultValue: { language: "en", value: `${petName}'s Photo` }
+            }
+          },
+          id: "profile_picture_module"
+        }
+      ];
     }
 
     const claims = {
