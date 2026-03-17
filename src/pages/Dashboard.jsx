@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { db, auth, messaging } from '../firebase'; 
+import { db, auth, messaging } from '../firebase';  
 import { collection, query, where, getDocs, getDoc, doc, deleteDoc, setDoc, onSnapshot, updateDoc, addDoc } from 'firebase/firestore'; 
 import { getToken } from 'firebase/messaging'; 
 import { Link, useNavigate } from 'react-router-dom';
@@ -63,7 +63,7 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState(''); 
   const [profileToDelete, setProfileToDelete] = useState(null); 
   const [downloading, setDownloading] = useState(false);
-  const [generatingWallet, setGeneratingWallet] = useState(false); 
+  const [generatingWallet, setGeneratingWallet] = useState(false); // Google Wallet Loading State
   
   // SCAN DELETION STATES
   const [scanToDelete, setScanToDelete] = useState(null);
@@ -508,7 +508,7 @@ export default function Dashboard() {
       const response = await fetch('/api/generate-wallet-pass', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profileId: profile.id, petName: profile.name, petImageUrl: profile.imageUrl })
+        body: JSON.stringify({ profileId: profile.id, petName: profile.name })
       });
       
       const data = await response.json();
@@ -800,7 +800,7 @@ export default function Dashboard() {
 
       {/* --- MODALS --- */}
 
-      {/* QR Modal (WITH TEXT-BASED WALLET BUTTON & SVG PLACEHOLDER) */}
+      {/* QR Modal (WITH WALLET BUTTON) */}
       {qrModalProfile && (
         <div className="fixed inset-0 z-[100] bg-zinc-950/90 backdrop-blur-xl overflow-y-auto flex p-4 md:p-8 animate-in fade-in duration-200">
           <button onClick={() => setQrModalProfile(null)} className="absolute top-6 right-6 md:fixed md:top-8 md:right-8 z-[110] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition shadow-xl border border-white/10"><X size={24} /></button>
@@ -813,9 +813,8 @@ export default function Dashboard() {
                  <p className="text-white/60 text-xs font-bold leading-snug">Download or add to your wallet.</p>
               </div>
               
-              <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
-                
-             <button 
+              <div className="flex flex-row items-center gap-3 w-full">
+                <button 
   onClick={() => handleAddToWallet(qrModalProfile)} 
   disabled={generatingWallet} 
   className="flex-1 relative flex items-center justify-center space-x-2 h-[46px] px-4 rounded-full border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 transition-all shadow-md disabled:opacity-50 active:scale-95 text-white font-bold text-sm"
@@ -835,16 +834,10 @@ export default function Dashboard() {
     </>
   )}
 </button>
-                
-                <button 
-                  onClick={() => downloadFullPass(qrModalProfile)} 
-                  disabled={downloading} 
-                  className="w-full flex-1 flex items-center justify-center space-x-2 bg-brandGold text-brandDark h-[46px] rounded-full font-bold shadow-[0_0_20px_rgba(251,191,36,0.3)] hover:shadow-[0_0_30px_rgba(251,191,36,0.5)] transition-all disabled:opacity-50 text-sm active:scale-95"
-                >
+                <button onClick={() => downloadFullPass(qrModalProfile)} disabled={downloading} className="flex-1 flex items-center justify-center space-x-2 bg-brandGold text-brandDark h-[46px] rounded-full font-bold shadow-[0_0_20px_rgba(251,191,36,0.3)] hover:shadow-[0_0_30px_rgba(251,191,36,0.5)] transition-all disabled:opacity-50 text-sm active:scale-95">
                   {downloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
                   <span className="inline">{downloading ? 'Wait...' : 'Image'}</span>
                 </button>
-                
               </div>
             </div>
 
