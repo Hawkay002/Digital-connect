@@ -1,26 +1,24 @@
 import jwt from 'jsonwebtoken';
 
 export default async function handler(req, res) {
-  // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
   
-  // Accept petImageUrl from the dashboard
   const { profileId, petName, petImageUrl } = req.body;
 
   try {
     const ISSUER_ID = process.env.GOOGLE_WALLET_ISSUER_ID;
     const CLASS_ID = `${ISSUER_ID}.kintag_id`; 
     
-    // Parse the JSON string from your environment variables
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
 
-    // 🌟 THE FIX: Adding Date.now() bypasses Google's aggressive caching.
-    // This forces Google to actually download Lex's photo instead of showing the old pass!
-    const uniquePassId = `${ISSUER_ID}.${profileId}-${Date.now()}`;
+    // 🌟 THE CACHE KILLER: We attach a random 6-character string to the ID.
+    // Google's servers will now treat every single click as a brand new pass
+    // and will be forced to download the image fresh.
+    const randomString = Math.random().toString(36).substring(2, 8);
+    const uniquePassId = `${ISSUER_ID}.${profileId}-${randomString}`;
 
-    // Build the specific pass for this user
     const passObject = {
       id: uniquePassId,
       classId: CLASS_ID,
@@ -35,6 +33,12 @@ export default async function handler(req, res) {
       header: {
         defaultValue: { language: "en", value: petName || "Emergency Profile" }
       },
+      // EXACT CODE YOU PROVED WORKED FOR THE KID
+      heroImage: {
+        sourceUri: { 
+          uri: petImageUrl || "https://kintag.vercel.app/placeholder-hero.png" 
+        }
+      },
       barcode: {
         type: "QR_CODE",
         value: `https://kintag.vercel.app/#/id/${profileId}`,
@@ -42,14 +46,6 @@ export default async function handler(req, res) {
       }
     };
 
-    // Safely add the heroImage ONLY if the URL exists, preventing 404 crashes
-    if (petImageUrl) {
-      passObject.heroImage = {
-        sourceUri: { uri: petImageUrl }
-      };
-    }
-
-    // The required Google payload structure
     const claims = {
       iss: credentials.client_email,
       aud: "google",
@@ -58,10 +54,8 @@ export default async function handler(req, res) {
       payload: { genericObjects: [passObject] }
     };
 
-    // Cryptographically sign the token using the private key
     const token = jwt.sign(claims, credentials.private_key, { algorithm: 'RS256' });
 
-    // Send the token back to the frontend
     return res.status(200).json({ success: true, token });
 
   } catch (error) {
