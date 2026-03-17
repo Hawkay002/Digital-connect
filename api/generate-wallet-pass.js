@@ -16,13 +16,9 @@ export default async function handler(req, res) {
     // Parse the JSON string from your environment variables
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
 
-    // 🌟 THE FIX: Adding Date.now() bypasses Google's aggressive caching.
-    // This forces Google to actually download Lex's photo instead of showing the old pass!
-    const uniquePassId = `${ISSUER_ID}.${profileId}-${Date.now()}`;
-
     // Build the specific pass for this user
     const passObject = {
-      id: uniquePassId,
+      id: `${ISSUER_ID}.${profileId}`,
       classId: CLASS_ID,
       genericType: "GENERIC_TYPE_UNSPECIFIED",
       hexBackgroundColor: "#18181b", 
@@ -35,19 +31,20 @@ export default async function handler(req, res) {
       header: {
         defaultValue: { language: "en", value: petName || "Emergency Profile" }
       },
+      // 🌟 FIX: We explicitly include the heroImage module data here.
+      // Once you enable the module in the console, this image will appear.
+      heroImage: {
+        sourceUri: { 
+          // Use the real image URL if available, otherwise use a placeholder
+          uri: petImageUrl || "https://kintag.vercel.app/placeholder-hero.png" 
+        }
+      },
       barcode: {
         type: "QR_CODE",
         value: `https://kintag.vercel.app/#/id/${profileId}`,
         alternateText: "Scan to view emergency profile"
       }
     };
-
-    // Safely add the heroImage ONLY if the URL exists, preventing 404 crashes
-    if (petImageUrl) {
-      passObject.heroImage = {
-        sourceUri: { uri: petImageUrl }
-      };
-    }
 
     // The required Google payload structure
     const claims = {
