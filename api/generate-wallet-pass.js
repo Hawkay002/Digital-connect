@@ -10,29 +10,26 @@ export default async function handler(req, res) {
   try {
     const ISSUER_ID = process.env.GOOGLE_WALLET_ISSUER_ID;
     
-    // Make sure this matches the new Class you created (e.g., kintag_v2)
-    const CLASS_ID = `${ISSUER_ID}.kintag_v2`; 
+    // 🌟 1. Target the brand new Loyalty Class you just created
+    const CLASS_ID = `${ISSUER_ID}.kintag_loyalty`; 
     
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
 
-    // Forces a completely new pass generation every time
-    const uniquePassId = `${ISSUER_ID}.${profileId}-${Date.now()}`;
+    // 🌟 2. The Cache Killer: Ensures a brand new pass is generated every time
+    // so Google doesn't accidentally load an old ghost pass without Lex's photo.
+    const randomString = Math.random().toString(36).substring(2, 8);
+    const uniquePassId = `${ISSUER_ID}.${profileId}-${randomString}`;
 
+    // 🌟 3. Build a Loyalty Object (instead of Generic)
     const passObject = {
       id: uniquePassId,
       classId: CLASS_ID,
-      genericType: "GENERIC_TYPE_UNSPECIFIED",
+      state: "ACTIVE",
+      accountId: profileId.substring(0, 15) || "KINTAG", // Required for Loyalty passes
+      accountName: petName || "Family Member", // Required for Loyalty passes
       hexBackgroundColor: "#18181b", 
       logo: {
-        sourceUri: { uri: "https://kintag.vercel.app/kintag-logo.png" },
-        // 🌟 CRITICAL FIX: Google will silently drop images without this tag
-        contentDescription: { defaultValue: { language: "en", value: "KinTag Logo" } }
-      },
-      cardTitle: {
-        defaultValue: { language: "en", value: "KinTag Digital ID" }
-      },
-      header: {
-        defaultValue: { language: "en", value: petName || "Emergency Profile" }
+        sourceUri: { uri: "https://kintag.vercel.app/kintag-logo.png" }
       },
       barcode: {
         type: "QR_CODE",
@@ -41,35 +38,13 @@ export default async function handler(req, res) {
       }
     };
 
-    // If an image exists, we force it into the pass in two different ways
+    // 🌟 4. The EXACT image code that you proved worked for the kid's pass
     if (petImageUrl) {
-      
-      // Clean the URL if you are using Cloudinary to ensure it's a valid JPEG
-      const safeImageUrl = petImageUrl.includes('cloudinary.com') 
-        ? petImageUrl.replace('/upload/', '/upload/q_auto,f_jpg/') 
-        : petImageUrl;
-
-      // Method 1: The standard Hero Image Banner at the top
       passObject.heroImage = {
-        sourceUri: { uri: safeImageUrl },
-        contentDescription: {
-          defaultValue: { language: "en", value: `${petName}'s Photo` }
+        sourceUri: { 
+          uri: petImageUrl
         }
       };
-
-      // Method 2: The Foolproof Body Image (Always renders!)
-      // Even if your Console layout hides the top banner, this injects the photo directly into the card body.
-      passObject.imageModulesData = [
-        {
-          mainImage: {
-            sourceUri: { uri: safeImageUrl },
-            contentDescription: {
-              defaultValue: { language: "en", value: `${petName}'s Photo` }
-            }
-          },
-          id: "profile_picture_module"
-        }
-      ];
     }
 
     const claims = {
@@ -77,7 +52,10 @@ export default async function handler(req, res) {
       aud: "google",
       origins: ["https://kintag.vercel.app"],
       typ: "savetowallet",
-      payload: { genericObjects: [passObject] }
+      payload: { 
+        // 🌟 5. CRITICAL: Tell Google this is a Loyalty pass!
+        loyaltyObjects: [passObject] 
+      }
     };
 
     const token = jwt.sign(claims, credentials.private_key, { algorithm: 'RS256' });
