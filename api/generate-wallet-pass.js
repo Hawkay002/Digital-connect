@@ -27,14 +27,16 @@ export default async function handler(req, res) {
         contentDescription: { defaultValue: { language: "en", value: "KinTag Logo" } }
       },
       // 🌟 Swapped to petName so it saves under their actual name in the Wallet!
+      // Top right of detailed pass / Top text of list view
       cardTitle: {
-        defaultValue: { language: "en", value: petName || "Emergency Profile" }
+        defaultValue: { language: "en", value: "Scan QR for Info" }
       },
       subheader: {
         defaultValue: { language: "en", value: "KinTag Digital ID" }
       },
+      // Massive text of detailed pass / Bottom text of list view
       header: {
-        defaultValue: { language: "en", value: "Scan QR for Info" }
+        defaultValue: { language: "en", value: petName || "Emergency Profile" }
       },
       // 🌟 FIXED HERO IMAGE: Uses your beautiful pattern for every pass
       heroImage: {
