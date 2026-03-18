@@ -5,31 +5,43 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
   
-  const { profileId, petName, petImageUrl } = req.body;
+  // We no longer need petImageUrl since we are using a fixed pattern!
+  const { profileId, petName } = req.body;
 
   try {
     const ISSUER_ID = process.env.GOOGLE_WALLET_ISSUER_ID;
-    
-    // 🌟 1. Target the brand new Loyalty Class you just created
-    const CLASS_ID = `${ISSUER_ID}.kintag_loyalty`; 
+    const CLASS_ID = `${ISSUER_ID}.kintag_v2`; 
     
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
 
-    // 🌟 2. The Cache Killer: Ensures a brand new pass is generated every time
-    // so Google doesn't accidentally load an old ghost pass without Lex's photo.
-    const randomString = Math.random().toString(36).substring(2, 8);
-    const uniquePassId = `${ISSUER_ID}.${profileId}-${randomString}`;
+    // Forces a completely new pass generation every time
+    const uniquePassId = `${ISSUER_ID}.${profileId}-${Date.now()}`;
 
-    // 🌟 3. Build a Loyalty Object (instead of Generic)
     const passObject = {
       id: uniquePassId,
       classId: CLASS_ID,
-      state: "ACTIVE",
-      accountId: profileId.substring(0, 15) || "KINTAG", // Required for Loyalty passes
-      accountName: petName || "Family Member", // Required for Loyalty passes
+      genericType: "GENERIC_TYPE_UNSPECIFIED",
       hexBackgroundColor: "#18181b", 
       logo: {
-        sourceUri: { uri: "https://kintag.vercel.app/kintag-logo.png" }
+        sourceUri: { uri: "https://kintag.vercel.app/kintag-logo.png" },
+        contentDescription: { defaultValue: { language: "en", value: "KinTag Logo" } }
+      },
+      // 🌟 Swapped to petName so it saves under their actual name in the Wallet!
+      cardTitle: {
+        defaultValue: { language: "en", value: petName || "Emergency Profile" }
+      },
+      subheader: {
+        defaultValue: { language: "en", value: "KinTag Digital ID" }
+      },
+      header: {
+        defaultValue: { language: "en", value: "Scan QR for Info" }
+      },
+      // 🌟 FIXED HERO IMAGE: Uses your beautiful pattern for every pass
+      heroImage: {
+        sourceUri: { uri: "https://kintag.vercel.app/patternnewo.png" },
+        contentDescription: {
+          defaultValue: { language: "en", value: "KinTag Brand Pattern" }
+        }
       },
       barcode: {
         type: "QR_CODE",
@@ -38,24 +50,12 @@ export default async function handler(req, res) {
       }
     };
 
-    // 🌟 4. The EXACT image code that you proved worked for the kid's pass
-    if (petImageUrl) {
-      passObject.heroImage = {
-        sourceUri: { 
-          uri: petImageUrl
-        }
-      };
-    }
-
     const claims = {
       iss: credentials.client_email,
       aud: "google",
       origins: ["https://kintag.vercel.app"],
       typ: "savetowallet",
-      payload: { 
-        // 🌟 5. CRITICAL: Tell Google this is a Loyalty pass!
-        loyaltyObjects: [passObject] 
-      }
+      payload: { genericObjects: [passObject] }
     };
 
     const token = jwt.sign(claims, credentials.private_key, { algorithm: 'RS256' });
