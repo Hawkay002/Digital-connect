@@ -265,10 +265,15 @@ export default function CreateCard() {
 
         {!generatedUrl && (
           <div className="mb-10">
-            <div className="flex justify-between items-center relative max-w-lg mx-auto px-4">
-              <div className="absolute left-6 right-6 top-1/2 h-1 bg-zinc-200 -z-10 -translate-y-1/2 rounded-full"></div>
-              <div className="absolute left-6 top-1/2 h-1 bg-brandDark -z-10 -translate-y-1/2 rounded-full transition-all duration-500" style={{ width: `calc(${(currentStep / (totalSteps - 1)) * 100}% - 48px)` }}></div>
+            <div className="flex justify-between items-center relative max-w-lg mx-auto">
               
+              {/* --- FIXED PROGRESS LINE TRACK --- */}
+              <div className="absolute left-4 right-4 top-1/2 h-1 -translate-y-1/2 -z-10">
+                <div className="w-full h-full bg-zinc-200 rounded-full"></div>
+                <div className="absolute top-0 left-0 h-full bg-brandDark rounded-full transition-all duration-500 ease-out" style={{ width: `${(currentStep / (totalSteps - 1)) * 100}%` }}></div>
+              </div>
+              {/* ------------------------------- */}
+
               {stepTitles.map((_, i) => (
                 <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border-2 transition-all duration-500 ${i <= currentStep ? 'bg-brandDark border-brandDark text-white shadow-md scale-110' : 'bg-white border-zinc-300 text-zinc-400'}`}>
                   {i < currentStep ? <Check size={14} strokeWidth={3} /> : i + 1}
