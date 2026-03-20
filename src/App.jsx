@@ -12,7 +12,8 @@ import Signup from './pages/Signup';
 import Admin from './pages/Admin'; 
 import Profile from './pages/Profile'; 
 import Changelog from './pages/Changelog';
-import UpdateToast from './components/UpdateToast'; // 🌟 NEW
+import UpdateToast from './components/UpdateToast';
+import Settings from './pages/Settings';// 🌟 NEW
 
 let isAuthRefresh = window.location.hash.includes('/login') || window.location.hash.includes('/signup');
 
