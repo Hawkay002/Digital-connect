@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { ChevronDown } from "lucide-react";
 
 const INTRO_STYLE_ID = "faq1-animations";
@@ -13,9 +13,15 @@ const palette = {
   iconSurface: "bg-white/5",
   icon: "text-white",
   glow: "rgba(255, 255, 255, 0.08)",
-  aurora: "radial-gradient(ellipse 50% 100% at 10% 0%, rgba(226, 232, 240, 0.15), transparent 65%), #09090b",
+  // FIX: Replaced radial-gradient aurora with a flat equivalent.
+  // The original used a CSS radial-gradient on a full-height element which
+  // the browser re-composites on every scroll. A flat color + a single
+  // pseudo-element gradient does the same job without per-scroll repaints.
+  aurora: "#09090b",
   shadow: "shadow-[0_36px_140px_-60px_rgba(10,10,10,0.95)]",
-  overlay: "linear-gradient(130deg, rgba(255,255,255,0.04) 0%, transparent 65%)",
+  // FIX: overlay div with mixBlendMode: "screen" removed entirely.
+  // mix-blend-mode forces a new stacking context and a compositing pass
+  // on EVERY frame — even when nothing changed — which is extremely expensive.
 };
 
 export function FAQMonochrome({ faqs = [] }) {
@@ -23,14 +29,16 @@ export function FAQMonochrome({ faqs = [] }) {
   const [activeIndex, setActiveIndex] = useState(-1);
   const [hasEntered, setHasEntered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  // FIX: Track whether the FAQ section is in the viewport.
+  // We'll pause the three continuous CSS animations when off-screen.
+  const sectionRef = useRef(null);
+  const [isInView, setIsInView] = useState(false);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
     if (document.getElementById(INTRO_STYLE_ID)) return;
     const style = document.createElement("style");
     style.id = INTRO_STYLE_ID;
-    
-    // 🌟 GPU FIX: Removed heavy filters and mix-blend-modes from keyframes!
     style.innerHTML = `
       @keyframes faq1-fade-up {
         0% { transform: translate3d(0, 20px, 0); opacity: 0; }
@@ -87,6 +95,9 @@ export function FAQMonochrome({ faqs = [] }) {
         inset: -110%;
         pointer-events: none;
         border-radius: 50%;
+        /* FIX: will-change promotes these rotating elements to their own GPU layer
+           so the spin doesn't invalidate the surrounding layout. */
+        will-change: transform;
       }
       .faq1-intro__beam {
         background: conic-gradient(from 160deg, rgba(226, 232, 240, 0.25), transparent 32%, rgba(148, 163, 184, 0.22) 58%, transparent 78%, rgba(148, 163, 184, 0.18));
@@ -114,6 +125,7 @@ export function FAQMonochrome({ faqs = [] }) {
         transform-origin: left;
         animation: faq1-meter 5.8s ease-in-out infinite;
         opacity: 0.7;
+        will-change: transform;
       }
       .faq1-intro__tick {
         position: relative;
@@ -124,6 +136,7 @@ export function FAQMonochrome({ faqs = [] }) {
         background: currentColor;
         box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1);
         animation: faq1-tick 3.2s ease-in-out infinite;
+        will-change: transform;
       }
       .faq1-fade {
         opacity: 0;
@@ -133,9 +146,29 @@ export function FAQMonochrome({ faqs = [] }) {
       .faq1-fade--ready {
         animation: faq1-fade-up 860ms cubic-bezier(0.22, 0.68, 0, 1) forwards;
       }
+
+      /* FIX: Pause all intro animations when section is out of view.
+         The JS below adds/removes .faq1-paused on the section root. */
+      .faq1-paused .faq1-intro__beam,
+      .faq1-paused .faq1-intro__pulse,
+      .faq1-paused .faq1-intro__meter,
+      .faq1-paused .faq1-intro__tick {
+        animation-play-state: paused;
+      }
     `;
     document.head.appendChild(style);
     return () => { if (style.parentNode) style.remove(); };
+  }, []);
+
+  // FIX: IntersectionObserver to pause animations when FAQ section scrolls out of view.
+  useEffect(() => {
+    if (!sectionRef.current || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsInView(entry.isIntersecting),
+      { rootMargin: "100px" }
+    );
+    observer.observe(sectionRef.current);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -150,7 +183,7 @@ export function FAQMonochrome({ faqs = [] }) {
   useEffect(() => {
     let timeout;
     const onLoad = () => { timeout = window.setTimeout(() => setHasEntered(true), 120); };
-    if (document.readyState === "complete") { onLoad(); } 
+    if (document.readyState === "complete") { onLoad(); }
     else { window.addEventListener("load", onLoad, { once: true }); }
     return () => { window.removeEventListener("load", onLoad); window.clearTimeout(timeout); };
   }, []);
@@ -175,11 +208,22 @@ export function FAQMonochrome({ faqs = [] }) {
   const displayedFaqs = isExpanded ? faqs : faqs.slice(0, 6);
 
   return (
-    <div id="faq-section" className={`relative w-full overflow-hidden transition-colors duration-700 ${palette.surface} scroll-mt-20`}>
+    <div
+      id="faq-section"
+      ref={sectionRef}
+      // FIX: Add faq1-paused class when not in viewport to pause all 3 animations.
+      className={`relative w-full overflow-hidden transition-colors duration-700 ${palette.surface} scroll-mt-20 ${!isInView ? "faq1-paused" : ""}`}
+    >
+      {/* FIX: Replaced the combined radial-gradient + mixBlendMode overlay with a single
+          flat background + a simple pseudo-element highlight via an inline div.
+          This eliminates the per-frame compositing cost of mix-blend-mode: screen. */}
       <div className="absolute inset-0 z-0" style={{ background: palette.aurora }} />
+      {/* Subtle static top-left glow — no blend mode, just opacity */}
       <div
-        className="pointer-events-none absolute inset-0 z-0 opacity-80"
-        style={{ background: palette.overlay, mixBlendMode: "screen" }}
+        className="pointer-events-none absolute top-0 left-0 w-[500px] h-[400px] z-0 opacity-15"
+        style={{
+          background: "radial-gradient(ellipse 50% 100% at 10% 0%, rgba(226, 232, 240, 0.6), transparent 65%)",
+        }}
       />
 
       <section
@@ -215,7 +259,6 @@ export function FAQMonochrome({ faqs = [] }) {
             return (
               <li
                 key={index}
-                // Removed backdrop-blur-xl from list items for mobile performance
                 className={`group relative overflow-hidden rounded-[2rem] border bg-zinc-900/90 transition-all duration-500 hover:-translate-y-0.5 focus-within:-translate-y-0.5 ${palette.border} ${palette.shadow}`}
                 onMouseMove={setCardGlow}
                 onMouseLeave={clearCardGlow}
@@ -291,13 +334,13 @@ export function FAQMonochrome({ faqs = [] }) {
 
         {faqs.length > 6 && (
           <div className="flex justify-center mt-6 relative z-20">
-            <button 
+            <button
               onClick={() => {
                 setIsExpanded(!isExpanded);
                 if (isExpanded) {
                   document.getElementById('faq-section')?.scrollIntoView({ behavior: 'smooth' });
                 }
-              }} 
+              }}
               className="flex items-center gap-2 bg-brandGold text-white px-8 py-3.5 rounded-full font-bold shadow-lg hover:bg-amber-500 hover:-translate-y-0.5 transition-all duration-500"
             >
               <span>{isExpanded ? 'Hide FAQs' : `Read All ${faqs.length} FAQs`}</span>
