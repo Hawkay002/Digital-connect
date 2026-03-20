@@ -18,7 +18,7 @@ export default function Globe({ className }) {
     let phi = 1.4;
     let width = 0;
 
-    const onResize = () => canvasRef.current && (width = canvasRef.current.offsetWidth);
+    const onResize = () => canvasRef.current && (width = canvasRef.current.parentElement?.offsetWidth || canvasRef.current.offsetWidth);
     window.addEventListener('resize', onResize);
     onResize();
 
@@ -77,7 +77,7 @@ export default function Globe({ className }) {
       <canvas
         ref={canvasRef}
         className="w-full h-full pointer-events-none"
-        style={{ width: "100%", height: "100%", contain: "layout paint size" }}
+        style={{ width: "100%", height: "100%", contain: "layout paint" }}
       />
     </div>
   );
