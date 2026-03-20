@@ -1,6 +1,16 @@
 import admin from 'firebase-admin';
 
-// Initialize the Firebase Admin SDK securely
+// --- SECURITY UTILITIES ---
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; 
+const MAX_REQUESTS_PER_WINDOW = 5; 
+
+const sanitizeInput = (input, maxLength = 255) => {
+  if (!input || typeof input !== 'string') return '';
+  return input.replace(/[<>{}()$]/g, '').trim().substring(0, maxLength);
+};
+// --------------------------
+
 if (!admin.apps.length) {
   try {
     const cleanPrivateKey = process.env.FIREBASE_PRIVATE_KEY
@@ -22,12 +32,32 @@ if (!admin.apps.length) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
   
-  const { type, ownerId, title, body } = req.body;
+  // --- RATE LIMITER ---
+  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown-ip';
+  const currentTime = Date.now();
+  if (rateLimitMap.has(ip)) {
+    const clientData = rateLimitMap.get(ip);
+    if (currentTime < clientData.resetTime) {
+      if (clientData.count >= MAX_REQUESTS_PER_WINDOW) {
+        return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+      }
+      clientData.count += 1;
+    } else {
+      rateLimitMap.set(ip, { count: 1, resetTime: currentTime + RATE_LIMIT_WINDOW_MS });
+    }
+  } else {
+    rateLimitMap.set(ip, { count: 1, resetTime: currentTime + RATE_LIMIT_WINDOW_MS });
+  }
+  // --------------------
+
+  const type = sanitizeInput(req.body.type, 50);
+  const ownerId = sanitizeInput(req.body.ownerId, 100);
+  const title = sanitizeInput(req.body.title, 100);
+  const body = sanitizeInput(req.body.body, 500);
 
   try {
     const db = admin.firestore();
 
-    // 🌟 GLOBAL BROADCAST LOGIC (System Messages)
     if (type === 'broadcast') {
       const usersSnap = await db.collection('users').get();
       const tokens = [];
@@ -40,7 +70,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, message: "No tokens found." });
       }
 
-      // Firebase limits Multicast to 500 tokens per request. This safely chunks them.
       const batches = [];
       for (let i = 0; i < tokens.length; i += 500) {
         batches.push(tokens.slice(i, i + 500));
@@ -49,7 +78,6 @@ export default async function handler(req, res) {
       let sentCount = 0;
 
       for (const batch of batches) {
-        // EXACT same payload as specific scans to ensure Mobile PWA compatibility
         const message = {
           notification: { title, body },
           webpush: {
@@ -63,7 +91,6 @@ export default async function handler(req, res) {
           tokens: batch, 
         };
 
-        // sendEachForMulticast is the modern, highly-stable method for broadcasting
         const response = await admin.messaging().sendEachForMulticast(message);
         sentCount += response.successCount;
       }
@@ -71,9 +98,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, sentCount });
     }
 
-    // ---------------------------------------------------------
-    // 🌟 ORIGINAL LOGIC FOR SPECIFIC SCANS (Kids/Pets Found)
-    // ---------------------------------------------------------
     if (!ownerId) {
       return res.status(400).json({ error: "Owner ID required for direct notifications" });
     }
@@ -84,7 +108,6 @@ export default async function handler(req, res) {
     const fcmToken = userDoc.data().fcmToken;
     if (!fcmToken) return res.status(400).json({ error: "Owner has no FCM token saved" });
 
-    // This exact payload works perfectly on mobile
     const message = {
       notification: { title, body },
       webpush: {
@@ -104,7 +127,6 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error("Push Error Details:", error);
     
-    // Automatically clean up dead tokens to prevent server crashes
     if (error.code === 'messaging/registration-token-not-registered') {
         if (ownerId) {
             const db = admin.firestore();
