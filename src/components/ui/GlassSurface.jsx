@@ -35,22 +35,19 @@ const useDarkMode = () => {
 const isLowEndDevice = () => {
   if (typeof window === 'undefined') return false;
 
-  const mem = navigator.deviceMemory;   // GB, capped at 8 by spec; undefined if unsupported
-  const cores = navigator.hardwareConcurrency; // logical CPU count; undefined if unsupported
+  const mem = navigator.deviceMemory;
+  const cores = navigator.hardwareConcurrency;
 
-  // High-end override: if the device reports max RAM (8GB cap) it's flagship-class.
-  // Your 16GB phone will report 8 here — treat it as high-end unconditionally.
+  // High-end override — flagship RAM cap or many cores
   if (mem !== undefined && mem >= 8) return false;
-
-  // Strong CPU signal: >6 cores is a modern mid-to-high chip even if RAM is unknown.
   if (cores !== undefined && cores > 6) return false;
 
-  // Confirmed low-end: little RAM and/or few cores
-  if (mem !== undefined && mem < 4) return true;
-  if (cores !== undefined && cores <= 4) return true;
+  // Low-end only when BOTH signals confirm it (AND, not OR)
+  // Prevents a 4GB/8-core phone from getting the blur fallback
+  const memLow = mem !== undefined && mem < 4;
+  const coresLow = cores !== undefined && cores <= 4;
+  if (memLow && coresLow) return true;
 
-  // No hardware APIs available — optimistically allow glass.
-  // supportsSVGFilters() will still gate it by actual browser capability.
   return false;
 };
 
