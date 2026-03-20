@@ -27,7 +27,7 @@ export default function Settings() {
 
   // --- Caretaker (Babysitter) CRM State ---
   const [careSessions, setCareSessions] = useState([]);
-  const [careTab, setCareTab] = useState('active'); // 'active' | 'history'
+  const [careTab, setCareTab] = useState('active'); 
   const [showCareModal, setShowCareModal] = useState(false);
   const [careForm, setCareForm] = useState({
     name: '', countryCode: '+1', countryIso: 'us', phone: '',
@@ -64,7 +64,7 @@ export default function Settings() {
 
   // Live timer for active care sessions
   useEffect(() => {
-    const interval = setInterval(() => setNow(new Date().getTime()), 60000); // Update every minute
+    const interval = setInterval(() => setNow(new Date().getTime()), 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -101,7 +101,7 @@ export default function Settings() {
         const familySnaps = await getDocs(familyQuery);
         setFamilyMembers(familySnaps.docs.map(d => ({ id: d.id, ...d.data() })));
 
-        // Fetch Profiles (Kids/Pets for the Babysitter Modal)
+        // 🌟 THE FIX IS HERE: .filter(p => p.isActive !== false) instead of .filter(p => p.isActive)
         const profilesQuery = query(collection(db, "profiles"), where("familyId", "==", activeFamilyId));
         const profilesSnaps = await getDocs(profilesQuery);
         setProfiles(profilesSnaps.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.isActive !== false));
@@ -143,10 +143,8 @@ export default function Settings() {
     try {
       const durationMs = (careForm.days * 86400000) + (careForm.hours * 3600000) + (careForm.minutes * 60000);
       const expiresAt = new Date(Date.now() + durationMs).toISOString();
-      const sessionId = 'care_' + Math.random().toString(36).substring(2, 10);
 
       const sessionData = {
-        sessionId,
         name: careForm.name.trim(),
         phone: careForm.phone,
         countryCode: careForm.countryCode,
@@ -160,7 +158,8 @@ export default function Settings() {
       const docRef = await addDoc(collection(db, "care_sessions"), sessionData);
       setCareSessions([{ id: docRef.id, ...sessionData }, ...careSessions]);
       
-      const link = `${window.location.origin}/#/care/${sessionId}`;
+      // 🌟 THE FIX IS HERE: Uses docRef.id so the actual database ID powers the link
+      const link = `${window.location.origin}/#/care/${docRef.id}`;
       setGeneratedCareLink(link);
       setCareTab('active');
     } catch (err) {
