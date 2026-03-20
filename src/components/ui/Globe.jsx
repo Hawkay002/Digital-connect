@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import createGlobe from "cobe";
 
-export default function Globe({ className }) {
+export default function Globe({ className, tier = 'mid' }) {
   const canvasRef = useRef();
   const inViewRef = useRef(true);
 
@@ -24,14 +24,12 @@ export default function Globe({ className }) {
 
     if (!canvasRef.current) return;
 
-    // FIX 1: Cap devicePixelRatio at 1.5 max.
-    // A DPR-2 globe on a 3x screen sends 6x the pixels to WebGL per frame.
-    // Capping at 1.5 is visually imperceptible but saves massive GPU work on low-end phones.
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-
-    // FIX 2: Reduce mapSamples further on low-end devices.
-    // navigator.hardwareConcurrency is a reliable proxy for device class.
-    const isLowEnd = (navigator.hardwareConcurrency || 4) <= 4;
+    // Use the tier passed from Home (which uses AND logic) rather than
+    // re-deriving it here with a different formula — keeps behaviour consistent.
+    const isLowEnd = tier === 'low';
+    const dpr = isLowEnd
+      ? Math.min(window.devicePixelRatio || 1, 1)
+      : Math.min(window.devicePixelRatio || 1, 1.5);
     const samples = isLowEnd ? 6000 : 10000;
 
     const globe = createGlobe(canvasRef.current, {
