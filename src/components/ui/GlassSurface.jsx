@@ -16,18 +16,42 @@ const useDarkMode = () => {
   return isDark;
 };
 
-// FIX: Detect low-end / mobile devices once at module level.
-// On these devices we skip the SVG feDisplacementMap filter entirely —
-// it's an expensive multi-pass GPU operation that causes the 1-second lag
-// on the fixed navbar (which repaints on every scroll frame).
+// Detect low-end devices using hardware signals only — never screen width.
+//
+// Why not width? A flagship phone (8GB+ RAM, 8-core CPU) has a narrow screen
+// but is fully capable of running the SVG displacement filter. Using width as
+// a signal incorrectly downgrades every phone, regardless of actual power.
+//
+// Signal priority (strongest → weakest):
+//   1. navigator.deviceMemory — capped at 8 by the spec, so:
+//        ≥ 8  → definitely high-end, always use glass
+//        4–7  → mid-range, check CPU cores to decide
+//        < 4  → low-end, use blur fallback
+//   2. navigator.hardwareConcurrency — CPU core count:
+//        > 6  → high-end (even if RAM reads mid-range), use glass
+//        ≤ 4  → low-end
+//   3. Neither API available → optimistically try glass (supportsSVGFilters
+//      will still catch browsers that can't run it at all)
 const isLowEndDevice = () => {
   if (typeof window === 'undefined') return false;
-  return (
-    window.innerWidth < 768 ||
-    (navigator.hardwareConcurrency || 4) <= 4 ||
-    // navigator.deviceMemory is in GB; < 4GB = treat as low-end
-    (navigator.deviceMemory && navigator.deviceMemory < 4)
-  );
+
+  const mem = navigator.deviceMemory;   // GB, capped at 8 by spec; undefined if unsupported
+  const cores = navigator.hardwareConcurrency; // logical CPU count; undefined if unsupported
+
+  // High-end override: if the device reports max RAM (8GB cap) it's flagship-class.
+  // Your 16GB phone will report 8 here — treat it as high-end unconditionally.
+  if (mem !== undefined && mem >= 8) return false;
+
+  // Strong CPU signal: >6 cores is a modern mid-to-high chip even if RAM is unknown.
+  if (cores !== undefined && cores > 6) return false;
+
+  // Confirmed low-end: little RAM and/or few cores
+  if (mem !== undefined && mem < 4) return true;
+  if (cores !== undefined && cores <= 4) return true;
+
+  // No hardware APIs available — optimistically allow glass.
+  // supportsSVGFilters() will still gate it by actual browser capability.
+  return false;
 };
 
 const GlassSurface = ({
