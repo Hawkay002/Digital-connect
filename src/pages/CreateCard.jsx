@@ -8,6 +8,13 @@ import { sortedCountryCodes } from '../data/countryCodes';
 import Cropper from 'react-easy-crop';
 import imageCompression from 'browser-image-compression';
 
+// --- SECURITY UTILITY: Input Sanitization ---
+const sanitizeInput = (input) => {
+  if (!input || typeof input !== 'string') return input;
+  return input.replace(/[<>{}]/g, '').trim();
+};
+// --------------------------------------------
+
 const QR_STYLES = {
   obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200', hexBorder: '#e4e4e7' },
   bubblegum: { name: 'Bubblegum Pink', fg: '#db2777', bg: '#fdf2f8', border: 'border-pink-200', hexBorder: '#fbcfe8' },
@@ -201,20 +208,54 @@ export default function CreateCard() {
 
     setLoading(true);
     try {
+      // --- THE SANITIZATION INTERCEPTOR ---
+      
+      // 1. Sanitize standard form fields
+      const sanitizedFormData = Object.keys(formData).reduce((acc, key) => {
+        acc[key] = sanitizeInput(formData[key]);
+        return acc;
+      }, {});
+
+      // 2. Sanitize complex arrays (Contacts)
+      const sanitizedContacts = contacts.map(c => ({
+        ...c,
+        name: sanitizeInput(c.name),
+        phone: sanitizeInput(c.phone),
+        customTag: sanitizeInput(c.customTag),
+        tag: sanitizeInput(c.tag)
+      }));
+
+      // 3. Sanitize Vault Documents and Upload
       const processedDocs = [];
       for (const docItem of documents) {
         if (docItem.file) {
           const docUrl = await uploadToCloudinary(docItem.file);
-          processedDocs.push({ id: docItem.id, name: docItem.name.trim(), url: docUrl });
+          processedDocs.push({ 
+            id: docItem.id, 
+            name: sanitizeInput(docItem.name), // Sanitized!
+            url: docUrl 
+          });
         }
       }
 
+      // 4. Format Pincode safely
+      const formattedPincode = sanitizedFormData.pincode ? sanitizedFormData.pincode.replace(/\s+/g, '').toUpperCase() : '';
       let imageUrl = imageFile ? await uploadToCloudinary(imageFile) : 'https://placehold.co/600x400/eeeeee/999999?text=No+Photo+Provided';
-      const formattedPincode = formData.pincode ? formData.pincode.replace(/\s+/g, '').toUpperCase() : '';
+
+      // --- END SANITIZATION ---
 
       const docRef = await addDoc(collection(db, "profiles"), {
-        ...formData, pincode: formattedPincode, type, imageUrl, contacts, primaryContactId, documents: processedDocs, 
-        userId: auth.currentUser.uid, familyId: familyId, isActive: true, createdAt: new Date().toISOString()
+        ...sanitizedFormData, 
+        pincode: formattedPincode, 
+        type, 
+        imageUrl, 
+        contacts: sanitizedContacts, 
+        primaryContactId, 
+        documents: processedDocs, 
+        userId: auth.currentUser.uid, 
+        familyId: familyId, 
+        isActive: true, 
+        createdAt: new Date().toISOString()
       });
       setGeneratedUrl(`${window.location.origin}/#/id/${docRef.id}`);
     } catch (err) {
