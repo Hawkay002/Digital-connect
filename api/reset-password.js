@@ -1,7 +1,17 @@
 import admin from 'firebase-admin';
 import nodemailer from 'nodemailer';
 
-// 1. Initialize Firebase Admin
+// --- SECURITY UTILITIES ---
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; 
+const MAX_REQUESTS_PER_WINDOW = 3; 
+
+const sanitizeEmail = (email) => {
+  if (!email || typeof email !== 'string') return '';
+  return email.replace(/[<>{}()$\s]/g, '').toLowerCase().substring(0, 255);
+};
+// --------------------------
+
 if (!admin.apps.length) {
   try {
     const cleanPrivateKey = process.env.FIREBASE_PRIVATE_KEY
@@ -20,30 +30,44 @@ if (!admin.apps.length) {
   }
 }
 
-// 2. Configure your Google SMTP Transporter
-// (Use the exact same env variables you use for your welcome email)
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.SMTP_EMAIL,     // Your Gmail address
-    pass: process.env.SMTP_PASSWORD,  // Your 16-character Google App Password
+    user: process.env.SMTP_EMAIL,     
+    pass: process.env.SMTP_PASSWORD,  
   },
 });
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
   
-  const { email } = req.body;
+  // --- RATE LIMITER ---
+  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown-ip';
+  const currentTime = Date.now();
+  if (rateLimitMap.has(ip)) {
+    const clientData = rateLimitMap.get(ip);
+    if (currentTime < clientData.resetTime) {
+      if (clientData.count >= MAX_REQUESTS_PER_WINDOW) {
+        return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+      }
+      clientData.count += 1;
+    } else {
+      rateLimitMap.set(ip, { count: 1, resetTime: currentTime + RATE_LIMIT_WINDOW_MS });
+    }
+  } else {
+    rateLimitMap.set(ip, { count: 1, resetTime: currentTime + RATE_LIMIT_WINDOW_MS });
+  }
+  // --------------------
+
+  const email = sanitizeEmail(req.body.email);
 
   if (!email) {
     return res.status(400).json({ error: "Email is required" });
   }
 
   try {
-    // 3. Generate the actual reset link from Firebase
     const resetLink = await admin.auth().generatePasswordResetLink(email);
 
-    // 4. Build your Custom HTML Template
     const customHtmlTemplate = `
       <div style="font-family: sans-serif; max-w-md; margin: auto; padding: 30px; background: #fafafa; border-radius: 16px; border: 1px solid #e4e4e7; text-align: center;">
         <img src="https://kintag.vercel.app/kintag-logo.png" width="60" style="border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
@@ -60,7 +84,6 @@ export default async function handler(req, res) {
       </div>
     `;
 
-    // 5. Send the email using Google SMTP
     await transporter.sendMail({
       from: `"KinTag Security" <${process.env.SMTP_EMAIL}>`,
       to: email,
@@ -72,7 +95,6 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error("Reset Email Error:", error);
     
-    // Handle the specific case where the user doesn't exist in Firebase
     if (error.code === 'auth/user-not-found') {
         return res.status(404).json({ error: "No account found with this email address." });
     }
