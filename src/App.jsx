@@ -13,7 +13,8 @@ import Admin from './pages/Admin';
 import Profile from './pages/Profile'; 
 import Changelog from './pages/Changelog';
 import UpdateToast from './components/UpdateToast';
-import Settings from './pages/Settings';// 🌟 NEW
+import Settings from './pages/Settings';
+import CareView from './pages/CareView';// 🌟 NEW
 
 let isAuthRefresh = window.location.hash.includes('/login') || window.location.hash.includes('/signup');
 
@@ -57,9 +58,9 @@ function AppRoutes() {
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
       <Route path="/id/:profileId" element={<PublicCard />} />
+      <Route path="/care/:sessionId" element={<CareView />} />
       <Route path="/changelog" element={<Changelog />} /> 
       <Route path="*" element={<Navigate to="/" replace />} />
-      {/* ADD THIS NEW LINE RIGHT HERE 👇 */}
       <Route path="/settings" element={<Settings />} />
     </Routes>
   );
