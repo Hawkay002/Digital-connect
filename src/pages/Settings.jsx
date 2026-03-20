@@ -3,7 +3,7 @@ import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore'; 
 import { useNavigate } from 'react-router-dom';
-import { LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, AlertOctagon, X, Trash2, UserMinus, Share2, LifeBuoy, Info, ChevronDown, Check, Smartphone, Download, Send, User } from 'lucide-react'; 
+import { LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, AlertOctagon, X, Trash2, UserMinus, Share2, LifeBuoy, Info, ChevronDown, Check, Smartphone, Download, Send, User, Clock, History, Link as LinkIcon, Timer, CalendarDays, CheckSquare, Square, ShieldAlert } from 'lucide-react'; 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { WhatsappIcon, TelegramIcon } from "@hugeicons/core-free-icons";
 import { sortedCountryCodes } from '../data/countryCodes'; 
@@ -11,42 +11,64 @@ import { avatars } from '../components/ui/avatar-picker';
 
 export default function Settings() {
   const navigate = useNavigate();
+  
+  // --- Core User & Family State ---
   const [userData, setUserData] = useState(null);
   const [familyMembers, setFamilyMembers] = useState([]);
+  const [profiles, setProfiles] = useState([]); 
   const [inviteEmail, setInviteEmail] = useState('');
   
   const [loading, setLoading] = useState(true);
   const [inviteLoading, setInviteLoading] = useState(false);
-  
   const [inviteError, setInviteError] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState('');
-  const [deleteError, setDeleteError] = useState('');
-
+  
   const [guardianToRemove, setGuardianToRemove] = useState(null);
 
-  const [showDeleteZone, setShowDeleteZone] = useState(false);
-  const [deleteInput, setDeleteInput] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
-  const deleteConfirmationPhrase = auth.currentUser ? `I know this will delete all data related to this account, still I want to delete my account, ${auth.currentUser.email}` : '';
+  // --- Caretaker (Babysitter) CRM State ---
+  const [careSessions, setCareSessions] = useState([]);
+  const [careTab, setCareTab] = useState('active'); // 'active' | 'history'
+  const [showCareModal, setShowCareModal] = useState(false);
+  const [careForm, setCareForm] = useState({
+    name: '', countryCode: '+1', countryIso: 'us', phone: '',
+    selectedProfiles: [], days: 0, hours: 0, minutes: 0
+  });
+  const [careLoading, setCareLoading] = useState(false);
+  const [generatedCareLink, setGeneratedCareLink] = useState('');
+  const [historySelection, setHistorySelection] = useState([]);
+  const [now, setNow] = useState(new Date().getTime());
 
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [shareMessage, setShareMessage] = useState('');
-  
+  // --- Support & System State ---
   const [supportTickets, setSupportTickets] = useState([]);
   const [expandedTicketId, setExpandedTicketId] = useState(null);
   const [resolvingTicketId, setResolvingTicketId] = useState(null);
-  const [copiedId, setCopiedId] = useState(false);
-  
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportLoading, setSupportLoading] = useState(false);
   const [supportMessage, setSupportMessage] = useState('');
   const [supportError, setSupportError] = useState('');
-  const [supportForm, setSupportForm] = useState({
-    supportId: '', name: '', email: '', platform: 'whatsapp', countryCode: '+1', countryIso: 'us', contactValue: '', message: ''
+  const [supportForm, setSupportForm] = useState({ 
+    supportId: '', name: '', email: '', platform: 'whatsapp', countryCode: '+1', countryIso: 'us', contactValue: '', message: '' 
   });
+  const [copiedId, setCopiedId] = useState(false);
 
+  // --- Utility State ---
+  const [showDeleteZone, setShowDeleteZone] = useState(false);
+  const [deleteInput, setDeleteInput] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const deleteConfirmationPhrase = auth.currentUser ? `I know this will delete all data related to this account, still I want to delete my account, ${auth.currentUser.email}` : '';
+
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareMessage, setShareMessage] = useState('');
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+  // Live timer for active care sessions
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date().getTime()), 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  // PWA Install Prompt
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
@@ -58,18 +80,9 @@ export default function Settings() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
-  const handleInstallApp = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
-      window.pwaDeferredPrompt = null;
-    }
-  };
-
+  // Main Data Fetcher
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchData = async () => {
       if (!auth.currentUser) return;
       try {
         const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
@@ -83,14 +96,25 @@ export default function Settings() {
           setUserData({ name: '', familyId: activeFamilyId });
         }
         
+        // Fetch Family Members
         const familyQuery = query(collection(db, "users"), where("familyId", "==", activeFamilyId));
         const familySnaps = await getDocs(familyQuery);
         setFamilyMembers(familySnaps.docs.map(d => ({ id: d.id, ...d.data() })));
 
+        // Fetch Profiles (Kids/Pets for the Babysitter Modal)
+        const profilesQuery = query(collection(db, "profiles"), where("familyId", "==", activeFamilyId));
+        const profilesSnaps = await getDocs(profilesQuery);
+        setProfiles(profilesSnaps.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.isActive));
+
+        // Fetch Care Sessions (Babysitters)
+        const careQuery = query(collection(db, "care_sessions"), where("familyId", "==", activeFamilyId));
+        const careSnaps = await getDocs(careQuery);
+        setCareSessions(careSnaps.docs.map(d => ({ id: d.id, ...d.data() })));
+
+        // Fetch Support Tickets
         const ticketsQuery = query(collection(db, "support_tickets"), where("userId", "==", auth.currentUser.uid));
         const ticketsSnaps = await getDocs(ticketsQuery);
-        const fetchedTickets = ticketsSnaps.docs.map(d => ({ id: d.id, ...d.data() }));
-        setSupportTickets(fetchedTickets.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+        setSupportTickets(ticketsSnaps.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
 
       } catch (err) {
         console.error(err);
@@ -98,37 +122,164 @@ export default function Settings() {
         setLoading(false);
       }
     };
-    fetchUserData();
+    fetchData();
   }, []);
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    navigate('/login');
+  // --- Caretaker (Babysitter) Logic ---
+
+  const toggleProfileSelection = (profileId) => {
+    setCareForm(prev => {
+      const isSelected = prev.selectedProfiles.includes(profileId);
+      return { ...prev, selectedProfiles: isSelected ? prev.selectedProfiles.filter(id => id !== profileId) : [...prev.selectedProfiles, profileId] };
+    });
   };
 
-  const handleShareApp = async () => {
-    const shareData = {
-      title: 'KinTag - Digital Safety Net',
-      text: "I use KinTag to secure my family with digital IDs and instant GPS alerts. It's 100% free! Check it out and create your own tags.",
-      url: window.location.origin
-    };
-    
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-        setShareMessage("Thanks for sharing KinTag!");
-        setTimeout(() => setShareMessage(''), 3000);
-      } catch (e) {}
-    } else {
-      try {
-        await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
-        setShareMessage("Link copied to clipboard!");
-        setTimeout(() => setShareMessage(''), 3000);
-      } catch (err) {
-        setShareMessage("Failed to copy link.");
-      }
+  const handleCreateCareSession = async (e) => {
+    e.preventDefault();
+    if (careForm.selectedProfiles.length === 0) return alert("Please select at least one profile.");
+    if (careForm.days === 0 && careForm.hours === 0 && careForm.minutes === 0) return alert("Please set a valid duration.");
+
+    setCareLoading(true);
+    try {
+      const durationMs = (careForm.days * 86400000) + (careForm.hours * 3600000) + (careForm.minutes * 60000);
+      const expiresAt = new Date(Date.now() + durationMs).toISOString();
+      const sessionId = 'care_' + Math.random().toString(36).substring(2, 10);
+
+      const sessionData = {
+        sessionId,
+        name: careForm.name.trim(),
+        phone: careForm.phone,
+        countryCode: careForm.countryCode,
+        selectedProfiles: careForm.selectedProfiles,
+        familyId: userData.familyId,
+        createdAt: new Date().toISOString(),
+        expiresAt,
+        status: 'active'
+      };
+
+      const docRef = await addDoc(collection(db, "care_sessions"), sessionData);
+      setCareSessions([{ id: docRef.id, ...sessionData }, ...careSessions]);
+      
+      const link = `${window.location.origin}/#/care/${sessionId}`;
+      setGeneratedCareLink(link);
+      setCareTab('active');
+    } catch (err) {
+      alert("Failed to create temporary access. Please try again.");
+    } finally {
+      setCareLoading(false);
     }
   };
+
+  const handleEndCareSession = async (session) => {
+    try {
+      await updateDoc(doc(db, "care_sessions", session.id), { status: 'history', endedAt: new Date().toISOString() });
+      setCareSessions(prev => prev.map(s => s.id === session.id ? { ...s, status: 'history', endedAt: new Date().toISOString() } : s));
+    } catch (err) {
+      alert("Failed to end session.");
+    }
+  };
+
+  const toggleHistorySelection = (id) => {
+    setHistorySelection(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+  };
+
+  const deleteSelectedHistory = async () => {
+    if (historySelection.length === 0) return;
+    try {
+      for (const id of historySelection) await deleteDoc(doc(db, "care_sessions", id));
+      setCareSessions(prev => prev.filter(s => !historySelection.includes(s.id)));
+      setHistorySelection([]);
+    } catch (err) { alert("Failed to delete history."); }
+  };
+
+  const deleteAllHistory = async () => {
+    const historyIds = careSessions.filter(s => s.status === 'history' || new Date(s.expiresAt).getTime() < now).map(s => s.id);
+    if (historyIds.length === 0) return;
+    try {
+      for (const id of historyIds) await deleteDoc(doc(db, "care_sessions", id));
+      setCareSessions(prev => prev.filter(s => !historyIds.includes(s.id)));
+      setHistorySelection([]);
+    } catch (err) { alert("Failed to clear history."); }
+  };
+
+  // --- Family & Invite Logic ---
+
+  const handleInvite = async (e) => {
+    e.preventDefault();
+    setInviteError('');
+    setInviteSuccess('');
+    
+    const currentFamilyId = userData?.familyId || auth.currentUser.uid;
+    const invitedCount = familyMembers.filter(m => m.id !== currentFamilyId).length;
+    
+    if (invitedCount >= 5) return setInviteError("You have reached the maximum of 5 co-guardians.");
+    if (!inviteEmail) return;
+
+    setInviteLoading(true);
+    try {
+      await setDoc(doc(db, "invites", inviteEmail.toLowerCase()), {
+        familyId: currentFamilyId,
+        invitedBy: userData?.name || auth.currentUser.email,
+        inviteEmail: inviteEmail.toLowerCase(),
+        inviterUid: auth.currentUser.uid,
+        status: 'pending',
+        invitedAt: new Date().toISOString()
+      });
+
+      const link = `${window.location.origin}/#/signup?email=${encodeURIComponent(inviteEmail.toLowerCase())}`;
+      let sharedNative = false;
+      
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: 'KinTag Co-Guardian Invite', text: `${userData?.name || 'A family member'} invited you to co-manage their KinTag profiles.`, url: link });
+          sharedNative = true;
+          setInviteSuccess("Invite sent successfully!");
+        } catch (shareErr) {}
+      } 
+      
+      if (!sharedNative) {
+        try {
+          await navigator.clipboard.writeText(link);
+          setInviteSuccess("Invite link copied to clipboard!");
+        } catch (clipErr) {
+          setInviteSuccess("Invite saved! Ask them to sign up with that exact email.");
+        }
+      }
+      setInviteEmail('');
+    } catch (err) {
+      if (err.message.includes("Missing or insufficient permissions") || err.code === "permission-denied") {
+        setInviteError("Firebase Error: You need to update your Firestore Security Rules to allow writing to the 'invites' collection.");
+      } else {
+        setInviteError(err.message || "Failed to send invite. Please try again.");
+      }
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const confirmRemoveGuardian = async () => {
+    if (!guardianToRemove) return;
+    setInviteError(''); setInviteSuccess('');
+    try {
+      await updateDoc(doc(db, "users", guardianToRemove.id), { familyId: guardianToRemove.id });
+      await deleteDoc(doc(db, "invites", guardianToRemove.email.toLowerCase()));
+      await addDoc(collection(db, "scans"), {
+        familyId: userData?.familyId || auth.currentUser.uid,
+        type: 'invite_response',
+        profileName: 'Family Update',
+        message: `${guardianToRemove.name || guardianToRemove.email} was securely removed from your family dashboard.`,
+        timestamp: new Date().toISOString()
+      });
+      setFamilyMembers(prev => prev.filter(m => m.id !== guardianToRemove.id));
+      setInviteSuccess(`${guardianToRemove.name || guardianToRemove.email} was removed successfully.`);
+    } catch (err) {
+      setInviteError("Failed to remove guardian.");
+    } finally {
+      setGuardianToRemove(null);
+    }
+  };
+
+  // --- Support Tickets Logic ---
 
   const openSupport = () => {
     if (supportTickets.length > 0) return;
@@ -215,78 +366,29 @@ export default function Settings() {
     }
   };
 
-  const handleInvite = async (e) => {
-    e.preventDefault();
-    setInviteError('');
-    setInviteSuccess('');
-    
-    const currentFamilyId = userData?.familyId || auth.currentUser.uid;
-    const invitedCount = familyMembers.filter(m => m.id !== currentFamilyId).length;
-    
-    if (invitedCount >= 5) return setInviteError("You have reached the maximum of 5 co-guardians.");
-    if (!inviteEmail) return;
+  // --- General App Logic ---
 
-    setInviteLoading(true);
-    try {
-      await setDoc(doc(db, "invites", inviteEmail.toLowerCase()), {
-        familyId: currentFamilyId,
-        invitedBy: userData?.name || auth.currentUser.email,
-        inviteEmail: inviteEmail.toLowerCase(),
-        inviterUid: auth.currentUser.uid,
-        status: 'pending',
-        invitedAt: new Date().toISOString()
-      });
-
-      const link = `${window.location.origin}/#/signup?email=${encodeURIComponent(inviteEmail.toLowerCase())}`;
-      let sharedNative = false;
-      
-      if (navigator.share) {
-        try {
-          await navigator.share({ title: 'KinTag Co-Guardian Invite', text: `${userData?.name || 'A family member'} invited you to co-manage their KinTag profiles.`, url: link });
-          sharedNative = true;
-          setInviteSuccess("Invite sent successfully!");
-        } catch (shareErr) {}
-      } 
-      
-      if (!sharedNative) {
-        try {
-          await navigator.clipboard.writeText(link);
-          setInviteSuccess("Invite link copied to clipboard!");
-        } catch (clipErr) {
-          setInviteSuccess("Invite saved! Ask them to sign up with that exact email.");
-        }
-      }
-      setInviteEmail('');
-    } catch (err) {
-      if (err.message.includes("Missing or insufficient permissions") || err.code === "permission-denied") {
-        setInviteError("Firebase Error: You need to update your Firestore Security Rules to allow writing to the 'invites' collection.");
-      } else {
-        setInviteError(err.message || "Failed to send invite. Please try again.");
-      }
-    } finally {
-      setInviteLoading(false);
-    }
+  const handleLogout = async () => { 
+    await signOut(auth); 
+    navigate('/login'); 
   };
-
-  const confirmRemoveGuardian = async () => {
-    if (!guardianToRemove) return;
-    setInviteError(''); setInviteSuccess('');
-    try {
-      await updateDoc(doc(db, "users", guardianToRemove.id), { familyId: guardianToRemove.id });
-      await deleteDoc(doc(db, "invites", guardianToRemove.email.toLowerCase()));
-      await addDoc(collection(db, "scans"), {
-        familyId: userData?.familyId || auth.currentUser.uid,
-        type: 'invite_response',
-        profileName: 'Family Update',
-        message: `${guardianToRemove.name || guardianToRemove.email} was securely removed from your family dashboard.`,
-        timestamp: new Date().toISOString()
-      });
-      setFamilyMembers(prev => prev.filter(m => m.id !== guardianToRemove.id));
-      setInviteSuccess(`${guardianToRemove.name || guardianToRemove.email} was removed successfully.`);
-    } catch (err) {
-      setInviteError("Failed to remove guardian.");
-    } finally {
-      setGuardianToRemove(null);
+  
+  const handleInstallApp = async () => { 
+    if (!deferredPrompt) return; 
+    deferredPrompt.prompt(); 
+    const { outcome } = await deferredPrompt.userChoice; 
+    if (outcome === 'accepted') { 
+      setDeferredPrompt(null); 
+      window.pwaDeferredPrompt = null; 
+    } 
+  };
+  
+  const handleShareApp = async () => {
+    const shareData = { title: 'KinTag - Digital Safety Net', text: "I use KinTag to secure my family with digital IDs and instant GPS alerts. It's 100% free! Check it out and create your own tags.", url: window.location.origin };
+    if (navigator.share) { 
+      try { await navigator.share(shareData); setShareMessage("Thanks for sharing KinTag!"); setTimeout(() => setShareMessage(''), 3000); } catch (e) {} 
+    } else { 
+      try { await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`); setShareMessage("Link copied to clipboard!"); setTimeout(() => setShareMessage(''), 3000); } catch (err) { setShareMessage("Failed to copy link."); } 
     }
   };
 
@@ -318,6 +420,8 @@ export default function Settings() {
 
   const currentFamilyId = userData?.familyId || auth.currentUser?.uid;
   const invitedGuardians = familyMembers.filter(m => m.id !== currentFamilyId);
+  const activeCareSessions = careSessions.filter(s => s.status === 'active' && new Date(s.expiresAt).getTime() > now);
+  const historyCareSessions = careSessions.filter(s => s.status === 'history' || new Date(s.expiresAt).getTime() <= now);
 
   return (
     <div className="min-h-[100dvh] bg-[#fafafa] p-4 md:p-8 relative pb-24 selection:bg-brandGold selection:text-white">
@@ -327,6 +431,7 @@ export default function Settings() {
 
       <div className="max-w-2xl mx-auto relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pt-4">
         
+        {/* Header Actions */}
         <div className="flex justify-between items-center mb-8">
             <button onClick={() => navigate('/dashboard')} className="group flex items-center space-x-2 bg-white/60 backdrop-blur-md border border-zinc-200 text-zinc-600 px-5 py-2.5 rounded-full font-bold shadow-sm hover:shadow-md hover:bg-white transition-all active:scale-95">
                 <ArrowLeft size={18} className="transform group-hover:-translate-x-1 transition-transform" />
@@ -343,7 +448,103 @@ export default function Settings() {
             </div>
         </div>
 
-        {/* Co-Guardians Card */}
+        {/* --- CARETAKER / BABYSITTER MODE --- */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8">
+          <div className="flex justify-between items-start mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 border border-indigo-100 shadow-sm">
+                <ShieldAlert size={24} />
+              </div>
+              <div>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-brandDark tracking-tight flex items-center gap-3">
+                  Caretaker Mode
+                  <button onClick={() => { setCareForm({ name: '', countryCode: '+1', countryIso: 'us', phone: '', selectedProfiles: [], days: 0, hours: 0, minutes: 0 }); setShowCareModal(true); }} className="w-8 h-8 bg-brandDark text-white rounded-full flex items-center justify-center hover:bg-brandAccent hover:scale-105 transition-all shadow-md active:scale-95">
+                    <User size={16} />
+                  </button>
+                </h2>
+                <p className="text-sm text-zinc-500 font-medium">Temporary, view-only access bundles for babysitters.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex bg-zinc-100 p-1.5 rounded-2xl border border-zinc-200 mb-6">
+             <button onClick={() => setCareTab('active')} className={`flex-1 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${careTab === 'active' ? 'bg-white shadow-sm text-brandDark border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}>
+               <Clock size={16} /> Active ({activeCareSessions.length})
+             </button>
+             <button onClick={() => setCareTab('history')} className={`flex-1 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${careTab === 'history' ? 'bg-white shadow-sm text-brandDark border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}>
+               <History size={16} /> History ({historyCareSessions.length})
+             </button>
+          </div>
+
+          {careTab === 'active' && (
+            <div className="space-y-4">
+              {activeCareSessions.length === 0 ? (
+                <div className="text-center py-8 bg-zinc-50 rounded-2xl border border-dashed border-zinc-300">
+                  <Timer size={32} className="text-zinc-300 mx-auto mb-2" />
+                  <p className="text-zinc-500 font-bold text-sm">No active babysitters.</p>
+                </div>
+              ) : (
+                activeCareSessions.map(session => {
+                  const timeLeftMs = new Date(session.expiresAt).getTime() - now;
+                  const hoursLeft = Math.floor(timeLeftMs / 3600000);
+                  const minsLeft = Math.floor((timeLeftMs % 3600000) / 60000);
+                  const sharedNames = profiles.filter(p => session.selectedProfiles.includes(p.id)).map(p => p.name).join(", ");
+
+                  return (
+                    <div key={session.id} className="bg-white border border-zinc-200 p-5 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <h3 className="font-extrabold text-brandDark flex items-center gap-2">{session.name} <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md font-bold uppercase tracking-widest border border-indigo-100">Watching</span></h3>
+                        <p className="text-sm text-zinc-500 font-medium mb-1">Profiles: <strong className="text-brandDark">{sharedNames || 'None'}</strong></p>
+                        <p className="text-xs text-amber-600 font-bold flex items-center gap-1"><Timer size={14}/> Expires in: {hoursLeft}h {minsLeft}m</p>
+                      </div>
+                      <button onClick={() => handleEndCareSession(session)} className="w-full md:w-auto px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold rounded-xl transition-colors shadow-sm active:scale-95 text-sm">
+                        End Access
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          {careTab === 'history' && (
+            <div className="space-y-4">
+              {historyCareSessions.length > 0 && (
+                <div className="flex justify-between items-center mb-2 px-1">
+                  <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">{historySelection.length} Selected</p>
+                  <div className="flex gap-2">
+                     <button onClick={deleteSelectedHistory} disabled={historySelection.length === 0} className="text-xs font-bold text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors">Delete</button>
+                     <span className="text-zinc-300">|</span>
+                     <button onClick={deleteAllHistory} className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors">Delete All</button>
+                  </div>
+                </div>
+              )}
+              {historyCareSessions.length === 0 ? (
+                <div className="text-center py-8 bg-zinc-50 rounded-2xl border border-dashed border-zinc-300">
+                  <History size={32} className="text-zinc-300 mx-auto mb-2" />
+                  <p className="text-zinc-500 font-bold text-sm">No past sessions.</p>
+                </div>
+              ) : (
+                historyCareSessions.map(session => {
+                  const sharedNames = profiles.filter(p => session.selectedProfiles.includes(p.id)).map(p => p.name).join(", ");
+                  const isSelected = historySelection.includes(session.id);
+                  return (
+                    <div key={session.id} className={`bg-white border p-4 rounded-2xl shadow-sm flex items-center gap-4 transition-colors cursor-pointer ${isSelected ? 'border-brandDark bg-zinc-50' : 'border-zinc-200'}`} onClick={() => toggleHistorySelection(session.id)}>
+                      {isSelected ? <CheckSquare size={20} className="text-brandDark shrink-0"/> : <Square size={20} className="text-zinc-300 shrink-0"/>}
+                      <div>
+                        <h3 className="font-bold text-zinc-700">{session.name} <span className="text-xs text-zinc-400 font-medium">({session.phone})</span></h3>
+                        <p className="text-xs text-zinc-500 font-medium">Watched: {sharedNames || 'None'}</p>
+                        <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mt-1 flex items-center gap-1"><CalendarDays size={12}/> {new Date(session.createdAt).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* --- FAMILY SHARING / CO-GUARDIANS --- */}
         <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-12 h-12 bg-brandGold/10 rounded-2xl flex items-center justify-center text-brandGold border border-brandGold/20 shadow-sm">
@@ -408,7 +609,7 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Install App Dynamic Block */}
+        {/* --- PWA INSTALL BLOCK --- */}
         {deferredPrompt && (
           <div className="bg-brandDark text-white rounded-[2.5rem] shadow-xl p-8 md:p-10 mb-8 flex flex-col sm:flex-row items-center justify-between transition-all hover:shadow-2xl gap-6 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-64 h-64 bg-brandGold/10 rounded-full blur-[60px] pointer-events-none group-hover:bg-brandGold/20 transition-colors"></div>
@@ -428,7 +629,7 @@ export default function Settings() {
           </div>
         )}
 
-        {/* Support Block */}
+        {/* --- HELP & SUPPORT BLOCK --- */}
         <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 flex flex-col sm:flex-row items-center justify-between transition-all hover:shadow-[0_8px_40px_rgb(0,0,0,0.1)] gap-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
              <div className="w-16 h-16 bg-blue-50/80 border border-blue-100 text-blue-500 rounded-2xl flex items-center justify-center shrink-0 shadow-sm">
@@ -510,7 +711,7 @@ export default function Settings() {
           </span>
         </div>
 
-        {/* Danger Zone */}
+        {/* --- DANGER ZONE (Delete Account) --- */}
         <div className="bg-red-50/80 backdrop-blur-xl rounded-[2.5rem] border border-red-100 p-8 md:p-10 shadow-sm relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-48 h-48 bg-red-500/5 rounded-full blur-[40px] pointer-events-none group-hover:bg-red-500/10 transition-colors"></div>
           <div className="flex items-center gap-4 mb-4 relative z-10">
@@ -529,7 +730,110 @@ export default function Settings() {
 
         {/* --- MODALS --- */}
 
-        {/* Support Form Modal */}
+        {/* 1. Caretaker Generation Modal */}
+        {showCareModal && !generatedCareLink && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md overflow-y-auto">
+            <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 max-w-md w-full shadow-2xl border border-white/20 my-8 animate-in zoom-in-95 duration-300">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-extrabold text-brandDark tracking-tight flex items-center gap-2">
+                  <ShieldAlert size={24} className="text-brandGold" /> New Bundle
+                </h2>
+                <button onClick={() => setShowCareModal(false)} className="text-zinc-400 hover:text-brandDark bg-zinc-50 hover:bg-zinc-100 p-2.5 rounded-full transition-colors border border-zinc-200">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateCareSession} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-bold text-brandDark mb-2 ml-1">Babysitter Name</label>
+                  <input type="text" placeholder="e.g., Sarah Johnson" required value={careForm.name} onChange={e => setCareForm({...careForm, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none focus:bg-white focus:border-brandDark focus:ring-2 font-medium transition-all" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-brandDark mb-2 ml-1">Contact Number</label>
+                  <div className="flex w-full border border-zinc-200 rounded-2xl focus-within:border-brandDark focus-within:ring-2 bg-zinc-50 focus-within:bg-white overflow-hidden transition-all relative">
+                     <div className="relative flex items-center bg-white border-r border-zinc-200 px-3 cursor-pointer shrink-0">
+                       <span className="ml-2 text-sm font-bold text-brandDark">{careForm.countryCode}</span>
+                       <select value={`${careForm.countryCode}|${careForm.countryIso}`} onChange={(e) => { const [code, iso] = e.target.value.split('|'); setCareForm({...careForm, countryCode: code, countryIso: iso}); }} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                         {sortedCountryCodes.map((c, i) => <option key={`${c.iso}-${i}`} value={`${c.code}|${c.iso}`}>{c.country} ({c.code})</option>)}
+                       </select>
+                     </div>
+                     <input type="tel" placeholder="Phone Number" required value={careForm.phone} onChange={e => setCareForm({...careForm, phone: e.target.value})} className="flex-1 p-4 outline-none w-full bg-transparent font-medium" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-brandDark mb-3 ml-1">Who are they watching?</label>
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                    {profiles.length === 0 ? (
+                       <p className="text-sm text-zinc-500 italic bg-zinc-50 p-4 rounded-xl border border-zinc-200">No active profiles found. Create one first!</p>
+                    ) : profiles.map(profile => (
+                      <div key={profile.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${careForm.selectedProfiles.includes(profile.id) ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-zinc-200 hover:bg-zinc-50'}`} onClick={() => toggleProfileSelection(profile.id)}>
+                        {careForm.selectedProfiles.includes(profile.id) ? <CheckSquare size={20} className="text-indigo-600 shrink-0"/> : <Square size={20} className="text-zinc-300 shrink-0"/>}
+                        <img src={profile.imageUrl} alt="Profile" className="w-8 h-8 rounded-lg object-cover bg-zinc-200 shrink-0" />
+                        <span className="font-bold text-brandDark">{profile.name} <span className="text-xs text-zinc-400 font-normal capitalize">({profile.type})</span></span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-brandDark mb-2 ml-1">Access Duration</label>
+                  <div className="flex gap-2">
+                    <div className="flex-1 bg-zinc-50 border border-zinc-200 rounded-2xl p-2 text-center">
+                      <input type="number" min="0" max="30" value={careForm.days} onChange={e => setCareForm({...careForm, days: parseInt(e.target.value) || 0})} className="w-full bg-transparent outline-none font-bold text-xl text-center text-brandDark" />
+                      <span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Days</span>
+                    </div>
+                    <div className="flex-1 bg-zinc-50 border border-zinc-200 rounded-2xl p-2 text-center">
+                      <input type="number" min="0" max="23" value={careForm.hours} onChange={e => setCareForm({...careForm, hours: parseInt(e.target.value) || 0})} className="w-full bg-transparent outline-none font-bold text-xl text-center text-brandDark" />
+                      <span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Hours</span>
+                    </div>
+                    <div className="flex-1 bg-zinc-50 border border-zinc-200 rounded-2xl p-2 text-center">
+                      <input type="number" min="0" max="59" value={careForm.minutes} onChange={e => setCareForm({...careForm, minutes: parseInt(e.target.value) || 0})} className="w-full bg-transparent outline-none font-bold text-xl text-center text-brandDark" />
+                      <span className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">Mins</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button type="submit" disabled={careLoading} className="w-full bg-brandDark text-white py-4 rounded-full font-bold shadow-lg hover:bg-brandAccent active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                  {careLoading ? <Loader2 size={18} className="animate-spin" /> : <LinkIcon size={18} />}
+                  {careLoading ? 'Generating...' : 'Create Temporary Bundle'}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* 2. Caretaker Generated Link Modal */}
+        {generatedCareLink && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-md">
+            <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300 relative">
+              <div className="w-20 h-20 bg-indigo-50 border border-indigo-100 text-indigo-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
+                <LinkIcon size={36} />
+              </div>
+              <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Access Granted</h2>
+              <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">
+                Send this secure, self-destructing link to the babysitter. It will automatically expire when the timer runs out.
+              </p>
+              
+              <div className="flex items-center gap-2 bg-zinc-50 p-2 rounded-2xl border border-zinc-200 mb-8">
+                <input type="text" readOnly value={generatedCareLink} className="flex-1 bg-transparent px-3 outline-none text-xs font-mono text-zinc-600 truncate" />
+                <button onClick={() => { navigator.clipboard.writeText(generatedCareLink); setCopiedId(true); setTimeout(() => setCopiedId(false), 2000); }} className="p-3 bg-white border border-zinc-200 rounded-xl text-brandDark hover:text-brandGold transition-colors shadow-sm shrink-0">
+                  {copiedId ? <Check size={18} className="text-emerald-500"/> : <Copy size={18}/>}
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button onClick={async () => { if(navigator.share) { await navigator.share({title:'KinTag Caretaker Access', url: generatedCareLink}); } }} className="w-full bg-indigo-600 text-white py-4 rounded-full font-bold shadow-lg hover:bg-indigo-700 hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2">
+                  <Share2 size={18} /> Share via App
+                </button>
+                <button onClick={() => { setGeneratedCareLink(''); setShowCareModal(false); }} className="w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors">Done</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 3. Support Form Modal */}
         {showSupportModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md overflow-y-auto">
             <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 max-w-md w-full shadow-2xl border border-white/20 my-8 animate-in zoom-in-95 duration-300">
@@ -573,7 +877,6 @@ export default function Settings() {
                    </div>
 
                    <div className="flex bg-zinc-100 p-1.5 rounded-[1.25rem] border border-zinc-200">
-                      {/* HUGEICONS INTEGRATION */}
                       <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'whatsapp', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${supportForm.platform === 'whatsapp' ? 'bg-white shadow-sm text-emerald-600 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}>
                         <HugeiconsIcon icon={WhatsappIcon} size={18} /> WhatsApp
                       </button>
@@ -621,6 +924,7 @@ export default function Settings() {
           </div>
         )}
 
+        {/* 4. Remove Guardian Modal */}
         {guardianToRemove && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
             <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
@@ -639,6 +943,7 @@ export default function Settings() {
           </div>
         )}
 
+        {/* 5. Share App Modal */}
         {showShareModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
             <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300 relative">
@@ -660,6 +965,7 @@ export default function Settings() {
           </div>
         )}
 
+        {/* 6. Delete Account Warning Modal */}
         {showDeleteZone && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
             <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-10 max-w-md w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300 relative">
