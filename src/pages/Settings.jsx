@@ -104,7 +104,7 @@ export default function Settings() {
         // Fetch Profiles (Kids/Pets for the Babysitter Modal)
         const profilesQuery = query(collection(db, "profiles"), where("familyId", "==", activeFamilyId));
         const profilesSnaps = await getDocs(profilesQuery);
-        setProfiles(profilesSnaps.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.isActive));
+        setProfiles(profilesSnaps.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.isActive !== false));
 
         // Fetch Care Sessions (Babysitters)
         const careQuery = query(collection(db, "care_sessions"), where("familyId", "==", activeFamilyId));
