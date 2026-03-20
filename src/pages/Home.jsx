@@ -39,12 +39,35 @@ const stackFeatures = [
   { id: 20, title: "Google Wallet Integration", description: "You can now easily save your kid's, pet's, or an elderly person's mobile ID as a pass in your Google Wallet with a simple 'Add to Google Wallet' button right on the ID screen.", icon: <WalletCards size={40} className="text-orange-500" /> }
 ];
 
+// Returns 'low' | 'mid' | 'high'
+// 'low' requires BOTH signals to be weak simultaneously —
+// a 4GB phone with 8 cores is mid/high, not low.
+function getDeviceTier() {
+  if (typeof window === 'undefined') return 'mid';
+  const mem = navigator.deviceMemory;     // capped at 8 by spec
+  const cores = navigator.hardwareConcurrency;
+
+  // High-end: max RAM cap (flagship) OR many cores
+  if (mem !== undefined && mem >= 8) return 'high';
+  if (cores !== undefined && cores > 6) return 'high';
+
+  // Low-end: BOTH signals must confirm it — avoids false positives
+  // where a capable phone happens to report low on one metric
+  const memLow = mem !== undefined && mem < 4;
+  const coresLow = cores !== undefined && cores <= 4;
+  if (memLow && coresLow) return 'low';
+
+  // Everything else (4GB + 8 cores, unknown APIs, etc.) → mid
+  return 'mid';
+}
+
 export default function Home() {
   const { currentUser } = useAuth();
   const [showGithubTooltip, setShowGithubTooltip] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [deviceTier] = useState(() => getDeviceTier());
 
   // FIX: Wrap scroll handler in useCallback so it doesn't get re-created on
   // every render. The previous version captured `isScrolled` from closure,
@@ -191,8 +214,17 @@ export default function Home() {
         <div className="absolute top-[22%] left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brandGold/20 via-emerald-400/10 to-transparent rounded-full pointer-events-none z-0"></div>
 
         <div className="absolute top-0 left-0 w-full h-[100vh] flex items-center justify-center pointer-events-none z-0 overflow-hidden">
-          <div className="w-[120vw] sm:w-[110vw] md:w-[100vw] lg:w-[900px] aspect-square opacity-80 shrink-0 [mask-image:linear-gradient(to_bottom,black_0%,black_50%,transparent_100%)]">
-             <Globe className="!max-w-none !w-full !h-full" />
+          <div
+            className="aspect-square opacity-80 shrink-0 [mask-image:linear-gradient(to_bottom,black_0%,black_50%,transparent_100%)]"
+            style={{
+              // low-end  → original safe size, no edge bleed
+              // mid/high → 120vw so globe touches both screen edges
+              width: deviceTier === 'low'
+                ? 'min(100vw, 800px)'
+                : 'clamp(100vw, 120vw, 900px)',
+            }}
+          >
+             <Globe className="!max-w-none !w-full !h-full" tier={deviceTier} />
           </div>
         </div>
 
