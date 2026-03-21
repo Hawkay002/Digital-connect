@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
 import GoogleWalletIcon from '../components/ui/GoogleWalletIcon';
-import { Plus, User, QrCode, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing, Bell, MapPin, Info, CheckCircle2, AlertTriangle, EyeOff, Users, Siren, Megaphone, Settings, HeartHandshake, Phone } from 'lucide-react';
+import { Plus, User, QrCode, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing, Bell, MapPin, Info, CheckCircle2, AlertTriangle, EyeOff, Users, Siren, Megaphone, Settings, Phone } from 'lucide-react';
 import { avatars } from '../components/ui/avatar-picker'; 
 
 const QR_STYLES = {
@@ -37,7 +37,7 @@ const getComputedAge = (profile) => {
   }
   return { 
     value: profile.age || 'Unknown', 
-    label: profile.ageUnit === 'Months' ? 'Mos' : 'Yrs', 
+    label: profile.ageUnit === 'Months' ? 'Mos', 
     fullLabel: profile.ageUnit === 'Months' ? 'MOS' : 'YRS' 
   };
 };
@@ -55,8 +55,6 @@ const renderFormattedTextDark = (text) => {
 
 export default function Dashboard() {
   const [profiles, setProfiles] = useState([]);
-  const [caretakerProfiles, setCaretakerProfiles] = useState([]); 
-  const [mainTab, setMainTab] = useState('own'); 
   
   const [scans, setScans] = useState([]);
   const [systemMessages, setSystemMessages] = useState([]);
@@ -64,7 +62,6 @@ export default function Dashboard() {
 
   const [loading, setLoading] = useState(true);
   const [qrModalProfile, setQrModalProfile] = useState(null); 
-  const [caretakerViewProfile, setCaretakerViewProfile] = useState(null); 
   const [searchTerm, setSearchTerm] = useState(''); 
   const [profileToDelete, setProfileToDelete] = useState(null); 
   const [downloading, setDownloading] = useState(false);
@@ -120,17 +117,10 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Force Tab Reset if Caretaker sessions expire/empty
-  useEffect(() => {
-    if (caretakerProfiles.length === 0 && mainTab !== 'own') {
-      setMainTab('own');
-    }
-  }, [caretakerProfiles, mainTab]);
-
   useEffect(() => {
     if (!currentUser) return;
 
-    let unsubProfiles, unsubScans, unsubSys, unsubInvite, unsubAlerts, unsubCare;
+    let unsubProfiles, unsubScans, unsubSys, unsubInvite, unsubAlerts;
 
     const setupListeners = async () => {
       try {
@@ -157,41 +147,6 @@ export default function Dashboard() {
           const fetchedProfiles = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           fetchedProfiles.sort((a, b) => getTime(b.createdAt) - getTime(a.createdAt));
           setProfiles(fetchedProfiles);
-        });
-
-        // Caretaker Profiles Listener
-        const qCare = query(collection(db, "care_sessions"), where("caretakerUid", "==", currentUser.uid), where("status", "==", "active"));
-        unsubCare = onSnapshot(qCare, async (snap) => {
-          let allProfileIds = new Set();
-          const now = new Date().getTime();
-          
-          snap.docs.forEach(d => {
-            const data = d.data();
-            if (new Date(data.expiresAt).getTime() > now) {
-              (data.selectedProfiles || []).forEach(id => allProfileIds.add(id));
-            }
-          });
-          
-          const uniqueIds = Array.from(allProfileIds);
-          if (uniqueIds.length === 0) {
-            setCaretakerProfiles([]);
-            return;
-          }
-          
-          try {
-            // Firestore 'in' query has a max of 10, so we chunk it just in case
-            const chunks = [];
-            for (let i = 0; i < uniqueIds.length; i += 10) chunks.push(uniqueIds.slice(i, i + 10));
-            let fetched = [];
-            for (const chunk of chunks) {
-              const qP = query(collection(db, "profiles"), where("__name__", "in", chunk));
-              const pSnap = await getDocs(qP);
-              pSnap.forEach(p => fetched.push({ id: p.id, ...p.data() }));
-            }
-            setCaretakerProfiles(fetched);
-          } catch(e) {
-            console.error("Error fetching care profiles", e);
-          }
         });
 
         const qScans = query(collection(db, "scans"), where("familyId", "==", currentFamilyId));
@@ -251,7 +206,6 @@ export default function Dashboard() {
       if (unsubSys) unsubSys();
       if (unsubInvite) unsubInvite();
       if (unsubAlerts) unsubAlerts();
-      if (unsubCare) unsubCare();
     };
   }, [currentUser]);
 
@@ -553,8 +507,7 @@ export default function Dashboard() {
     }
   };
 
-  const activeProfilesToDisplay = mainTab === 'own' ? profiles : caretakerProfiles;
-  const filteredProfiles = activeProfilesToDisplay.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredProfiles = profiles.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const activeStyle = qrModalProfile ? QR_STYLES[qrModalProfile.qrStyle || 'obsidian'] : QR_STYLES.obsidian;
   
   const unreadPersonalCount = lastViewedPersonal ? scans.filter(scan => getTime(scan.timestamp) > new Date(lastViewedPersonal).getTime()).length : scans.length;
@@ -576,6 +529,8 @@ export default function Dashboard() {
     if (!group) { group = { date: dateStr, items: [] }; groupedScans.push(group); }
     group.items.push(scan);
   });
+
+  const currentAvatar = avatars.find(a => a.id === userAvatarId) || null;
 
   if (loading) return <DashboardSkeleton />;
 
@@ -634,28 +589,16 @@ export default function Dashboard() {
           </Link>
         )}
 
-        {(profiles.length > 0 || caretakerProfiles.length > 0) && (
+        {(profiles.length > 0) && (
           <div className="mb-8 relative group">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-brandDark" size={20} />
             <input type="text" placeholder="Search profiles by name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-14 pr-5 py-4 md:py-5 bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2rem] focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-all shadow-sm hover:shadow-md font-medium text-brandDark text-lg" />
-            
-            {/* DYNAMIC TABS FOR CARETAKER MODE */}
-            {caretakerProfiles.length > 0 && (
-              <div className="flex bg-zinc-100 p-1.5 rounded-[1.25rem] border border-zinc-200 mt-4">
-                 <button onClick={() => setMainTab('own')} className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${mainTab === 'own' ? 'bg-white shadow-sm text-brandDark border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}>
-                   Own ({profiles.length})
-                 </button>
-                 <button onClick={() => setMainTab('take-caring')} className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${mainTab === 'take-caring' ? 'bg-white shadow-sm text-indigo-600 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}>
-                   <HeartHandshake size={18} /> Take-Caring ({caretakerProfiles.length})
-                 </button>
-              </div>
-            )}
           </div>
         )}
 
         {/* SCROLLABLE PROFILE WRAPPER */}
         <div className="max-h-[60vh] overflow-y-auto pb-40 pr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {profiles.length === 0 && caretakerProfiles.length === 0 ? (
+          {profiles.length === 0 ? (
             <div className="text-center bg-white/50 backdrop-blur-md p-16 rounded-[3rem] border-2 border-dashed border-zinc-300 shadow-sm">
               <div className="w-20 h-20 bg-zinc-100 text-zinc-400 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner"><QrCode size={36} /></div>
               <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">No Profiles Yet</h2>
@@ -668,36 +611,6 @@ export default function Dashboard() {
               {filteredProfiles.map(profile => {
                 const ageInfo = getComputedAge(profile);
                 
-                // CARETAKER PROFILE CARD UI
-                if (mainTab === 'take-caring') {
-                  return (
-                    <div key={profile.id} className="bg-white/90 backdrop-blur-md rounded-[2.5rem] overflow-hidden border border-indigo-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 flex flex-col group hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 hover:border-indigo-300">
-                      <div className="relative h-56 shrink-0 overflow-hidden bg-zinc-100">
-                        <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-indigo-950/90 via-indigo-900/20 to-transparent pointer-events-none"></div>
-                        <div className="absolute top-4 left-4 bg-indigo-500 text-white text-[10px] font-extrabold uppercase px-3 py-1.5 rounded-lg tracking-widest shadow-sm">Babysitting</div>
-                        <div className="absolute bottom-5 left-5 right-5 text-white pointer-events-none">
-                          <h3 className="text-2xl font-extrabold tracking-tight mb-1 drop-shadow-sm">{profile.name}</h3>
-                          <p className="text-xs text-white/80 font-bold capitalize flex items-center gap-1.5">
-                            {profile.type === 'kid' ? <User size={14} /> : <PawPrint size={14} />}
-                            {profile.type} • {ageInfo.value} {ageInfo.label} • {profile.gender}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="p-5 flex-1 flex flex-col justify-end">
-                        <div className="flex gap-3">
-                          <button onClick={() => setCaretakerViewProfile(profile)} className="flex-1 flex items-center justify-center space-x-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-100 py-4 rounded-2xl font-bold text-sm transition-all active:scale-95 shadow-sm">
-                            <Eye size={18} /><span>View Details</span>
-                          </button>
-                          <Link to={`/id/${profile.id}`} target="_blank" className="flex-1 flex items-center justify-center space-x-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 py-4 rounded-2xl font-bold text-sm transition-all active:scale-95 shadow-sm">
-                            <Siren size={18} /><span>Emergency</span>
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-
                 // OWN PROFILE CARD UI
                 return (
                   <div key={profile.id} className={`bg-white/90 backdrop-blur-md rounded-[2.5rem] overflow-hidden border shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 flex flex-col group ${profile.isActive === false ? 'border-red-200 opacity-70 grayscale-[50%]' : profile.isLost ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.4)]' : 'border-zinc-200/80 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 hover:border-brandDark/20'}`}>
@@ -766,7 +679,7 @@ export default function Dashboard() {
 
       <div className="fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/80 to-transparent pointer-events-none z-40"></div>
       
-      {/* 🌟 NEW FLOATING ACTION BAR (FAB) */}
+      {/* 🌟 FLOATING ACTION BAR (FAB) WITH AVATAR */}
       <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2.5rem] px-8 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex items-center justify-center gap-10 z-50 pointer-events-auto">
         
         <Link to="/settings" className="text-zinc-400 hover:text-brandDark p-2 transition-colors active:scale-95 group">
@@ -777,53 +690,20 @@ export default function Dashboard() {
           <Plus size={32} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" />
         </Link>
 
-        <Link to="/profile" className="text-zinc-400 hover:text-brandDark p-2 transition-colors active:scale-95 relative group">
-          <User size={28} className="group-hover:scale-110 transition-transform duration-300" />
-          {!userZipCode && <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse z-10"></span>}
+        <Link to="/profile" className="text-zinc-400 hover:text-brandDark p-2 transition-colors active:scale-95 relative group flex items-center justify-center">
+          {currentAvatar ? (
+            <div className="w-7 h-7 group-hover:scale-110 transition-transform duration-300">
+               {currentAvatar.svg}
+            </div>
+          ) : (
+            <User size={28} className="group-hover:scale-110 transition-transform duration-300" />
+          )}
+          {!userZipCode && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse z-10"></span>}
         </Link>
 
       </div>
 
       {/* --- MODALS --- */}
-
-      {/* Caretaker View Modal (Safe Read-Only View) */}
-      {caretakerViewProfile && (
-        <div className="fixed inset-0 z-[100] bg-zinc-950/40 backdrop-blur-md overflow-y-auto flex p-4 animate-in fade-in duration-200">
-          <div className="bg-white max-w-md w-full m-auto rounded-[3rem] overflow-hidden shadow-2xl relative animate-in zoom-in-95 duration-300">
-            <button onClick={() => setCaretakerViewProfile(null)} className="absolute top-6 right-6 z-20 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 p-2.5 rounded-full transition-colors backdrop-blur-md"><X size={20} /></button>
-            <div className="h-64 relative bg-zinc-100">
-              <img src={caretakerViewProfile.imageUrl} alt="Profile" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-brandDark/90 to-transparent"></div>
-              <div className="absolute bottom-6 left-6 text-white">
-                <h2 className="text-3xl font-extrabold tracking-tight mb-1">{caretakerViewProfile.name}</h2>
-                <p className="text-sm text-white/80 font-bold uppercase tracking-widest">{caretakerViewProfile.typeSpecific} • {getComputedAge(caretakerViewProfile).value} {getComputedAge(caretakerViewProfile).label}</p>
-              </div>
-            </div>
-            <div className="p-8 space-y-6">
-              <div>
-                 <h4 className="text-xs font-extrabold text-zinc-400 uppercase tracking-widest mb-2 flex items-center gap-2"><AlertOctagon size={14}/> Allergies & Needs</h4>
-                 <div className="bg-red-50 p-4 rounded-2xl border border-red-100 text-red-700 font-bold text-sm leading-relaxed">{caretakerViewProfile.allergies}</div>
-                 {caretakerViewProfile.specialNeeds && <div className="mt-2 bg-amber-50 p-4 rounded-2xl border border-amber-100 text-amber-700 font-bold text-sm leading-relaxed">{caretakerViewProfile.specialNeeds}</div>}
-              </div>
-              <div>
-                 <h4 className="text-xs font-extrabold text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-2"><Phone size={14}/> Emergency Contacts</h4>
-                 <div className="space-y-3">
-                   {caretakerViewProfile.contacts?.map((c, i) => (
-                     <div key={i} className="flex justify-between items-center bg-zinc-50 p-4 rounded-2xl border border-zinc-200">
-                        <div>
-                          <p className="font-bold text-brandDark">{c.name}</p>
-                          <p className="text-xs text-zinc-500 font-medium">{c.tag === 'Other' ? c.customTag : c.tag}</p>
-                        </div>
-                        <a href={`tel:${c.countryCode}${c.phone}`} className="bg-emerald-100 text-emerald-700 p-2.5 rounded-full hover:bg-emerald-200 transition-colors shadow-sm"><Phone size={16}/></a>
-                     </div>
-                   ))}
-                 </div>
-              </div>
-              <button onClick={() => setCaretakerViewProfile(null)} className="w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors">Close View</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* QR Modal (WITH WALLET BUTTON) */}
       {qrModalProfile && (
