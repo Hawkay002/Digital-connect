@@ -630,7 +630,7 @@ export default function Settings() {
             
             {/* Primary User Rendered Explicitly if data is loaded */}
             {userData && (
-              <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-shadow">
+              <div className="relative bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center border border-zinc-200 text-zinc-400 shadow-inner shrink-0 overflow-hidden p-1">
                     {userData.avatarId ? (
@@ -639,18 +639,20 @@ export default function Settings() {
                         <User size={20} />
                     )}
                   </div>
-                  <div>
-                    <p className="font-bold text-brandDark truncate text-base">{userData.name || 'Guardian'}</p>
+                  <div className="flex-1 min-w-0 pr-20">
+                    <p className="font-bold text-brandDark truncate text-base leading-tight mb-1">{userData.name || 'Guardian'}</p>
                     <p className="text-xs text-zinc-500 font-medium truncate">{auth.currentUser?.email}</p>
                   </div>
                 </div>
-                <span className="text-[10px] font-extrabold bg-brandGold/10 border border-brandGold/20 text-brandGold px-3 py-1.5 rounded-full uppercase tracking-widest shrink-0 shadow-sm">Primary</span>
+                <div className="absolute top-3 right-3">
+                   <span className="text-[9px] sm:text-[10px] font-extrabold bg-brandGold/10 border border-brandGold/20 text-brandGold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full uppercase tracking-widest shadow-sm">Primary</span>
+                </div>
               </div>
             )}
 
             {/* Invited Guardians Map */}
             {invitedGuardians.map((member) => (
-              <div key={member.id} className="flex items-center justify-between bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-shadow">
+              <div key={member.id} className="relative bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center border border-zinc-200 text-zinc-400 shadow-inner shrink-0 overflow-hidden p-1">
                     {member.avatarId ? (
@@ -659,19 +661,21 @@ export default function Settings() {
                         <User size={20} />
                     )}
                   </div>
-                  <div>
-                    <p className="font-bold text-brandDark truncate text-base">{member.name || 'Guardian'}</p>
+                  <div className="flex-1 min-w-0 pr-12 sm:pr-16">
+                    <p className="font-bold text-brandDark truncate text-base leading-tight mb-1">{member.name || 'Guardian'}</p>
                     <p className="text-xs text-zinc-500 font-medium truncate">{member.email}</p>
                   </div>
                 </div>
                 
-                {auth.currentUser?.uid === currentFamilyId ? (
-                   <button onClick={() => setGuardianToRemove(member)} className="text-red-500 bg-red-50 border border-red-100 hover:bg-red-100 p-2.5 rounded-xl transition-all shadow-sm active:scale-95 shrink-0" title="Remove Guardian">
-                      <Trash2 size={18} />
-                   </button>
-                ) : (
-                   <span className="text-[10px] font-extrabold bg-zinc-100 border border-zinc-200 text-zinc-500 px-3 py-1.5 rounded-full uppercase tracking-widest shrink-0 shadow-sm">Co-Guardian</span>
-                )}
+                <div className="absolute top-3 right-3 flex items-center">
+                  {auth.currentUser?.uid === currentFamilyId ? (
+                     <button onClick={() => setGuardianToRemove(member)} className="text-red-500 bg-red-50 border border-red-100 hover:bg-red-100 p-2 sm:p-2.5 rounded-xl transition-all shadow-sm active:scale-95 shrink-0" title="Remove Guardian">
+                        <Trash2 size={16} />
+                     </button>
+                  ) : (
+                     <span className="text-[9px] sm:text-[10px] font-extrabold bg-zinc-100 border border-zinc-200 text-zinc-500 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full uppercase tracking-widest shadow-sm">Co-Guardian</span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
