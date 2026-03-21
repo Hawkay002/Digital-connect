@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore'; 
+import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc, onSnapshot } from 'firebase/firestore'; 
 import { useNavigate } from 'react-router-dom';
 import { LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, AlertOctagon, X, Trash2, UserMinus, Share2, LifeBuoy, Info, ChevronDown, Check, Smartphone, Download, Send, User, Clock, History, Link as LinkIcon, Timer, CalendarDays, CheckSquare, Square, ShieldAlert, Plus, Phone } from 'lucide-react'; 
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -62,13 +62,11 @@ export default function Settings() {
   const [shareMessage, setShareMessage] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
-  // Live timer for active care sessions
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date().getTime()), 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // PWA Install Prompt
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
@@ -80,13 +78,16 @@ export default function Settings() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
-  // Main Data Fetcher
+  // 🌟 REBUILT TO USE REAL-TIME ON-SNAPSHOT LISTENERS
   useEffect(() => {
-    const fetchData = async () => {
-      if (!auth.currentUser) return;
+    if (!auth.currentUser) return;
+
+    let unsubFamily, unsubProfiles, unsubCare, unsubTickets;
+    let activeFamilyId = auth.currentUser.uid;
+
+    const setupListeners = async () => {
       try {
         const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
-        let activeFamilyId = auth.currentUser.uid; 
 
         if (userDoc.exists()) {
           const data = userDoc.data();
@@ -96,58 +97,54 @@ export default function Settings() {
           setUserData({ name: '', familyId: activeFamilyId });
         }
         
-        // Fetch Family Members
-        try {
-          const familyQuery = query(collection(db, "users"), where("familyId", "==", activeFamilyId));
-          const familySnaps = await getDocs(familyQuery);
-          setFamilyMembers(familySnaps.docs.map(d => ({ id: d.id, ...d.data() })));
-        } catch (e) {
-          console.error("Failed to fetch family", e);
-        }
+        // 1. Live Family Members Listener
+        const familyQuery = query(collection(db, "users"), where("familyId", "==", activeFamilyId));
+        unsubFamily = onSnapshot(familyQuery, (snap) => {
+          setFamilyMembers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        }, (err) => console.error("Family fetch error", err));
 
-        // ULTRA-ROBUST PROFILE FETCHING LOGIC
-        try {
-          const profilesQuery = query(collection(db, "profiles"), where("familyId", "==", activeFamilyId));
-          const profilesSnaps = await getDocs(profilesQuery);
-          let fetchedProfiles = profilesSnaps.docs.map(d => ({ id: d.id, ...d.data() }));
+        // 2. Live Profiles Listener
+        const profilesQuery = query(collection(db, "profiles"), where("familyId", "==", activeFamilyId));
+        unsubProfiles = onSnapshot(profilesQuery, async (snap) => {
+          let fetchedProfiles = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
+          // Legacy Profile Fallback
           if (fetchedProfiles.length === 0) {
             const legacyQuery = query(collection(db, "profiles"), where("userId", "==", auth.currentUser.uid));
             const legacySnaps = await getDocs(legacyQuery);
             fetchedProfiles = legacySnaps.docs.map(d => ({ id: d.id, ...d.data() }));
           }
 
-          const finalProfiles = fetchedProfiles.filter(p => p.isActive !== false);
-          setProfiles(finalProfiles);
-        } catch (e) {
-          console.error("Failed to fetch profiles", e);
-        }
+          setProfiles(fetchedProfiles.filter(p => p.isActive !== false));
+        }, (err) => console.error("Profiles fetch error", err));
 
-        // Fetch Care Sessions
-        try {
-          const careQuery = query(collection(db, "care_sessions"), where("familyId", "==", activeFamilyId));
-          const careSnaps = await getDocs(careQuery);
-          setCareSessions(careSnaps.docs.map(d => ({ id: d.id, ...d.data() })));
-        } catch (e) {
-          console.error("Failed to fetch care sessions", e);
-        }
+        // 3. Live Care Sessions Listener
+        const careQuery = query(collection(db, "care_sessions"), where("familyId", "==", activeFamilyId));
+        unsubCare = onSnapshot(careQuery, (snap) => {
+          setCareSessions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        }, (err) => console.error("Care sessions fetch error", err));
 
-        // Fetch Support Tickets
-        try {
-          const ticketsQuery = query(collection(db, "support_tickets"), where("userId", "==", auth.currentUser.uid));
-          const ticketsSnaps = await getDocs(ticketsQuery);
-          setSupportTickets(ticketsSnaps.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
-        } catch (e) {
-          console.error("Failed to fetch tickets", e);
-        }
+        // 4. Live Support Tickets Listener
+        const ticketsQuery = query(collection(db, "support_tickets"), where("userId", "==", auth.currentUser.uid));
+        unsubTickets = onSnapshot(ticketsQuery, (snap) => {
+          setSupportTickets(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+        }, (err) => console.error("Tickets fetch error", err));
 
+        setLoading(false);
       } catch (err) {
         console.error("Main settings fetch error:", err);
-      } finally {
         setLoading(false);
       }
     };
-    fetchData();
+
+    setupListeners();
+
+    return () => {
+      if (unsubFamily) unsubFamily();
+      if (unsubProfiles) unsubProfiles();
+      if (unsubCare) unsubCare();
+      if (unsubTickets) unsubTickets();
+    };
   }, []);
 
   // --- Caretaker (Babysitter) Logic ---
@@ -182,7 +179,6 @@ export default function Settings() {
       };
 
       const docRef = await addDoc(collection(db, "care_sessions"), sessionData);
-      setCareSessions([{ id: docRef.id, ...sessionData }, ...careSessions]);
       
       const link = `${window.location.origin}/#/care/${docRef.id}`;
       setGeneratedCareLink(link);
@@ -197,7 +193,6 @@ export default function Settings() {
   const handleEndCareSession = async (session) => {
     try {
       await updateDoc(doc(db, "care_sessions", session.id), { status: 'history', endedAt: new Date().toISOString() });
-      setCareSessions(prev => prev.map(s => s.id === session.id ? { ...s, status: 'history', endedAt: new Date().toISOString() } : s));
     } catch (err) {
       alert("Failed to end session.");
     }
@@ -211,7 +206,6 @@ export default function Settings() {
       const newExpiresAt = new Date(currentExpires + additionalMs).toISOString();
       
       await updateDoc(doc(db, "care_sessions", sessionId), { expiresAt: newExpiresAt });
-      setCareSessions(prev => prev.map(s => s.id === sessionId ? { ...s, expiresAt: newExpiresAt } : s));
     } catch(err) {
       alert("Failed to add time.");
     }
@@ -225,7 +219,6 @@ export default function Settings() {
     if (historySelection.length === 0) return;
     try {
       for (const id of historySelection) await deleteDoc(doc(db, "care_sessions", id));
-      setCareSessions(prev => prev.filter(s => !historySelection.includes(s.id)));
       setHistorySelection([]);
     } catch (err) { alert("Failed to delete history."); }
   };
@@ -235,7 +228,6 @@ export default function Settings() {
     if (historyIds.length === 0) return;
     try {
       for (const id of historyIds) await deleteDoc(doc(db, "care_sessions", id));
-      setCareSessions(prev => prev.filter(s => !historyIds.includes(s.id)));
       setHistorySelection([]);
     } catch (err) { alert("Failed to clear history."); }
   };
@@ -308,7 +300,6 @@ export default function Settings() {
         message: `${guardianToRemove.name || guardianToRemove.email} was securely removed from your family dashboard.`,
         timestamp: new Date().toISOString()
       });
-      setFamilyMembers(prev => prev.filter(m => m.id !== guardianToRemove.id));
       setInviteSuccess(`${guardianToRemove.name || guardianToRemove.email} was removed successfully.`);
     } catch (err) {
       setInviteError("Failed to remove guardian.");
@@ -373,9 +364,8 @@ export default function Settings() {
         email: supportForm.email,
         timestamp: new Date().toISOString()
       };
-      const docRef = await addDoc(collection(db, "support_tickets"), ticketData);
+      await addDoc(collection(db, "support_tickets"), ticketData);
       
-      setSupportTickets([{ id: docRef.id, ...ticketData }, ...supportTickets]);
       setSupportMessage("Request sent successfully! Your ticket has been logged.");
       setTimeout(() => { setShowSupportModal(false); setSupportMessage(''); }, 3000);
     } catch(err) {
@@ -396,7 +386,6 @@ export default function Settings() {
       if (!res.ok) throw new Error("Failed to send resolution email.");
 
       await deleteDoc(doc(db, "support_tickets", ticket.id));
-      setSupportTickets(prev => prev.filter(t => t.id !== ticket.id));
     } catch (err) {
       alert("Failed to resolve ticket. Please try again.");
     } finally {
@@ -638,7 +627,29 @@ export default function Settings() {
             <h3 className="text-xs font-extrabold text-zinc-400 uppercase tracking-widest mb-4 flex items-center gap-2">
               Active Co-Guardians <span className="bg-zinc-100 px-2 py-0.5 rounded-md text-zinc-500">{invitedGuardians.length}/5</span>
             </h3>
-            {familyMembers.map((member) => (
+            
+            {/* Primary User Rendered Explicitly if data is loaded */}
+            {userData && (
+              <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center border border-zinc-200 text-zinc-400 shadow-inner shrink-0 overflow-hidden p-1">
+                    {userData.avatarId ? (
+                        avatars.find(a => a.id === userData.avatarId)?.svg || <User size={20} />
+                    ) : (
+                        <User size={20} />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-bold text-brandDark truncate text-base">{userData.name || 'Guardian'}</p>
+                    <p className="text-xs text-zinc-500 font-medium truncate">{auth.currentUser?.email}</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-extrabold bg-brandGold/10 border border-brandGold/20 text-brandGold px-3 py-1.5 rounded-full uppercase tracking-widest shrink-0 shadow-sm">Primary</span>
+              </div>
+            )}
+
+            {/* Invited Guardians Map */}
+            {invitedGuardians.map((member) => (
               <div key={member.id} className="flex items-center justify-between bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center border border-zinc-200 text-zinc-400 shadow-inner shrink-0 overflow-hidden p-1">
@@ -654,16 +665,12 @@ export default function Settings() {
                   </div>
                 </div>
                 
-                {member.id === currentFamilyId ? (
-                  <span className="text-[10px] font-extrabold bg-brandGold/10 border border-brandGold/20 text-brandGold px-3 py-1.5 rounded-full uppercase tracking-widest shrink-0 shadow-sm">Primary</span>
+                {auth.currentUser?.uid === currentFamilyId ? (
+                   <button onClick={() => setGuardianToRemove(member)} className="text-red-500 bg-red-50 border border-red-100 hover:bg-red-100 p-2.5 rounded-xl transition-all shadow-sm active:scale-95 shrink-0" title="Remove Guardian">
+                      <Trash2 size={18} />
+                   </button>
                 ) : (
-                  auth.currentUser?.uid === currentFamilyId ? (
-                     <button onClick={() => setGuardianToRemove(member)} className="text-red-500 bg-red-50 border border-red-100 hover:bg-red-100 p-2.5 rounded-xl transition-all shadow-sm active:scale-95 shrink-0" title="Remove Guardian">
-                        <Trash2 size={18} />
-                     </button>
-                  ) : (
-                     <span className="text-[10px] font-extrabold bg-zinc-100 border border-zinc-200 text-zinc-500 px-3 py-1.5 rounded-full uppercase tracking-widest shrink-0 shadow-sm">Co-Guardian</span>
-                  )
+                   <span className="text-[10px] font-extrabold bg-zinc-100 border border-zinc-200 text-zinc-500 px-3 py-1.5 rounded-full uppercase tracking-widest shrink-0 shadow-sm">Co-Guardian</span>
                 )}
               </div>
             ))}
