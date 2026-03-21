@@ -13,30 +13,21 @@ import {
   Shield, MapPin, BellRing, Heart, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
   Lock, Infinity, Zap, Mail, MessageCircle, Send, 
-  Users, Wifi, Database, Phone, AlertTriangle, Trash2, Rocket, WalletCards, Siren, Megaphone, FileText, ShieldCheck, Download, Check
+  Users, Wifi, Database, Phone, AlertTriangle, Trash2, Rocket, WalletCards, Siren, Megaphone, FileText, ShieldCheck, Download, Check, HeartHandshake, Sparkles
 } from 'lucide-react';
 
 const stackFeatures = [
   { id: 1, title: "No App Required", description: "Anyone with a smartphone camera can scan the tag. There is absolutely nothing for the finder to download or install.", icon: <Smartphone size={40} className="text-blue-500" /> },
-  { id: 2, title: "Instant Setup", description: "Skip the wait times of ordering custom engraved metals. Create an account and secure your child or pet in under 2 minutes.", icon: <Zap size={40} className="text-yellow-500" /> },
-  { id: 3, title: "Unlimited Scans", description: "There is absolutely no cap on how many times your QR codes or NFC tags can be scanned.", icon: <Infinity size={40} className="text-rose-500" /> },
-  { id: 4, title: "Precision GPS Pinpointing", description: "When scanned, the finder can securely send their exact coordinates directly to your phone with a single tap.", icon: <MapPin size={40} className="text-emerald-500" /> },
-  { id: 5, title: "Passive Location Fallback", description: "Even if the finder denies GPS access, KinTag will passively log their general IP-based city and send an alert.", icon: <Wifi size={40} className="text-rose-400" /> },
-  { id: 6, title: "Instant Push Alerts", description: "The second a tag is scanned, you receive an emergency push notification alerting you that your loved one was found.", icon: <BellRing size={40} className="text-brandGold" /> },
-  { id: 7, title: "One-Tap Emergency Dial", description: "A massive, clear button allows the finder to instantly dial your emergency contact number without copying it.", icon: <Phone size={40} className="text-emerald-600" /> },
-  { id: 8, title: "Lost Mode (Panic Button)", description: "Instantly transform a lost tag into a high-alert distress signal with a flashing missing banner and pulsing emergency dialer.", icon: <Siren size={40} className="text-red-500" /> },
-  { id: 9, title: "KinAlert Broadcasts", description: "Trigger an instant localized push notification to all other KinTag users in your zip code to help search for your missing loved one.", icon: <Megaphone size={40} className="text-amber-500" /> },
-  { id: 10, title: "Secure Document Vault", description: "Upload sensitive medical records or IDs. They remain heavily locked and blurred until the finder explicitly shares their GPS location or calls you.", icon: <FileText size={40} className="text-indigo-500" /> },
-  { id: 11, title: "Anti-Download Protection", description: "Strict UI protections prevent strangers from right-clicking, dragging, or long-pressing to save your photos and documents.", icon: <ShieldCheck size={40} className="text-emerald-600" /> },
-  { id: 12, title: "Co-Guardian Family Sharing", description: "Invite up to 5 family members. When a tag is scanned, every co-guardian receives an instant push alert simultaneously.", icon: <Users size={40} className="text-indigo-500" /> },
-  { id: 13, title: "Behavioral Alerts", description: "Highlight critical non-verbal behaviors, special needs, or fears so the finder knows exactly how to approach them.", icon: <AlertTriangle size={40} className="text-amber-500" /> },
-  { id: 14, title: "Critical Medical Info", description: "Display crucial allergies, blood types, and daily medications instantly to whoever scans the tag.", icon: <Heart size={40} className="text-pink-500" /> },
-  { id: 15, title: "Microchip Linking", description: "Store your pet's official microchip ID number visibly so veterinarians can cross-reference it instantly.", icon: <Database size={40} className="text-zinc-600" /> },
-  { id: 16, title: "Vaccination Records", description: "Display rabies and core vaccination statuses to reassure finders that your pet is safe to handle.", icon: <Activity size={40} className="text-sky-500" /> },
-  { id: 17, title: "Dynamic Updates", description: "Moved to a new house? Changed your phone number? Update your profile instantly without ever needing to print a new tag.", icon: <RefreshCw size={40} className="text-teal-500" /> },
-  { id: 18, title: "Cloud Synced", description: "All your profiles are securely backed up to the cloud. Access and manage your dashboard from any device.", icon: <Cloud size={40} className="text-sky-400" /> },
-  { id: 19, title: "Complete Data Control", description: "You own your data. Permanently wipe your account, profiles, and scan histories from our servers at any time.", icon: <Trash2 size={40} className="text-zinc-800" /> },
-  { id: 20, title: "Google Wallet Integration", description: "You can now easily save your kid's, pet's, or an elderly person's mobile ID as a pass in your Google Wallet with a simple 'Add to Google Wallet' button right on the ID screen.", icon: <WalletCards size={40} className="text-orange-500" /> }
+  { id: 2, title: "Precision GPS Pinpointing", description: "When scanned, the finder can securely send their exact coordinates directly to your phone with a single tap.", icon: <MapPin size={40} className="text-emerald-500" /> },
+  { id: 3, title: "Lost Mode (Panic Button)", description: "Instantly transform a lost tag into a high-alert distress signal with a flashing missing banner and pulsing emergency dialer.", icon: <Siren size={40} className="text-red-500" /> },
+  { id: 4, title: "Instant Push Alerts", description: "The second a tag is scanned, you receive an emergency push notification alerting you that your loved one was found.", icon: <BellRing size={40} className="text-brandGold" /> },
+  { id: 5, title: "KinAlert Broadcasts", description: "Trigger an instant localized push notification to all other KinTag users in your zip code to help search for your missing loved one.", icon: <Megaphone size={40} className="text-amber-500" /> },
+  { id: 6, title: "Co-Guardian Family Sharing", description: "Invite up to 5 family members. When a tag is scanned, every co-guardian receives an instant push alert simultaneously.", icon: <Users size={40} className="text-indigo-500" /> },
+  { id: 7, title: "Caretaker Mode", description: "Generate secure, self-destructing access links for babysitters or dog walkers. They get vital medical and contact info that automatically expires when their shift ends.", icon: <HeartHandshake size={40} className="text-rose-400" /> },
+  { id: 8, title: "Secure Document Vault", description: "Upload sensitive medical records or IDs. They remain heavily locked and blurred until the finder explicitly shares their GPS location or calls you.", icon: <FileText size={40} className="text-sky-500" /> },
+  { id: 9, title: "Google Wallet Integration", description: "Easily save your kid's, pet's, or elderly parent's mobile ID as a pass in your Google Wallet for instant access and quick sharing.", icon: <WalletCards size={40} className="text-orange-500" /> },
+  { id: 10, title: "Critical Medical Info", description: "Display crucial allergies, blood types, special needs, and daily medications instantly to whoever scans the tag.", icon: <Heart size={40} className="text-pink-500" /> },
+  { id: 11, title: "And 20+ More Features", description: "From anti-download protections and passive IP fallback scans to microchip linking and instant kill switches. Every detail is meticulously designed to keep your family safe.", icon: <Sparkles size={40} className="text-brandDark" /> }
 ];
 
 // Returns 'low' | 'mid' | 'high'
@@ -239,7 +230,7 @@ export default function Home() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                 </span>
-                <span className="text-xs font-extrabold uppercase tracking-widest text-zinc-600">V1.1.1 is now live!</span>
+                <span className="text-xs font-extrabold uppercase tracking-widest text-zinc-600">V1.2.1 is now live!</span>
               </div>
             </ScrollReveal>
           </div>
@@ -424,13 +415,18 @@ export default function Home() {
                 incrementY={20} 
                 className="mb-[20vh] md:mb-[24vh]"
               >
-                <div className="bg-white rounded-[2.5rem] p-8 md:p-10 border border-zinc-200 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-6 relative overflow-hidden transition-colors">
-                  <div className="w-16 h-16 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0 text-brandDark">
+                <div className={`rounded-[2.5rem] p-8 md:p-10 border flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-6 relative overflow-hidden transition-colors ${feature.id === 11 ? 'bg-zinc-950 border-zinc-800 text-white' : 'bg-white border-zinc-200 text-brandDark'}`}>
+                  
+                  {feature.id === 11 && (
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brandGold/20 via-brandGold/5 to-transparent rounded-full pointer-events-none"></div>
+                  )}
+
+                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 ${feature.id === 11 ? 'bg-white/10 border border-white/20 text-brandGold' : 'bg-zinc-50 border border-zinc-100 text-brandDark'}`}>
                     {feature.icon}
                   </div>
-                  <div>
-                    <h3 className="text-2xl font-extrabold text-brandDark mb-3 tracking-tight">{feature.title}</h3>
-                    <p className="text-zinc-500 font-medium leading-relaxed text-sm md:text-base">{feature.description}</p>
+                  <div className="relative z-10">
+                    <h3 className={`text-2xl font-extrabold mb-3 tracking-tight ${feature.id === 11 ? 'text-white' : 'text-brandDark'}`}>{feature.title}</h3>
+                    <p className={`font-medium leading-relaxed text-sm md:text-base ${feature.id === 11 ? 'text-zinc-400' : 'text-zinc-500'}`}>{feature.description}</p>
                   </div>
                 </div>
               </CardSticky>
