@@ -3,7 +3,7 @@ import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc, onSnapshot } from 'firebase/firestore'; 
 import { useNavigate } from 'react-router-dom';
-import { LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, AlertOctagon, X, Trash2, UserMinus, Share2, LifeBuoy, Info, ChevronDown, Check, Smartphone, Download, Send, User, Clock, History, Link as LinkIcon, Timer, CalendarDays, CheckSquare, Square, ShieldAlert, Plus, Phone, ScanFace, Lock, Unlock } from 'lucide-react'; 
+import { LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, AlertOctagon, X, Trash2, UserMinus, Share2, LifeBuoy, Info, ChevronDown, Check, Smartphone, Download, Send, User, Clock, History, Link as LinkIcon, Timer, CalendarDays, CheckSquare, Square, ShieldAlert, Plus, Phone, ScanFace, Lock, Unlock, FingerprintPattern } from 'lucide-react'; 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { WhatsappIcon, TelegramIcon } from "@hugeicons/core-free-icons";
 import { sortedCountryCodes } from '../data/countryCodes'; 
@@ -192,7 +192,7 @@ export default function Settings() {
       setIsLockEnabled(true);
     } catch (err) {
       console.error(err);
-      alert("Failed to enable App Lock. Your device might not support it, or you canceled the Face ID / Fingerprint prompt.");
+      alert("Failed to enable App Lock. Your device might not support it, or you canceled the Fingerprint prompt.");
     }
   };
 
@@ -813,11 +813,11 @@ export default function Settings() {
           <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 flex flex-col sm:flex-row items-center justify-between transition-all hover:shadow-[0_8px_40px_rgb(0,0,0,0.1)] gap-6">
              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-colors ${isLockEnabled ? 'bg-brandGold/10 border border-brandGold/20 text-brandGold' : 'bg-zinc-100 border border-zinc-200 text-zinc-400'}`}>
-                   <ScanFace size={32} />
+                   <FingerprintPattern size={32} />
                 </div>
                 <div>
                   <h3 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">App Privacy Lock</h3>
-                  <p className="text-sm text-zinc-500 font-medium max-w-sm leading-relaxed">Require Face ID, Touch ID, or your device passcode to open the KinTag app.</p>
+                  <p className="text-sm text-zinc-500 font-medium max-w-sm leading-relaxed">Require Touch ID, or your device passcode to open the KinTag app.</p>
                 </div>
              </div>
              <button 
