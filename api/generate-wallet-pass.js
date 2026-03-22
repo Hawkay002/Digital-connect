@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
     
     // Uses static ID so it cleanly updates existing passes instead of duplicating
-    const uniquePassId = `${ISSUER_ID}.${profileId}`;
+    const uniquePassId = `${ISSUER_ID}.${profileId}-${Date.now()}`;
 
     // Using your exact custom colors and image URLs
     const passColor = type === 'kid' ? '#e54000' : '#2596be'; 
