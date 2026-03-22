@@ -407,13 +407,18 @@ export default function Dashboard() {
   const handleAddToWallet = async (profile) => {
   setGeneratingWallet(true);
   try {
+    // 🌟 Calculate the age before sending!
+    const ageInfo = getComputedAge(profile);
+    const ageString = `${ageInfo.value} ${ageInfo.fullLabel || ageInfo.label}`.toUpperCase();
+    
     const response = await fetch('/api/generate-wallet-pass', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         profileId: profile.id,
         name: profile.name,
-        type: profile.type // 👈 We added the profile type here!
+        type: profile.type,
+        age: ageString // 🌟 Added age string here!
       })
     });
     const data = await response.json();
