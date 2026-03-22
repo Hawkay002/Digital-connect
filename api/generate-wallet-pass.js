@@ -44,12 +44,15 @@ export default async function handler(req, res) {
   try {
     const ISSUER_ID = process.env.GOOGLE_WALLET_ISSUER_ID;
     
-    // 🌟 THE FIX: Changed to v3 to force Google to register the new layout!
-    const CLASS_ID = `${ISSUER_ID}.kintag_v2`; 
+    // 🌟 BUMPED TO v4: Forces Google Wallet to accept the new row layout
+    const CLASS_ID = `${ISSUER_ID}.kintag_v4`; 
     
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+    
+    // Uses static ID so it cleanly updates existing passes instead of duplicating
     const uniquePassId = `${ISSUER_ID}.${profileId}`;
 
+    // Using your exact custom colors and image URLs
     const passColor = type === 'kid' ? '#e54000' : '#2596be'; 
     const heroImageUrl = type === 'kid' 
       ? "https://kintag.vercel.app/patternnewoo.png" 
@@ -57,7 +60,7 @@ export default async function handler(req, res) {
 
     const displayType = type ? type.charAt(0).toUpperCase() + type.slice(1) : 'N/A';
 
-    // 🌟 This forces the Profile Type and Age into the front row
+    // 🌟 CLASS OBJECT: Safely overrides the layout using array indices [0] and [1]
     const classObject = {
       id: CLASS_ID,
       classTemplateInfo: {
@@ -66,10 +69,10 @@ export default async function handler(req, res) {
             {
               twoItems: {
                 startItem: {
-                  firstValue: { fields: [{ fieldPath: "object.textModulesData['profile_type']" }] }
+                  firstValue: { fields: [{ fieldPath: "object.textModulesData[0]" }] }
                 },
                 endItem: {
-                  firstValue: { fields: [{ fieldPath: "object.textModulesData['profile_age']" }] }
+                  firstValue: { fields: [{ fieldPath: "object.textModulesData[1]" }] }
                 }
               }
             }
@@ -81,6 +84,7 @@ export default async function handler(req, res) {
     const passObject = {
       id: uniquePassId,
       classId: CLASS_ID,
+      genericType: "GENERIC_TYPE_UNSPECIFIED",
       hexBackgroundColor: passColor, 
       logo: {
         sourceUri: { uri: "https://kintag.vercel.app/kintag-logo.png" },
@@ -95,14 +99,13 @@ export default async function handler(req, res) {
       header: {
         defaultValue: { language: "en", value: name || "Emergency Profile" } 
       },
+      // 🌟 TEXT MODULES: These map directly to [0] and [1] above
       textModulesData: [
         {
-          id: "profile_type",
           header: "PROFILE TYPE",
           body: displayType
         },
         {
-          id: "profile_age",
           header: "AGE",
           body: age || "N/A"
         }
@@ -120,6 +123,7 @@ export default async function handler(req, res) {
       }
     };
 
+    // Push BOTH the layout template and the user data simultaneously
     const claims = {
       iss: credentials.client_email,
       aud: "google",
