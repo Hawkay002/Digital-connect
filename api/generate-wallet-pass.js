@@ -51,11 +51,11 @@ export default async function handler(req, res) {
 
     // --- DYNAMIC STYLING LOGIC ---
     // Kids get Rose (#f43f5e), Pets get the original Blue (#2596be)
-    const passColor = type === 'kid' ? '#f43f5e' : '#2596be'; 
+    const passColor = type === 'kid' ? '#e54000' : '#2596be'; 
     
     // Kids use 'patternnewo-kid.png', Pets use the original 'patternnewo.png'
     const heroImageUrl = type === 'kid' 
-      ? "https://kintag.vercel.app/patternnewo-kid.png" 
+      ? "https://kintag.vercel.app/patternnewoo.png" 
       : "https://kintag.vercel.app/patternnewo.png";
 
     const passObject = {
