@@ -37,7 +37,7 @@ export default async function handler(req, res) {
   const profileId = sanitizeInput(req.body.profileId, 50);
   const name = sanitizeInput(req.body.name || req.body.petName, 60); 
   const type = sanitizeInput(req.body.type, 20); 
-  const age = sanitizeInput(req.body.age, 20); // 🌟 Capture Age
+  const age = sanitizeInput(req.body.age, 20); 
 
   if (!profileId) return res.status(400).json({ error: 'Invalid or missing Profile ID.' });
 
@@ -46,21 +46,41 @@ export default async function handler(req, res) {
     const CLASS_ID = `${ISSUER_ID}.kintag_v2`; 
     
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-    const uniquePassId = `${ISSUER_ID}.${profileId}-${Date.now()}`;
+    
+    // 🌟 OVERWRITE FIX: Removed Date.now() so passes cleanly update instead of duplicating!
+    const uniquePassId = `${ISSUER_ID}.${profileId}`;
 
-    // --- DYNAMIC STYLING LOGIC ---
     const passColor = type === 'kid' ? '#f43f5e' : '#2596be'; 
     const heroImageUrl = type === 'kid' 
       ? "https://kintag.vercel.app/patternnewo-kid.png" 
       : "https://kintag.vercel.app/patternnewo.png";
 
-    // Format display type (e.g. "kid" -> "Kid")
     const displayType = type ? type.charAt(0).toUpperCase() + type.slice(1) : 'N/A';
+
+    // 🌟 LAYOUT FIX: We explicitly map the Profile Type and Age to the front card row
+    const classObject = {
+      id: CLASS_ID,
+      classTemplateInfo: {
+        cardTemplateOverride: {
+          cardRowTemplateInfos: [
+            {
+              twoItems: {
+                startItem: {
+                  firstValue: { fields: [{ fieldPath: "object.textModulesData['profile_type']" }] }
+                },
+                endItem: {
+                  firstValue: { fields: [{ fieldPath: "object.textModulesData['profile_age']" }] }
+                }
+              }
+            }
+          ]
+        }
+      }
+    };
 
     const passObject = {
       id: uniquePassId,
       classId: CLASS_ID,
-      genericType: "GENERIC_TYPE_UNSPECIFIED",
       hexBackgroundColor: passColor, 
       logo: {
         sourceUri: { uri: "https://kintag.vercel.app/kintag-logo.png" },
@@ -75,7 +95,7 @@ export default async function handler(req, res) {
       header: {
         defaultValue: { language: "en", value: name || "Emergency Profile" } 
       },
-      // 🌟 THIS CREATES THE SIDE-BY-SIDE STATS ROW!
+      // The data we are injecting into the row mapped above
       textModulesData: [
         {
           id: "profile_type",
@@ -101,12 +121,16 @@ export default async function handler(req, res) {
       }
     };
 
+    // 🌟 We push BOTH the Class mapping and the Object data in the JWT payload
     const claims = {
       iss: credentials.client_email,
       aud: "google",
       origins: ["https://kintag.vercel.app"],
       typ: "savetowallet",
-      payload: { genericObjects: [passObject] }
+      payload: { 
+        genericClasses: [classObject], 
+        genericObjects: [passObject] 
+      }
     };
 
     const token = jwt.sign(claims, credentials.private_key, { algorithm: 'RS256' });
