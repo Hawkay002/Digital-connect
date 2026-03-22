@@ -43,21 +43,21 @@ export default async function handler(req, res) {
 
   try {
     const ISSUER_ID = process.env.GOOGLE_WALLET_ISSUER_ID;
-    const CLASS_ID = `${ISSUER_ID}.kintag_v2`; 
+    
+    // 🌟 THE FIX: Changed to v3 to force Google to register the new layout!
+    const CLASS_ID = `${ISSUER_ID}.kintag_v3`; 
     
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-    
-    // 🌟 OVERWRITE FIX: Removed Date.now() so passes cleanly update instead of duplicating!
     const uniquePassId = `${ISSUER_ID}.${profileId}`;
 
     const passColor = type === 'kid' ? '#f43f5e' : '#2596be'; 
     const heroImageUrl = type === 'kid' 
-      ? "https://kintag.vercel.app/patternnewo-kid.png" 
+      ? "https://kintag.vercel.app/patternnewoo.png" 
       : "https://kintag.vercel.app/patternnewo.png";
 
     const displayType = type ? type.charAt(0).toUpperCase() + type.slice(1) : 'N/A';
 
-    // 🌟 LAYOUT FIX: We explicitly map the Profile Type and Age to the front card row
+    // 🌟 This forces the Profile Type and Age into the front row
     const classObject = {
       id: CLASS_ID,
       classTemplateInfo: {
@@ -95,7 +95,6 @@ export default async function handler(req, res) {
       header: {
         defaultValue: { language: "en", value: name || "Emergency Profile" } 
       },
-      // The data we are injecting into the row mapped above
       textModulesData: [
         {
           id: "profile_type",
@@ -121,7 +120,6 @@ export default async function handler(req, res) {
       }
     };
 
-    // 🌟 We push BOTH the Class mapping and the Object data in the JWT payload
     const claims = {
       iss: credentials.client_email,
       aud: "google",
