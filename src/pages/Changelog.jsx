@@ -1,7 +1,18 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Rocket, Paintbrush, Lock, MapPin, QrCode, Zap, Plus, RefreshCw, Wrench, Minus, Siren, ShieldCheck, Wallet, HeartHandshake } from 'lucide-react';
+import { ArrowLeft, Rocket, Paintbrush, Lock, MapPin, QrCode, Zap, Plus, RefreshCw, Wrench, Minus, Siren, ShieldCheck, Wallet, HeartHandshake, Fingerprint } from 'lucide-react';
 
 const updates = [
+  {
+    version: "v1.3.0",
+    title: "The Privacy Lock & Wallet Polish Update",
+    date: "March 22, 2026",
+    icon: <Fingerprint className="text-emerald-500" size={24} />,
+    description: "Introducing native biometric security and latest layout designs for Google Wallet passes.",
+    changes: [
+      { type: "ADDED", text: "App Privacy Lock: Secure your KinTag profile using your device's native Touch ID, or Passcode. Powered by the WebAuthn API for maximum privacy without compromising speed. Added a dedicated toggle in the Settings menu to safely check your device's hardware capabilities and instantly enable or disable the biometric App Privacy Lock." },
+      { type: "UPDATED", text: "Google Wallet Layout: Completely rebuilt the Wallet Pass generation to bypass Google's console caching. Passes now dynamically build a perfect new layout & design according to the 'Profile Type' directly from your dashboard." }
+    ]
+  },
   {
     version: "v1.2.1",
     title: "The Caretaker & UI Polish Update",
