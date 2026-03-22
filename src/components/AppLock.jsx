@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, ScanFace } from 'lucide-react';
+import { Shield, ScanFace, FingerprintPattern } from 'lucide-react';
 
 export default function AppLock({ children }) {
   const [isLocked, setIsLocked] = useState(true);
@@ -75,7 +75,7 @@ export default function AppLock({ children }) {
           onClick={handleUnlock}
           className="w-full bg-brandGold text-brandDark py-4 rounded-full font-extrabold shadow-[0_0_20px_rgba(251,191,36,0.2)] hover:shadow-[0_0_30px_rgba(251,191,36,0.4)] transition-all flex items-center justify-center gap-3 active:scale-95"
         >
-          <ScanFace size={24} />
+          <FingerprintPattern size={24} />
           Unlock App
         </button>
       </div>
