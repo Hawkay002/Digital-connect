@@ -35,9 +35,9 @@ export default async function handler(req, res) {
   // --------------------
   
   const profileId = sanitizeInput(req.body.profileId, 50);
-  // Support both 'name' and the legacy 'petName' key to prevent breaking changes
   const name = sanitizeInput(req.body.name || req.body.petName, 60); 
-  const type = sanitizeInput(req.body.type, 20); // Capture 'kid' or 'pet'
+  const type = sanitizeInput(req.body.type, 20); 
+  const age = sanitizeInput(req.body.age, 20); // 🌟 Capture Age
 
   if (!profileId) return res.status(400).json({ error: 'Invalid or missing Profile ID.' });
 
@@ -46,17 +46,16 @@ export default async function handler(req, res) {
     const CLASS_ID = `${ISSUER_ID}.kintag_v2`; 
     
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-
     const uniquePassId = `${ISSUER_ID}.${profileId}-${Date.now()}`;
 
     // --- DYNAMIC STYLING LOGIC ---
-    // Kids get Rose (#f43f5e), Pets get the original Blue (#2596be)
-    const passColor = type === 'kid' ? '#e54000' : '#2596be'; 
-    
-    // Kids use 'patternnewo-kid.png', Pets use the original 'patternnewo.png'
+    const passColor = type === 'kid' ? '#f43f5e' : '#2596be'; 
     const heroImageUrl = type === 'kid' 
-      ? "https://kintag.vercel.app/patternnewoo.png" 
+      ? "https://kintag.vercel.app/patternnewo-kid.png" 
       : "https://kintag.vercel.app/patternnewo.png";
+
+    // Format display type (e.g. "kid" -> "Kid")
+    const displayType = type ? type.charAt(0).toUpperCase() + type.slice(1) : 'N/A';
 
     const passObject = {
       id: uniquePassId,
@@ -74,8 +73,21 @@ export default async function handler(req, res) {
         defaultValue: { language: "en", value: "KinTag Digital ID" }
       },
       header: {
-        defaultValue: { language: "en", value: name || "Emergency Profile" }
+        defaultValue: { language: "en", value: name || "Emergency Profile" } 
       },
+      // 🌟 THIS CREATES THE SIDE-BY-SIDE STATS ROW!
+      textModulesData: [
+        {
+          id: "profile_type",
+          header: "PROFILE TYPE",
+          body: displayType
+        },
+        {
+          id: "profile_age",
+          header: "AGE",
+          body: age || "N/A"
+        }
+      ],
       heroImage: {
         sourceUri: { uri: heroImageUrl },
         contentDescription: {
