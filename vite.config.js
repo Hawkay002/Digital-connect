@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { motionwind } from 'motionwind-react/vite'
 
 export default defineConfig({
   plugins: [
+    motionwind(), // ⚡ Must come BEFORE react() so it transforms source first
     react(),
     VitePWA({
       registerType: 'prompt', // Tells it to use the manual Update Toast
