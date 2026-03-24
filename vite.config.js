@@ -10,7 +10,7 @@ export default defineConfig({
       includeAssets: ['kintag-logo.png', 'apple-touch-icon.png', 'favicon.ico'],
       manifest: {
         name: 'KinTag Digital Safety',
-        short_name: 'KinTag',
+        short_name: 'KinTag', 
         description: 'The ultimate digital safety net for your family.',
         theme_color: '#18181b', // brandDark
         background_color: '#fafafa', // zinc-50
