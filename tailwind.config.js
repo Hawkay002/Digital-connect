@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+import { motionwind } from "motionwind-react/tailwind"; // 🌟 ADD THIS
+
 export default {
   content: [
     "./index.html",
@@ -7,10 +9,10 @@ export default {
   theme: {
     extend: {
       colors: {
-        brandDark: '#18181b',   // Deep Obsidian (Zinc 900)
-        brandAccent: '#27272a', // Lighter Charcoal (Zinc 800)
-        brandMuted: '#f4f4f5',  // Premium Light Gray (Zinc 100)
-        brandGold: '#cda434',   // Sophisticated Muted Gold
+        brandDark: '#18181b',
+        brandAccent: '#27272a',
+        brandMuted: '#f4f4f5',
+        brandGold: '#cda434',
       },
       boxShadow: {
         'premium': '0 10px 40px -10px rgba(0,0,0,0.08)',
@@ -18,5 +20,7 @@ export default {
       }
     },
   },
-  plugins: [],
+  plugins: [
+    motionwind() // 🌟 ADD THIS
+  ],
 }
