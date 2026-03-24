@@ -6,7 +6,10 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   plugins: [
     motionwind(),
-    react(),
+    react({
+      // 🌟 ADD THIS: It helps the compiler track JSX changes better
+      jsxRuntime: 'automatic' 
+    }),
     VitePWA({
       registerType: 'prompt', // Tells it to use the manual Update Toast
       includeAssets: ['kintag-logo.png', 'apple-touch-icon.png', 'favicon.ico'],
