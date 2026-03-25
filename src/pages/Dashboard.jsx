@@ -12,6 +12,7 @@ import {
   EyeOff, Siren, Megaphone, Settings, CheckCircle2, Info
 } from 'lucide-react';
 import { avatars } from '../components/ui/avatar-picker';
+import { mw } from 'motionwind-react';
 
 // ─── QR Style Presets ────────────────────────────────────────────────────────
 const QR_STYLES = {
@@ -55,6 +56,12 @@ const CARD_DELAYS = [
   'animate-delay-300', 'animate-delay-400', 'animate-delay-500',
 ];
 const cardDelay = (i) => CARD_DELAYS[Math.min(i, CARD_DELAYS.length - 1)];
+
+// Section-level delay progression (mirrors Settings.jsx section stagger)
+const SECTION_DELAYS = [
+  'animate-delay-0', 'animate-delay-100', 'animate-delay-150',
+  'animate-delay-200', 'animate-delay-300', 'animate-delay-400',
+];
 
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function Dashboard() {
@@ -380,7 +387,7 @@ export default function Dashboard() {
       <div className="max-w-5xl mx-auto relative z-10 pt-4">
 
         {/* ── SECTION 1: Header ── delay-0 ───────────────────────────────── */}
-        <div className={`flex justify-between items-center gap-4 mb-8 bg-white/80 backdrop-blur-xl p-5 md:px-8 md:py-6 rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 animate-initial:opacity-0 animate-initial:y-10 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-0`}>
+        <mw.div className={`flex justify-between items-center gap-4 mb-8 bg-white/80 backdrop-blur-xl p-5 md:px-8 md:py-6 rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 ${SECTION_IN} animate-delay-0`}>
           <div className="flex items-center space-x-4 w-full">
             <img src="/kintag-logo.png" alt="KinTag Logo" className="w-12 h-12 rounded-[1rem] shadow-sm" />
             <div className="flex-1">
@@ -388,10 +395,10 @@ export default function Dashboard() {
               <p className="text-sm text-zinc-500 font-medium truncate">Family Dashboard</p>
             </div>
           </div>
-        </div>
+        </mw.div>
 
         {/* ── SECTION 2: Action Buttons (NotificationCenter) ── delay-100 ── */}
-        <div className={`flex gap-4 mb-10 ${SECTION_IN} animate-delay-100`}>
+        <mw.div className={`flex gap-4 mb-10 ${SECTION_IN} animate-delay-100`}>
           <NotificationCenter
             scans={scans}
             systemMessages={systemMessages}
@@ -399,11 +406,11 @@ export default function Dashboard() {
             currentUser={currentUser}
             showMessage={showMessage}
           />
-        </div>
+        </mw.div>
 
         {/* ── SECTION 3: Local alert marquee (conditional) ── delay-150 ──── */}
         {localAlerts.length > 0 && (
-          <div className={`mb-10 ${SECTION_IN} animate-delay-150`}>
+          <mw.div className={`mb-10 ${SECTION_IN} animate-delay-150`}>
             <style>{`
               @keyframes seamlessDash { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
               .animate-seamless-dash { display: flex; width: max-content; animation: seamlessDash 15s linear infinite; }
@@ -426,12 +433,12 @@ export default function Dashboard() {
                 ))}
               </div>
             </Link>
-          </div>
+          </mw.div>
         )}
 
         {/* ── SECTION 4: Search (conditional) ── delay-200 ─────────────── */}
         {profiles.length > 0 && (
-          <div className={`mb-8 relative group ${SECTION_IN} animate-delay-200`}>
+          <mw.div className={`mb-8 relative group ${SECTION_IN} animate-delay-200`}>
             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-brandDark z-10 pointer-events-none" size={20} />
             <input
               type="text"
@@ -440,11 +447,11 @@ export default function Dashboard() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-14 pr-5 py-4 md:py-5 bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2rem] focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-all shadow-sm hover:shadow-md font-medium text-brandDark text-lg relative z-0"
             />
-          </div>
+          </mw.div>
         )}
 
         {/* ── SECTION 5: Profile Grid ── delay-300 ─────────────────────── */}
-        <div className={`max-h-[60vh] overflow-y-auto pb-40 pr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${SECTION_IN} animate-delay-300`}>
+        <mw.div className={`max-h-[60vh] overflow-y-auto pb-40 pr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] ${SECTION_IN} animate-delay-300`}>
           {profiles.length === 0 ? (
             <div className="text-center bg-white/50 backdrop-blur-md p-16 rounded-[3rem] border-2 border-dashed border-zinc-300 shadow-sm">
               <div className="w-20 h-20 bg-zinc-100 text-zinc-400 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
@@ -486,7 +493,7 @@ export default function Dashboard() {
 
                       {/* Overlay action buttons */}
                       <div className="absolute top-4 right-4 flex gap-2 z-30">
-                        <button
+                        <mw.button
                           disabled={!profile.isLost || profile.kinAlertActive}
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBroadcastModalProfile(profile); }}
                           className={`p-2.5 rounded-xl shadow-lg backdrop-blur-md ${SPRING_SM} ${
@@ -499,8 +506,8 @@ export default function Dashboard() {
                           title={profile.kinAlertActive ? 'KinAlert Active' : 'Broadcast KinAlert'}
                         >
                           <Megaphone size={18} />
-                        </button>
-                        <button
+                        </mw.button>
+                        <mw.button
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); profile.isLost ? setFoundModalProfile(profile) : setLostModalProfile(profile); }}
                           className={`p-2.5 rounded-xl shadow-lg backdrop-blur-md ${SPRING_SM} ${
                             profile.isLost ? 'bg-red-600 text-white animate-pulse hover:bg-red-500' : 'bg-white/80 text-zinc-600 hover:text-red-600 hover:bg-white'
@@ -508,7 +515,7 @@ export default function Dashboard() {
                           title={profile.isLost ? 'Mark as Found' : 'Mark as Lost'}
                         >
                           <Siren size={18} />
-                        </button>
+                        </mw.button>
                       </div>
 
                       <div className="absolute bottom-5 left-5 right-5 text-white pointer-events-none">
@@ -523,10 +530,10 @@ export default function Dashboard() {
                     {/* Card action buttons */}
                     <div className="p-5 flex-1 flex flex-col justify-end">
                       <div className="flex flex-wrap gap-2.5">
-                        <Link to={`/id/${profile.id}`} target="_blank" className={`flex-1 flex items-center justify-center space-x-2 bg-zinc-50 border border-zinc-200 hover:bg-white text-brandDark py-3 rounded-2xl font-bold text-sm shadow-sm ${SPRING}`} title="View Public Card">
+                        <mw.a as={Link} to={`/id/${profile.id}`} target="_blank" className={`flex-1 flex items-center justify-center space-x-2 bg-zinc-50 border border-zinc-200 hover:bg-white text-brandDark py-3 rounded-2xl font-bold text-sm shadow-sm ${SPRING}`} title="View Public Card">
                           <Eye size={16} /><span>View</span>
-                        </Link>
-                        <button
+                        </mw.a>
+                        <mw.button
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleProfileStatus(profile.id, profile.isActive); }}
                           className={`flex items-center justify-center p-3 rounded-2xl shadow-sm ${SPRING_SM} ${
                             profile.isActive === false
@@ -536,24 +543,24 @@ export default function Dashboard() {
                           title={profile.isActive === false ? 'Enable Profile' : 'Disable Profile'}
                         >
                           {profile.isActive === false ? <Eye size={18} /> : <EyeOff size={18} />}
-                        </button>
-                        <button
+                        </mw.button>
+                        <mw.button
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setQrModalProfile(profile); }}
                           className={`bg-amber-50 border border-amber-100 text-amber-600 hover:bg-amber-100 p-3 rounded-2xl shadow-sm ${SPRING_SM}`}
                           title="Mobile ID & QR"
                         >
                           <Smartphone size={18} />
-                        </button>
-                        <Link to={`/edit/${profile.id}`} className={`bg-blue-50 border border-blue-100 text-blue-600 hover:bg-blue-100 p-3 rounded-2xl shadow-sm ${SPRING_SM}`} title="Edit Profile">
+                        </mw.button>
+                        <mw.a as={Link} to={`/edit/${profile.id}`} className={`bg-blue-50 border border-blue-100 text-blue-600 hover:bg-blue-100 p-3 rounded-2xl shadow-sm ${SPRING_SM}`} title="Edit Profile">
                           <Edit size={18} />
-                        </Link>
-                        <button
+                        </mw.a>
+                        <mw.button
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProfileToDelete({ id: profile.id, imageUrl: profile.imageUrl }); }}
                           className={`bg-zinc-50 border border-zinc-200 text-zinc-500 hover:bg-zinc-100 p-3 rounded-2xl shadow-sm ${SPRING_SM}`}
                           title="Delete Profile"
                         >
                           <Trash2 size={18} />
-                        </button>
+                        </mw.button>
                       </div>
                     </div>
                   </div>
@@ -561,38 +568,38 @@ export default function Dashboard() {
               })}
             </div>
           )}
-        </div>
+        </mw.div>
       </div>
 
       {/* ── Bottom fade + FAB ─────────────────────────────────────────────── */}
       <div className="fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/80 to-transparent pointer-events-none z-40" />
 
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2.5rem] px-8 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex items-center justify-center gap-10 z-50 pointer-events-auto">
-        <Link to="/settings" className={`text-zinc-400 hover:text-brandDark p-2 group ${SPRING_SM}`}>
+      <mw.div className={`fixed bottom-8 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2.5rem] px-8 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex items-center justify-center gap-10 z-50 pointer-events-auto ${SECTION_IN} animate-delay-400`}>
+        <mw.a as={Link} to="/settings" className={`text-zinc-400 hover:text-brandDark p-2 group ${SPRING_SM}`}>
           <Settings size={28} className="group-hover:rotate-45 transition-transform duration-500" />
-        </Link>
-        <Link to="/create" className={`w-16 h-16 bg-brandDark text-white rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(24,24,27,0.4)] border-[6px] border-[#fafafa] -mt-12 hover:bg-brandAccent group relative z-10 ${SPRING_SM}`}>
+        </mw.a>
+        <mw.a as={Link} to="/create" className={`w-16 h-16 bg-brandDark text-white rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(24,24,27,0.4)] border-[6px] border-[#fafafa] -mt-12 hover:bg-brandAccent group relative z-10 ${SPRING_SM}`}>
           <Plus size={32} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" />
-        </Link>
-        <Link to="/profile" className={`text-zinc-400 hover:text-brandDark p-2 group relative flex items-center justify-center ${SPRING_SM}`}>
+        </mw.a>
+        <mw.a as={Link} to="/profile" className={`text-zinc-400 hover:text-brandDark p-2 group relative flex items-center justify-center ${SPRING_SM}`}>
           {currentAvatar ? (
             <div className="w-7 h-7 group-hover:scale-110 transition-transform duration-300">{currentAvatar.svg}</div>
           ) : (
             <User size={28} className="group-hover:scale-110 transition-transform duration-300" />
           )}
           {!userZipCode && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse z-10" />}
-        </Link>
-      </div>
+        </mw.a>
+      </mw.div>
 
       {/* ── QR Modal ─────────────────────────────────────────────────────── */}
       {qrModalProfile && (
         <div className="fixed inset-0 z-[100] bg-zinc-950/90 backdrop-blur-xl overflow-y-auto flex p-4 md:p-8 animate-in fade-in duration-200">
-          <button
+          <mw.button
             onClick={() => setQrModalProfile(null)}
             className={`absolute top-6 right-6 md:fixed md:top-8 md:right-8 z-[110] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full border border-white/10 shadow-xl ${SPRING_SM}`}
           >
             <X size={24} />
-          </button>
+          </mw.button>
           <div className={`max-w-sm w-full relative m-auto pt-20 pb-8 md:py-8 ${MODAL_CARD}`}>
             <div className="flex flex-col gap-4 mb-6">
               <div className="text-center sm:text-left">
@@ -600,21 +607,21 @@ export default function Dashboard() {
                 <p className="text-white/60 text-xs font-bold leading-snug">Download or add to your wallet.</p>
               </div>
               <div className="flex flex-row items-center gap-3 w-full">
-                <button
+                <mw.button
                   onClick={() => handleAddToWallet(qrModalProfile)}
                   disabled={generatingWallet}
                   className={`flex-1 relative flex items-center justify-center space-x-2 h-[46px] px-4 rounded-full border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 shadow-md disabled:opacity-50 text-white font-bold text-sm ${SPRING}`}
                 >
                   {generatingWallet ? <Loader2 className="animate-spin text-white" size={20} /> : <><GoogleWalletIcon /><span>Add to Google Wallet</span></>}
-                </button>
-                <button
+                </mw.button>
+                <mw.button
                   onClick={() => downloadFullPass(qrModalProfile)}
                   disabled={downloading}
                   className={`flex-1 flex items-center justify-center space-x-2 bg-brandGold text-brandDark h-[46px] rounded-full font-bold shadow-[0_0_20px_rgba(251,191,36,0.3)] hover:shadow-[0_0_30px_rgba(251,191,36,0.5)] disabled:opacity-50 text-sm ${SPRING}`}
                 >
                   {downloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
                   <span>{downloading ? 'Wait...' : 'Image'}</span>
-                </button>
+                </mw.button>
               </div>
             </div>
 
@@ -677,8 +684,8 @@ export default function Dashboard() {
             <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Mark as Found?</h2>
             <p className="text-zinc-500 mb-8 text-base font-medium leading-relaxed">This will immediately deactivate the distress signal and notify your local community that {foundModalProfile.name} is safe and sound.</p>
             <div className="flex flex-col gap-3">
-              <button onClick={() => { handleDeactivateLost(foundModalProfile); setFoundModalProfile(null); }} className={`w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-lg ${SPRING}`}>Yes, Safe & Sound</button>
-              <button onClick={() => setFoundModalProfile(null)} className={`w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold ${SPRING}`}>Cancel</button>
+              <mw.button onClick={() => { handleDeactivateLost(foundModalProfile); setFoundModalProfile(null); }} className={`w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-lg ${SPRING}`}>Yes, Safe & Sound</mw.button>
+              <mw.button onClick={() => setFoundModalProfile(null)} className={`w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold ${SPRING}`}>Cancel</mw.button>
             </div>
           </div>
         </div>
@@ -694,8 +701,8 @@ export default function Dashboard() {
             <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Mark as Lost?</h2>
             <p className="text-zinc-500 mb-8 text-base font-medium leading-relaxed">This will instantly change {lostModalProfile.name}'s public ID into a high-alert distress signal with pulsing warnings.</p>
             <div className="flex flex-col gap-3">
-              <button onClick={handleConfirmLost} className={`w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg ${SPRING}`}>Yes, I'm Sure</button>
-              <button onClick={() => setLostModalProfile(null)} className={`w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold ${SPRING}`}>Cancel</button>
+              <mw.button onClick={handleConfirmLost} className={`w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg ${SPRING}`}>Yes, I'm Sure</mw.button>
+              <mw.button onClick={() => setLostModalProfile(null)} className={`w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold ${SPRING}`}>Cancel</mw.button>
             </div>
           </div>
         </div>
@@ -711,8 +718,8 @@ export default function Dashboard() {
             <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Broadcast Alert?</h2>
             <p className="text-zinc-500 mb-8 text-base font-medium leading-relaxed">Would you like to send a KinAlert? This will instantly notify all other KinTag users in your exact Pincode ({broadcastModalProfile.pincode}) to keep an eye out.</p>
             <div className="flex flex-col gap-3">
-              <button onClick={handleConfirmBroadcast} className={`w-full bg-amber-500 text-white py-4 rounded-full font-bold shadow-lg ${SPRING}`}>Yes, Broadcast</button>
-              <button onClick={() => setBroadcastModalProfile(null)} className={`w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold ${SPRING}`}>Not Now</button>
+              <mw.button onClick={handleConfirmBroadcast} className={`w-full bg-amber-500 text-white py-4 rounded-full font-bold shadow-lg ${SPRING}`}>Yes, Broadcast</mw.button>
+              <mw.button onClick={() => setBroadcastModalProfile(null)} className={`w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold ${SPRING}`}>Not Now</mw.button>
             </div>
           </div>
         </div>
@@ -728,8 +735,8 @@ export default function Dashboard() {
             <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Delete Profile?</h2>
             <p className="text-zinc-500 mb-8 text-base font-medium leading-relaxed">This action cannot be undone. This profile and its associated QR code will be permanently deactivated.</p>
             <div className="flex flex-col gap-3">
-              <button onClick={confirmDelete}                       className={`w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg ${SPRING}`}>Yes, Delete It</button>
-              <button onClick={() => setProfileToDelete(null)}     className={`w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold ${SPRING}`}>Cancel</button>
+              <mw.button onClick={confirmDelete}                       className={`w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg ${SPRING}`}>Yes, Delete It</mw.button>
+              <mw.button onClick={() => setProfileToDelete(null)}     className={`w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold ${SPRING}`}>Cancel</mw.button>
             </div>
           </div>
         </div>
@@ -746,8 +753,8 @@ export default function Dashboard() {
             <p className="text-zinc-800 font-bold text-lg mb-4">{activeAlertToDisplay.name} is missing near you ({activeAlertToDisplay.pincode})!</p>
             <p className="text-zinc-500 mb-8 text-sm font-medium">Please keep an eye out and tap below for details.</p>
             <div className="flex flex-col gap-3">
-              <Link to={`/id/${activeAlertToDisplay.id}`} target="_blank" onClick={() => setDismissedAlerts([...dismissedAlerts, activeAlertToDisplay.id])} className={`w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg ${SPRING}`}>View Details</Link>
-              <button onClick={() => setDismissedAlerts([...dismissedAlerts, activeAlertToDisplay.id])} className={`w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold ${SPRING}`}>Dismiss</button>
+              <mw.a as={Link} to={`/id/${activeAlertToDisplay.id}`} target="_blank" onClick={() => setDismissedAlerts([...dismissedAlerts, activeAlertToDisplay.id])} className={`w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg flex items-center justify-center ${SPRING}`}>View Details</mw.a>
+              <mw.button onClick={() => setDismissedAlerts([...dismissedAlerts, activeAlertToDisplay.id])} className={`w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold ${SPRING}`}>Dismiss</mw.button>
             </div>
           </div>
         </div>
@@ -763,7 +770,7 @@ export default function Dashboard() {
             <h2 className="text-3xl font-extrabold text-emerald-600 mb-2 uppercase tracking-tight">Found!</h2>
             <p className="text-zinc-800 font-bold text-lg mb-4">{activeFoundPopupToDisplay.profileName} is safe.</p>
             <p className="text-zinc-500 mb-8 text-sm font-medium">{activeFoundPopupToDisplay.message}</p>
-            <button onClick={() => setDismissedFoundAlerts([...dismissedFoundAlerts, activeFoundPopupToDisplay.id])} className={`w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-lg ${SPRING}`}>Wonderful News</button>
+            <mw.button onClick={() => setDismissedFoundAlerts([...dismissedFoundAlerts, activeFoundPopupToDisplay.id])} className={`w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-lg ${SPRING}`}>Wonderful News</mw.button>
           </div>
         </div>
       )}
@@ -785,12 +792,12 @@ export default function Dashboard() {
             </div>
             <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">{customAlert.title}</h2>
             <p className="text-zinc-500 mb-8 text-base font-medium leading-relaxed">{customAlert.message}</p>
-            <button
+            <mw.button
               onClick={() => { if (customAlert.onClose) customAlert.onClose(); setCustomAlert({ ...customAlert, isOpen: false }); }}
               className={`w-full bg-brandDark text-white py-4 rounded-full font-bold shadow-lg ${SPRING}`}
             >
               Okay
-            </button>
+            </mw.button>
           </div>
         </div>
       )}
