@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { db, messaging } from '../firebase';
 import { doc, setDoc, deleteDoc, addDoc, collection, getDoc, updateDoc } from 'firebase/firestore';
-import { getToken } from 'firebase/messaging';
+import { getToken } from 'firebase/messaging'; 
 import {
   Bell, BellRing, X, Trash2, Users, MapPin, Info,
   Eye, CheckCircle2, Siren, AlertOctagon, Loader2
