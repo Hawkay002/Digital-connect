@@ -387,7 +387,7 @@ export default function Dashboard() {
       <div className="max-w-5xl mx-auto relative z-10 pt-4">
 
         {/* ── SECTION 1: Header ── delay-0 ───────────────────────────────── */}
-        <mw.div className={`flex justify-between items-center gap-4 mb-8 bg-white/80 backdrop-blur-xl p-5 md:px-8 md:py-6 rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 ${SECTION_IN} animate-delay-0`}>
+        <mw.div className={`flex justify-between items-center gap-4 mb-8 bg-white/80 backdrop-blur-xl p-5 md:px-8 md:py-6 rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 ${SECTION_IN} animate-delay-0 animate-hover:scale-[1.01] animate-tap:scale-[0.99] animate-spring animate-stiffness-220 animate-damping-7`}>
           <div className="flex items-center space-x-4 w-full">
             <img src="/kintag-logo.png" alt="KinTag Logo" className="w-12 h-12 rounded-[1rem] shadow-sm" />
             <div className="flex-1">
@@ -398,7 +398,7 @@ export default function Dashboard() {
         </mw.div>
 
         {/* ── SECTION 2: Action Buttons (NotificationCenter) ── delay-100 ── */}
-        <mw.div className={`flex gap-4 mb-10 ${SECTION_IN} animate-delay-100`}>
+        <mw.div className={`flex gap-4 mb-10 ${SECTION_IN} animate-delay-100 animate-hover:scale-[1.01] animate-tap:scale-[0.99] animate-spring animate-stiffness-220 animate-damping-7`}>
           <NotificationCenter
             scans={scans}
             systemMessages={systemMessages}
@@ -415,10 +415,11 @@ export default function Dashboard() {
               @keyframes seamlessDash { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
               .animate-seamless-dash { display: flex; width: max-content; animation: seamlessDash 15s linear infinite; }
             `}</style>
-            <Link
+            <mw.a
+              as={Link}
               to={`/id/${localAlerts[0].id}`}
               target="_blank"
-              className="block overflow-hidden bg-red-600 text-white rounded-[2rem] shadow-[0_10px_30px_rgba(239,68,68,0.4)] border-[6px] border-red-500 relative h-[72px] group cursor-pointer hover:border-red-400 transition-colors"
+              className={`block overflow-hidden bg-red-600 text-white rounded-[2rem] shadow-[0_10px_30px_rgba(239,68,68,0.4)] border-[6px] border-red-500 relative h-[72px] group cursor-pointer hover:border-red-400 animate-hover:scale-[1.02] animate-tap:scale-[0.98] animate-spring animate-stiffness-220 animate-damping-7`}
             >
               <div className="animate-seamless-dash flex items-center h-full group-hover:[animation-play-state:paused]">
                 {[...Array(4)].map((_, i) => (
@@ -432,13 +433,13 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-            </Link>
+            </mw.a>
           </mw.div>
         )}
 
         {/* ── SECTION 4: Search (conditional) ── delay-200 ─────────────── */}
         {profiles.length > 0 && (
-          <mw.div className={`mb-8 relative group ${SECTION_IN} animate-delay-200`}>
+          <mw.div className={`mb-8 relative group ${SECTION_IN} animate-delay-200 animate-hover:scale-[1.02] animate-tap:scale-[0.98] animate-spring animate-stiffness-220 animate-damping-7`}>
             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-brandDark z-10 pointer-events-none" size={20} />
             <input
               type="text"
@@ -467,7 +468,7 @@ export default function Dashboard() {
               {filteredProfiles.map((profile, idx) => {
                 const ageInfo = getComputedAge(profile);
                 return (
-                  <div
+                  <mw.div
                     key={profile.id}
                     className={`bg-white/90 backdrop-blur-md rounded-[2.5rem] overflow-hidden border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col group
                       ${SECTION_IN} ${cardDelay(idx)}
@@ -475,8 +476,9 @@ export default function Dashboard() {
                         ? 'border-red-200 opacity-70 grayscale-[50%]'
                         : profile.isLost
                           ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.4)]'
-                          : 'border-zinc-200/80 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 hover:border-brandDark/20 transition-all duration-500'
-                      }`}
+                          : 'border-zinc-200/80 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:border-brandDark/20 transition-all duration-500'
+                      }
+                      animate-hover:scale-[1.02] animate-tap:scale-[0.98] animate-spring animate-stiffness-220 animate-damping-7`}
                   >
                     {/* Card image area */}
                     <div className="relative h-56 shrink-0 overflow-hidden bg-zinc-100">
@@ -563,7 +565,7 @@ export default function Dashboard() {
                         </mw.button>
                       </div>
                     </div>
-                  </div>
+                  </mw.div>
                 );
               })}
             </div>
@@ -574,20 +576,20 @@ export default function Dashboard() {
       {/* ── Bottom fade + FAB ─────────────────────────────────────────────── */}
       <div className="fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/80 to-transparent pointer-events-none z-40" />
 
-      <mw.div className={`fixed bottom-8 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2.5rem] px-8 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex items-center justify-center gap-10 z-50 pointer-events-auto ${SECTION_IN} animate-delay-400`}>
-        <mw.a as={Link} to="/settings" className={`text-zinc-400 hover:text-brandDark p-2 group ${SPRING_SM}`}>
+      <mw.div className={`fixed bottom-8 left-1/2 -translate-x-1/2 w-max bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2.5rem] px-6 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex items-center justify-between gap-8 z-50 pointer-events-auto ${SECTION_IN} animate-delay-400`}>
+        <mw.a as={Link} to="/settings" className={`w-12 h-12 flex items-center justify-center text-zinc-400 hover:text-brandDark group ${SPRING_SM}`}>
           <Settings size={28} className="group-hover:rotate-45 transition-transform duration-500" />
         </mw.a>
-        <mw.a as={Link} to="/create" className={`w-16 h-16 bg-brandDark text-white rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(24,24,27,0.4)] border-[6px] border-[#fafafa] -mt-12 hover:bg-brandAccent group relative z-10 ${SPRING_SM}`}>
+        <mw.a as={Link} to="/create" className={`w-16 h-16 shrink-0 bg-brandDark text-white rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(24,24,27,0.4)] border-[6px] border-[#fafafa] -mt-12 hover:bg-brandAccent group relative z-10 ${SPRING_SM}`}>
           <Plus size={32} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" />
         </mw.a>
-        <mw.a as={Link} to="/profile" className={`text-zinc-400 hover:text-brandDark p-2 group relative flex items-center justify-center ${SPRING_SM}`}>
+        <mw.a as={Link} to="/profile" className={`w-12 h-12 flex items-center justify-center text-zinc-400 hover:text-brandDark group relative ${SPRING_SM}`}>
           {currentAvatar ? (
             <div className="w-7 h-7 group-hover:scale-110 transition-transform duration-300">{currentAvatar.svg}</div>
           ) : (
             <User size={28} className="group-hover:scale-110 transition-transform duration-300" />
           )}
-          {!userZipCode && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse z-10" />}
+          {!userZipCode && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse z-10" />}
         </mw.a>
       </mw.div>
 
@@ -600,7 +602,7 @@ export default function Dashboard() {
           >
             <X size={24} />
           </mw.button>
-          <div className={`max-w-sm w-full relative m-auto pt-20 pb-8 md:py-8 ${MODAL_CARD}`}>
+          <mw.div className={`max-w-sm w-full relative m-auto pt-20 pb-8 md:py-8 ${MODAL_CARD}`}>
             <div className="flex flex-col gap-4 mb-6">
               <div className="text-center sm:text-left">
                 <h2 className="text-3xl font-extrabold text-white tracking-tight leading-none mb-1">Mobile ID</h2>
@@ -670,14 +672,14 @@ export default function Dashboard() {
                 <div className="absolute bottom-6 text-white/20 text-[10px] font-mono tracking-widest font-bold">ID: {qrModalProfile.id.slice(0, 8).toUpperCase()}</div>
               </div>
             </div>
-          </div>
+          </mw.div>
         </div>
       )}
 
       {/* ── Mark as Found Modal ───────────────────────────────────────────── */}
       {foundModalProfile && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
-          <div className={`bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 ${MODAL_CARD}`}>
+          <mw.div className={`bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 ${MODAL_CARD}`}>
             <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border border-emerald-100">
               <CheckCircle2 size={36} />
             </div>
@@ -687,14 +689,14 @@ export default function Dashboard() {
               <mw.button onClick={() => { handleDeactivateLost(foundModalProfile); setFoundModalProfile(null); }} className={`w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-lg ${SPRING}`}>Yes, Safe & Sound</mw.button>
               <mw.button onClick={() => setFoundModalProfile(null)} className={`w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold ${SPRING}`}>Cancel</mw.button>
             </div>
-          </div>
+          </mw.div>
         </div>
       )}
 
       {/* ── Mark as Lost Modal ────────────────────────────────────────────── */}
       {lostModalProfile && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
-          <div className={`bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 ${MODAL_CARD}`}>
+          <mw.div className={`bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 ${MODAL_CARD}`}>
             <div className="w-20 h-20 bg-red-50 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border border-red-100">
               <Siren size={36} className="animate-pulse" />
             </div>
@@ -704,14 +706,14 @@ export default function Dashboard() {
               <mw.button onClick={handleConfirmLost} className={`w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg ${SPRING}`}>Yes, I'm Sure</mw.button>
               <mw.button onClick={() => setLostModalProfile(null)} className={`w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold ${SPRING}`}>Cancel</mw.button>
             </div>
-          </div>
+          </mw.div>
         </div>
       )}
 
       {/* ── Broadcast Alert Modal ─────────────────────────────────────────── */}
       {broadcastModalProfile && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
-          <div className={`bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 ${MODAL_CARD}`}>
+          <mw.div className={`bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 ${MODAL_CARD}`}>
             <div className="w-20 h-20 bg-amber-50 text-amber-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border border-amber-100">
               <Megaphone size={36} />
             </div>
@@ -721,14 +723,14 @@ export default function Dashboard() {
               <mw.button onClick={handleConfirmBroadcast} className={`w-full bg-amber-500 text-white py-4 rounded-full font-bold shadow-lg ${SPRING}`}>Yes, Broadcast</mw.button>
               <mw.button onClick={() => setBroadcastModalProfile(null)} className={`w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold ${SPRING}`}>Not Now</mw.button>
             </div>
-          </div>
+          </mw.div>
         </div>
       )}
 
       {/* ── Delete Profile Modal ──────────────────────────────────────────── */}
       {profileToDelete && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
-          <div className={`bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 ${MODAL_CARD}`}>
+          <mw.div className={`bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 ${MODAL_CARD}`}>
             <div className="w-20 h-20 bg-red-50 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border border-red-100">
               <AlertOctagon size={36} />
             </div>
@@ -738,14 +740,14 @@ export default function Dashboard() {
               <mw.button onClick={confirmDelete}                       className={`w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg ${SPRING}`}>Yes, Delete It</mw.button>
               <mw.button onClick={() => setProfileToDelete(null)}     className={`w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold ${SPRING}`}>Cancel</mw.button>
             </div>
-          </div>
+          </mw.div>
         </div>
       )}
 
       {/* ── Local Community Alert Modal ───────────────────────────────────── */}
       {activeAlertToDisplay && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-red-950/80 backdrop-blur-md">
-          <div className={`bg-white rounded-[3rem] p-8 max-w-sm w-full text-center shadow-2xl border border-red-500/20 relative overflow-hidden ${MODAL_CARD}`}>
+          <mw.div className={`bg-white rounded-[3rem] p-8 max-w-sm w-full text-center shadow-2xl border border-red-500/20 relative overflow-hidden ${MODAL_CARD}`}>
             <div className="w-24 h-24 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner animate-pulse">
               <Siren size={48} />
             </div>
@@ -756,14 +758,14 @@ export default function Dashboard() {
               <mw.a as={Link} to={`/id/${activeAlertToDisplay.id}`} target="_blank" onClick={() => setDismissedAlerts([...dismissedAlerts, activeAlertToDisplay.id])} className={`w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg flex items-center justify-center ${SPRING}`}>View Details</mw.a>
               <mw.button onClick={() => setDismissedAlerts([...dismissedAlerts, activeAlertToDisplay.id])} className={`w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold ${SPRING}`}>Dismiss</mw.button>
             </div>
-          </div>
+          </mw.div>
         </div>
       )}
 
       {/* ── Found Popup Modal ─────────────────────────────────────────────── */}
       {activeFoundPopupToDisplay && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-emerald-950/80 backdrop-blur-md">
-          <div className={`bg-white rounded-[3rem] p-8 max-w-sm w-full text-center shadow-2xl border border-emerald-500/20 relative overflow-hidden ${MODAL_CARD}`}>
+          <mw.div className={`bg-white rounded-[3rem] p-8 max-w-sm w-full text-center shadow-2xl border border-emerald-500/20 relative overflow-hidden ${MODAL_CARD}`}>
             <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
               <CheckCircle2 size={48} />
             </div>
@@ -771,14 +773,14 @@ export default function Dashboard() {
             <p className="text-zinc-800 font-bold text-lg mb-4">{activeFoundPopupToDisplay.profileName} is safe.</p>
             <p className="text-zinc-500 mb-8 text-sm font-medium">{activeFoundPopupToDisplay.message}</p>
             <mw.button onClick={() => setDismissedFoundAlerts([...dismissedFoundAlerts, activeFoundPopupToDisplay.id])} className={`w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-lg ${SPRING}`}>Wonderful News</mw.button>
-          </div>
+          </mw.div>
         </div>
       )}
 
       {/* ── Custom Alert Modal ────────────────────────────────────────────── */}
       {customAlert.isOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
-          <div className={`bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 ${MODAL_CARD}`}>
+          <mw.div className={`bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 ${MODAL_CARD}`}>
             <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border ${
               customAlert.type === 'error'   ? 'bg-red-50 text-red-600 border-red-100'       :
               customAlert.type === 'success' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
@@ -798,7 +800,7 @@ export default function Dashboard() {
             >
               Okay
             </mw.button>
-          </div>
+          </mw.div>
         </div>
       )}
 
