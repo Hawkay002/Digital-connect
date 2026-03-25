@@ -464,8 +464,12 @@ export default function Dashboard() {
         </div>
 
         {/* ── SECTION 2: Action Buttons (NotificationCenter) ── delay-100 ── */}
-        {/* No z-index or position here — avoids creating a stacking context that would trap the fixed notification overlay */}
-        <div className="w-full mb-10 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-100">
+        {/* We use z-[60] so it opens above the FAB. Native CSS classes make its child buttons bouncy without creating a containment trap! */}
+        <div className="relative z-[100] w-full mb-10 flex justify-between gap-4 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-100
+          [&>div]:flex [&>div]:w-full [&>div]:justify-between [&>div]:gap-4
+          [&_button]:transition-transform [&_button]:duration-[400ms] [&_button]:ease-[cubic-bezier(0.34,1.56,0.64,1)] [&_button]:will-change-transform
+          hover:[&_button]:scale-[1.05] active:[&_button]:scale-[0.95]"
+        >
           <NotificationCenter
             scans={scans}
             systemMessages={systemMessages}
@@ -559,7 +563,7 @@ export default function Dashboard() {
       <div className="fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/80 to-transparent pointer-events-none z-[30]" />
 
       {/* ── FAB tray centered, with properly lowered z-index (z-40) ── */}
-      <div className="fixed bottom-8 left-0 right-0 w-full flex justify-center z-[20] pointer-events-none animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-400">
+      <div className="fixed bottom-8 left-0 right-0 w-full flex justify-center z-[40] pointer-events-none animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-400">
         <div className="w-max bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2.5rem] px-6 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex items-center justify-between gap-8 pointer-events-auto">
           
           <Link to="/settings" className="w-12 h-12 text-zinc-400 hover:text-brandDark group relative z-10">
