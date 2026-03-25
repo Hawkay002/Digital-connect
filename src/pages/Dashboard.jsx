@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
 import GoogleWalletIcon from '../components/ui/GoogleWalletIcon';
-import NotificationCenter from '../components/ui/NotificationCenter';
+import NotificationCenter from '../components/NotificationCenter';
 import {
   Plus, User, QrCode, PawPrint, Trash2, Edit, Download, X,
   Eye, Search, AlertOctagon, Smartphone, Loader2, AlertTriangle,
