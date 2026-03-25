@@ -176,7 +176,7 @@ const getTagIcon = (type) => {
 export default function Changelog() {
   return (
     <div className="min-h-[100dvh] bg-[#fafafa] font-sans selection:bg-brandGold selection:text-white pb-24 relative overflow-hidden">
-      
+
       {/* Premium Background Elements */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-brandGold/10 via-emerald-400/5 to-transparent rounded-full blur-[100px] pointer-events-none z-0"></div>
@@ -214,18 +214,19 @@ export default function Changelog() {
 
       {/* TIMELINE */}
       <div className="max-w-3xl mx-auto px-4 md:px-8 relative z-10">
-        
+
         <div className="relative border-l-2 border-zinc-200/80 ml-4 md:ml-8 space-y-16 py-2">
-          
-          {updates.map((update, index) => (
-            
-            // Each entry: bouncy reveal as it scrolls into view, NO tap/hover interaction
+
+          {updates.map((update) => (
+
+            // animate-once is the key fix: each card waits until it individually
+            // enters the viewport before playing, instead of all firing at once on load.
             <div
               key={update.version}
-              className="relative group pl-12 md:pl-16 animate-initial:opacity-0 animate-initial:y-24 animate-inview:opacity-100 animate-inview:y-0 animate-spring animate-stiffness-180 animate-damping-12"
+              className="relative group pl-12 md:pl-16 animate-initial:opacity-0 animate-initial:y-24 animate-inview:opacity-100 animate-inview:y-0 animate-once animate-spring animate-stiffness-180 animate-damping-12"
             >
-              
-              {/* TIMELINE DOT & ICON — spring hover, no tap */}
+
+              {/* TIMELINE DOT & ICON — spring hover only, no tap */}
               <div className="absolute -left-[25px] top-0 w-12 h-12 bg-[#fafafa] rounded-full flex items-center justify-center border-[4px] border-[#fafafa] z-10 animate-hover:scale-125 animate-spring animate-stiffness-250 animate-damping-10">
                 <div className="w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center shadow-sm border border-zinc-200/80">
                   {update.icon}
@@ -267,7 +268,7 @@ export default function Changelog() {
 
         </div>
       </div>
-      
+
     </div>
   );
 }
