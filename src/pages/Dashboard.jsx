@@ -50,7 +50,7 @@ const CARD_DELAYS = [
 ];
 const cardDelay = (i) => CARD_DELAYS[Math.min(i, CARD_DELAYS.length - 1)];
 
-// ─── Profile Card Component (Memoized to prevent resetting) ───────────────────
+// ─── Profile Card Component (Memoized) ───────────────────────────────────────
 const ProfileCard = React.memo(({ 
   profile, idx, setBroadcastModalProfile, setLostModalProfile, 
   setFoundModalProfile, toggleProfileStatus, setQrModalProfile, setProfileToDelete 
@@ -59,7 +59,7 @@ const ProfileCard = React.memo(({
   
   return (
     <mw.div
-      className={`bg-white/90 backdrop-blur-md rounded-[2.5rem] overflow-hidden border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col group animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 ${cardDelay(idx)} ${profile.isActive === false ? 'border-red-200 opacity-70 grayscale-[50%]' : profile.isLost ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.4)]' : 'border-zinc-200/80 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:border-brandDark/20 transition-all duration-500'} animate-hover:scale-[1.02] animate-tap:scale-[0.98]`}
+      className={`bg-white/90 backdrop-blur-md rounded-[2.5rem] overflow-hidden border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col group animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 ${cardDelay(idx)} ${profile.isActive === false ? 'border-red-200 opacity-70 grayscale-[50%]' : profile.isLost ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.4)]' : 'border-zinc-200/80 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:border-brandDark/20 transition-all duration-500'} animate-hover:scale-105 animate-tap:scale-95`}
     >
       <div className="relative h-56 shrink-0 overflow-hidden bg-zinc-100">
         <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]" />
@@ -100,7 +100,7 @@ const ProfileCard = React.memo(({
 
       <div className="p-5 flex-1 flex flex-col justify-end">
         <div className="flex flex-wrap gap-2.5">
-          <Link to={`/id/${profile.id}`} target="_blank" className="flex-1 group">
+          <Link to={`/id/${profile.id}`} target="_blank" className="flex-1 group" onClick={(e) => e.stopPropagation()}>
             <mw.div className="w-full h-full flex items-center justify-center space-x-2 bg-zinc-50 border border-zinc-200 group-hover:bg-white text-brandDark py-3 rounded-2xl font-bold text-sm shadow-sm transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
               <Eye size={16} /><span>View</span>
             </mw.div>
@@ -121,7 +121,7 @@ const ProfileCard = React.memo(({
             <Smartphone size={18} />
           </mw.button>
           
-          <Link to={`/edit/${profile.id}`} className="group">
+          <Link to={`/edit/${profile.id}`} className="group" onClick={(e) => e.stopPropagation()}>
             <mw.div className="bg-blue-50 border border-blue-100 text-blue-600 group-hover:bg-blue-100 p-3 rounded-2xl shadow-sm transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7">
               <Edit size={18} />
             </mw.div>
@@ -452,7 +452,7 @@ export default function Dashboard() {
 
         {/* ── SECTION 1: Header ── delay-0 ───────────────────────────────── */}
         <div className="animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-0">
-          <mw.div className="flex justify-between items-center gap-4 mb-8 bg-white/80 backdrop-blur-xl p-5 md:px-8 md:py-6 rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 animate-hover:scale-[1.01] animate-tap:scale-[0.99] animate-spring animate-stiffness-220 animate-damping-7">
+          <mw.div className="flex justify-between items-center gap-4 mb-8 bg-white/80 backdrop-blur-xl p-5 md:px-8 md:py-6 rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
             <div className="flex items-center space-x-4 w-full">
               <img src="/kintag-logo.png" alt="KinTag Logo" className="w-12 h-12 rounded-[1rem] shadow-sm" />
               <div className="flex-1">
@@ -465,7 +465,7 @@ export default function Dashboard() {
 
         {/* ── SECTION 2: Action Buttons (NotificationCenter) ── delay-100 ── */}
         <div className="animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-100">
-          <mw.div className="flex gap-4 mb-10 animate-hover:scale-[1.01] animate-tap:scale-[0.99] animate-spring animate-stiffness-220 animate-damping-7">
+          <mw.div className="flex gap-4 mb-10 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
             <NotificationCenter
               scans={scans}
               systemMessages={systemMessages}
@@ -485,7 +485,7 @@ export default function Dashboard() {
                 .animate-seamless-dash { display: flex; width: max-content; animation: seamlessDash 15s linear infinite; }
               `}</style>
               <Link to={`/id/${localAlerts[0].id}`} target="_blank" className="block overflow-hidden rounded-[2rem] shadow-[0_10px_30px_rgba(239,68,68,0.4)] relative group cursor-pointer">
-                <mw.div className="bg-red-600 text-white border-[6px] border-red-500 group-hover:border-red-400 transition-colors h-[72px] animate-hover:scale-[1.02] animate-tap:scale-[0.98] animate-spring animate-stiffness-220 animate-damping-7">
+                <mw.div className="bg-red-600 text-white border-[6px] border-red-500 group-hover:border-red-400 transition-colors h-[72px] animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
                   <div className="animate-seamless-dash flex items-center h-full group-hover:[animation-play-state:paused]">
                     {[...Array(4)].map((_, i) => (
                       <div key={i} className="flex items-center shrink-0">
@@ -507,7 +507,7 @@ export default function Dashboard() {
         {/* ── SECTION 4: Search (conditional) ── delay-200 ─────────────── */}
         {profiles.length > 0 && (
           <div className="animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-200">
-            <mw.div className="mb-8 relative group animate-hover:scale-[1.02] animate-tap:scale-[0.98] animate-spring animate-stiffness-220 animate-damping-7">
+            <mw.div className="mb-8 relative group animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
               <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-brandDark z-10 pointer-events-none" size={20} />
               <input
                 type="text"
@@ -554,30 +554,33 @@ export default function Dashboard() {
 
       <div className="fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/80 to-transparent pointer-events-none z-40" />
 
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-max bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2.5rem] px-6 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex items-center justify-between gap-8 z-50 pointer-events-auto animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-400">
-        
-        <Link to="/settings" className="w-12 h-12 text-zinc-400 hover:text-brandDark group relative z-10">
-          <mw.div className="w-full h-full flex items-center justify-center transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7">
-            <Settings size={28} className="group-hover:rotate-45 transition-transform duration-500" />
-          </mw.div>
-        </Link>
+      <div className="fixed bottom-8 left-0 right-0 w-full flex justify-center z-50 pointer-events-none animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-400">
+        <div className="w-max bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2.5rem] px-6 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex items-center justify-between gap-8 pointer-events-auto">
+          
+          <Link to="/settings" className="w-12 h-12 text-zinc-400 hover:text-brandDark group relative z-10">
+            <mw.div className="w-full h-full flex items-center justify-center transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7">
+              <Settings size={28} className="group-hover:rotate-45 transition-transform duration-500" />
+            </mw.div>
+          </Link>
 
-        <Link to="/create" className="shrink-0 relative z-10 group">
-          <mw.div className="w-16 h-16 bg-brandDark text-white rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(24,24,27,0.4)] border-[6px] border-[#fafafa] -mt-12 group-hover:bg-brandAccent animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7">
-            <Plus size={32} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" />
-          </mw.div>
-        </Link>
+          <Link to="/create" className="shrink-0 relative z-10 group">
+            <mw.div className="w-16 h-16 bg-brandDark text-white rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(24,24,27,0.4)] border-[6px] border-[#fafafa] -mt-12 group-hover:bg-brandAccent animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7">
+              <Plus size={32} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" />
+            </mw.div>
+          </Link>
 
-        <Link to="/profile" className="w-12 h-12 text-zinc-400 hover:text-brandDark group relative z-10">
-          <mw.div className="w-full h-full flex items-center justify-center transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7">
-            {currentAvatar ? (
-              <div className="w-7 h-7 group-hover:scale-110 transition-transform duration-300">{currentAvatar.svg}</div>
-            ) : (
-              <User size={28} className="group-hover:scale-110 transition-transform duration-300" />
-            )}
-            {!userZipCode && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse z-10" />}
-          </mw.div>
-        </Link>
+          <Link to="/profile" className="w-12 h-12 text-zinc-400 hover:text-brandDark group relative z-10">
+            <mw.div className="w-full h-full flex items-center justify-center transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7">
+              {currentAvatar ? (
+                <div className="w-7 h-7 group-hover:scale-110 transition-transform duration-300">{currentAvatar.svg}</div>
+              ) : (
+                <User size={28} className="group-hover:scale-110 transition-transform duration-300" />
+              )}
+              {!userZipCode && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse z-10" />}
+            </mw.div>
+          </Link>
+
+        </div>
       </div>
 
       {/* ── QR Modal ─────────────────────────────────────────────────────── */}
