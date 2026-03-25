@@ -167,11 +167,26 @@ export default function Dashboard() {
   const [userZipCode,  setUserZipCode]  = useState('');
   const [userAvatarId, setUserAvatarId] = useState(null);
 
+  // Auto-hide FAB state
+  const [isFabHidden, setIsFabHidden] = useState(false);
+
   const isInitialScansLoad = useRef(true);
   const isInitialSysLoad   = useRef(true);
 
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+
+  // Handle clicking outside to bring FAB back
+  useEffect(() => {
+    const handleDocumentClick = (e) => {
+      const notifArea = document.getElementById('notif-wrapper');
+      if (notifArea && !notifArea.contains(e.target)) {
+        setIsFabHidden(false);
+      }
+    };
+    document.addEventListener('click', handleDocumentClick);
+    return () => document.removeEventListener('click', handleDocumentClick);
+  }, []);
 
   const playChime = () => {
     try { const a = new Audio('/chime.mp3'); a.play().catch(() => {}); } catch (_) {}
@@ -445,13 +460,24 @@ export default function Dashboard() {
   return (
     <div className="min-h-[100dvh] bg-[#fafafa] p-4 md:p-8 relative pb-32 selection:bg-brandGold selection:text-white">
 
+      {/* CSS Block to seamlessly hide the FAB based on focus state */}
+      <style>{`
+        /* If anything inside the notif-wrapper receives focus, seamlessly hide the FAB */
+        body:has(#notif-wrapper:focus-within) #fab-tray {
+          opacity: 0;
+          pointer-events: none;
+          transform: translateY(20px) scale(0.95);
+        }
+      `}</style>
+
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-brandGold/10 via-emerald-400/5 to-transparent rounded-full blur-[100px] pointer-events-none z-0" />
 
-      <div className="max-w-5xl mx-auto relative z-10 pt-4">
+      {/* NOTE: Removed the z-index from max-w-5xl to break the stacking context trap! */}
+      <div className="max-w-5xl mx-auto relative pt-4">
 
         {/* ── SECTION 1: Header ── delay-0 ───────────────────────────────── */}
-        <div className="animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-0">
+        <div className="relative z-[20] animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-0">
           <mw.div className="flex justify-between items-center gap-4 mb-8 bg-white/80 backdrop-blur-xl p-5 md:px-8 md:py-6 rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
             <div className="flex items-center space-x-4 w-full">
               <img src="/kintag-logo.png" alt="KinTag Logo" className="w-12 h-12 rounded-[1rem] shadow-sm" />
@@ -464,8 +490,10 @@ export default function Dashboard() {
         </div>
 
         {/* ── SECTION 2: Action Buttons (NotificationCenter) ── delay-100 ── */}
-        {/* We use z-[60] so it opens above the FAB. Native CSS classes make its child buttons bouncy without creating a containment trap! */}
-        <div className="relative z-[100] w-full mb-10 flex justify-between gap-4 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-100
+        <div 
+          id="notif-wrapper" 
+          onClick={() => setIsFabHidden(true)} 
+          className="relative z-[60] w-full mb-10 flex justify-between gap-4 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-100
           [&>div]:flex [&>div]:w-full [&>div]:justify-between [&>div]:gap-4
           [&_button]:transition-transform [&_button]:duration-[400ms] [&_button]:ease-[cubic-bezier(0.34,1.56,0.64,1)] [&_button]:will-change-transform
           hover:[&_button]:scale-[1.05] active:[&_button]:scale-[0.95]"
@@ -481,7 +509,7 @@ export default function Dashboard() {
 
         {/* ── SECTION 3: Local alert marquee (conditional) ── delay-150 ──── */}
         {localAlerts.length > 0 && (
-          <div className="animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-150">
+          <div className="relative z-[20] animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-150">
             <div className="mb-10">
               <style>{`
                 @keyframes seamlessDash { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
@@ -513,7 +541,7 @@ export default function Dashboard() {
 
         {/* ── SECTION 4: Search (conditional) ── delay-200 ─────────────── */}
         {profiles.length > 0 && (
-          <div className="animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-200">
+          <div className="relative z-[20] animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-200">
             <mw.div className="mb-8 relative group animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
               <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-brandDark z-10 pointer-events-none" size={20} />
               <input
@@ -528,7 +556,7 @@ export default function Dashboard() {
         )}
 
         {/* ── SECTION 5: Profile Grid ── delay-300 ─────────────────────── */}
-        <div className="max-h-[60vh] overflow-y-auto pb-40 pr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="relative z-[20] max-h-[60vh] overflow-y-auto pb-40 pr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {profiles.length === 0 ? (
             <div className="text-center bg-white/50 backdrop-blur-md p-16 rounded-[3rem] border-2 border-dashed border-zinc-300 shadow-sm animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-300">
               <div className="w-20 h-20 bg-zinc-100 text-zinc-400 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
@@ -559,11 +587,16 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Bottom fade (z-30) ────────────────────────────────────────── */}
+      {/* ── Bottom fade (z-[30]) ────────────────────────────────────────── */}
       <div className="fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/80 to-transparent pointer-events-none z-[30]" />
 
-      {/* ── FAB tray centered, with properly lowered z-index (z-40) ── */}
-      <div className="fixed bottom-8 left-0 right-0 w-full flex justify-center z-[40] pointer-events-none animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-400">
+      {/* ── FAB Tray (z-[40]) auto-hides gracefully using React state AND CSS :has() selectors ── */}
+      <div 
+        id="fab-tray" 
+        className={`fixed bottom-8 left-0 right-0 w-full flex justify-center z-[40] pointer-events-none transition-all duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+          isFabHidden ? 'opacity-0 translate-y-8 scale-95' : 'opacity-100 translate-y-0 scale-100'
+        } animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-400`}
+      >
         <div className="w-max bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2.5rem] px-6 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex items-center justify-between gap-8 pointer-events-auto">
           
           <Link to="/settings" className="w-12 h-12 text-zinc-400 hover:text-brandDark group relative z-10">
