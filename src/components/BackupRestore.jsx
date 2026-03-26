@@ -217,7 +217,7 @@ export default function BackupRestore() {
         <button 
           onClick={handleBackup}
           disabled={isBackingUp || isRestoring}
-          className="bg-brandDark text-white p-5 rounded-2xl font-bold flex flex-col items-center justify-center gap-3 shadow-md hover:bg-brandAccent transition-all disabled:opacity-50 active:scale-95 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"
+          className="bg-brandDark text-white p-5 rounded-2xl font-bold flex flex-col items-center justify-center gap-3 shadow-md hover:bg-brandAccent transition-colors disabled:opacity-50 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"
         >
           {isBackingUp ? <Loader2 size={28} className="text-brandGold animate-spin" /> : <DownloadCloud size={28} className="text-brandGold" />}
           <span>{isBackingUp ? 'Generating...' : 'Download Backup'}</span>
@@ -235,7 +235,7 @@ export default function BackupRestore() {
         <button 
           onClick={() => fileInputRef.current.click()}
           disabled={isBackingUp || isRestoring}
-          className="bg-white border border-zinc-200 text-brandDark p-5 rounded-2xl font-bold flex flex-col items-center justify-center gap-3 shadow-sm hover:bg-zinc-50 hover:border-zinc-300 transition-all disabled:opacity-50 active:scale-95 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"
+          className="bg-white border border-zinc-200 text-brandDark p-5 rounded-2xl font-bold flex flex-col items-center justify-center gap-3 shadow-sm hover:bg-zinc-50 hover:border-zinc-300 transition-colors disabled:opacity-50 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"
         >
           {isRestoring ? <Loader2 size={28} className="text-blue-500 animate-spin" /> : <UploadCloud size={28} className="text-blue-500" />}
           <span>{isRestoring ? 'Restoring Data...' : 'Restore from Backup'}</span>
