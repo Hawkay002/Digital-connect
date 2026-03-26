@@ -4,6 +4,7 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { User, ArrowLeft, CheckCircle2, Edit2, X, MapPin, Camera } from 'lucide-react'; 
 import { AvatarPicker, avatars } from '../components/ui/avatar-picker'; 
+import BackupRestore from '../components/BackupRestore'; 
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -180,6 +181,11 @@ export default function Profile() {
 
           {profileError && <div className="mt-6 mx-auto max-w-sm p-4 bg-red-50 text-red-600 text-sm font-bold rounded-2xl border border-red-100">{profileError}</div>}
           {profileSuccess && <div className="mt-6 mx-auto max-w-sm p-4 bg-emerald-50 text-emerald-600 text-sm font-bold rounded-2xl border border-emerald-100 flex items-center justify-center gap-2"><CheckCircle2 size={18} /> {profileSuccess}</div>}
+        </div>
+
+        {/* ── SECTION 3: Backup & Restore ── delay-200 */}
+        <div className="animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-200">
+           <BackupRestore />
         </div>
 
         {/* AVATAR PICKER MODAL */}
