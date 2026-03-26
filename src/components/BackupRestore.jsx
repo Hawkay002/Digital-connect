@@ -105,6 +105,13 @@ export default function BackupRestore() {
     const file = e.target.files[0];
     if (!file) return;
 
+    // 🌟 FIXED: Safety check since we bypassed the OS file picker lock
+    if (!file.name.endsWith('.json')) {
+      showStatus("Please select a valid KinTag .json backup file.", "error");
+      e.target.value = null;
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
@@ -216,9 +223,10 @@ export default function BackupRestore() {
           <span>{isBackingUp ? 'Generating...' : 'Download Backup'}</span>
         </button>
 
+        {/* 🌟 FIXED: Broadened accept attribute to allow mobile file pickers to see it */}
         <input 
           type="file" 
-          accept=".json" 
+          accept=".json,application/json,text/plain,*/*" 
           ref={fileInputRef} 
           onChange={handleFileChange} 
           className="hidden" 
