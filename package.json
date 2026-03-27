@@ -22,6 +22,8 @@
     "motionwind-react": "^0.1.0",
     "nodemailer": "^6.9.0",
     "qrcode.react": "^3.1.0",
+    "leaflet": "^1.9.4",
+    "react-leaflet": "^4.2.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-easy-crop": "^5.0.5",
