@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore'; 
 import { useNavigate } from 'react-router-dom';
-import { User, ArrowLeft, CheckCircle2, Edit2, X, MapPin, Camera } from 'lucide-react'; 
+import { User, ArrowLeft, CheckCircle2, Edit2, X, MapPin, Camera, AlertTriangle } from 'lucide-react'; 
 import { AvatarPicker, avatars } from '../components/ui/avatar-picker'; 
 import BackupRestore from '../components/BackupRestore'; 
+
+// 🌟 FULL OFFLINE ARCHITECTURE: Import dynamic storage functions
+import { saveToCache, getFromCache } from '../utils/offlineStorage';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -23,13 +26,44 @@ export default function Profile() {
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [avatarLoading, setAvatarLoading] = useState(false);
 
+  // 🌟 NEW: Network Status Monitor
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   useEffect(() => {
     const fetchUserData = async () => {
       if (!auth.currentUser) return;
       try {
+        // 🌟 FULL OFFLINE ARCHITECTURE: The Local Hard Drive Interceptor
+        if (!isOnline) {
+          const cachedUser = await getFromCache('userData');
+          if (cachedUser && cachedUser.length > 0) {
+            setUserData(cachedUser[0]);
+          } else {
+            // Fallback if they somehow never cached their user data yet
+            setUserData({ name: 'Offline User', zipCode: '', avatarId: 1 });
+          }
+          setLoading(false);
+          return; // Stop here, do not attempt to contact Firebase
+        }
+
+        // 🌟 ONLINE ENGINE: Fetch from Firebase & silently backup to IndexedDB
         const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
         if (userDoc.exists()) {
-          setUserData(userDoc.data());
+          const data = userDoc.data();
+          setUserData(data);
+          // Backup User Data instantly
+          saveToCache('userData', [{ id: auth.currentUser.uid, ...data }]);
         } else {
           setUserData({ name: '', zipCode: '', avatarId: 1 });
         }
@@ -40,14 +74,16 @@ export default function Profile() {
       }
     };
     fetchUserData();
-  }, []);
+  }, [isOnline]); // Re-run if network status changes
 
   const handleSaveAvatar = async (avatarId) => {
     setProfileError(''); setProfileSuccess('');
     setAvatarLoading(true);
     try {
       await updateDoc(doc(db, "users", auth.currentUser.uid), { avatarId });
-      setUserData(prev => ({ ...prev, avatarId }));
+      const newData = { ...userData, avatarId };
+      setUserData(newData);
+      saveToCache('userData', [{ id: auth.currentUser.uid, ...newData }]); // Update cache
       setProfileSuccess("Avatar updated successfully!");
     } catch (err) {
       setProfileError("Failed to update avatar.");
@@ -61,8 +97,11 @@ export default function Profile() {
     if (!editNameValue.trim()) return;
     setProfileError(''); setProfileSuccess('');
     try {
-      await updateDoc(doc(db, "users", auth.currentUser.uid), { name: editNameValue.trim() });
-      setUserData(prev => ({ ...prev, name: editNameValue.trim() }));
+      const newName = editNameValue.trim();
+      await updateDoc(doc(db, "users", auth.currentUser.uid), { name: newName });
+      const newData = { ...userData, name: newName };
+      setUserData(newData);
+      saveToCache('userData', [{ id: auth.currentUser.uid, ...newData }]); // Update cache
       setIsEditingName(false);
       setProfileSuccess("Name updated successfully!");
     } catch (err) {
@@ -76,7 +115,9 @@ export default function Profile() {
     try {
       const formattedZip = editZipValue.replace(/\s+/g, '').toUpperCase();
       await updateDoc(doc(db, "users", auth.currentUser.uid), { zipCode: formattedZip });
-      setUserData(prev => ({ ...prev, zipCode: formattedZip }));
+      const newData = { ...userData, zipCode: formattedZip };
+      setUserData(newData);
+      saveToCache('userData', [{ id: auth.currentUser.uid, ...newData }]); // Update cache
       setIsEditingZip(false);
       setProfileSuccess("Zip Code updated successfully! You will now receive local KinAlerts.");
     } catch (err) {
@@ -90,11 +131,20 @@ export default function Profile() {
 
   return (
     <div className="min-h-[100dvh] bg-[#fafafa] p-4 md:p-8 relative pb-24 selection:bg-brandGold selection:text-white">
+      
+      {/* 🌟 OFFLINE DANGER BANNER */}
+      {!isOnline && (
+        <div className="fixed top-0 left-0 right-0 z-[200] bg-amber-500 text-amber-950 py-3 px-4 font-bold text-sm shadow-md flex items-center justify-center gap-2 animate-in slide-in-from-top-4">
+          <AlertTriangle size={18} />
+          You are offline. Editing is disabled.
+        </div>
+      )}
+
       {/* Premium Background Elements */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-brandGold/10 via-emerald-400/5 to-transparent rounded-full blur-[100px] pointer-events-none z-0"></div>
 
-      <div className="max-w-2xl mx-auto relative z-10 pt-4">
+      <div className={`max-w-2xl mx-auto relative z-10 pt-4 ${!isOnline ? 'mt-8' : ''}`}>
 
         {/* ── SECTION 1: Back Button ── delay-0 */}
         <div className="mb-8 animate-initial:opacity-0 animate-initial:y-10 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-0">
@@ -112,8 +162,11 @@ export default function Profile() {
           
           {/* Avatar */}
           <div 
-            onClick={() => setShowAvatarModal(true)}
-            className="w-28 h-28 bg-white border-[4px] border-white shadow-xl text-zinc-400 rounded-[2rem] flex items-center justify-center mx-auto mb-6 relative mt-8 md:mt-0 group-hover:scale-105 transition-all duration-500 cursor-pointer overflow-hidden group/avatar animate-hover:scale-110 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"
+            onClick={() => {
+              if (isOnline) setShowAvatarModal(true);
+              else setProfileError("Cannot change avatar while offline.");
+            }}
+            className={`w-28 h-28 bg-white border-[4px] border-white shadow-xl text-zinc-400 rounded-[2rem] flex items-center justify-center mx-auto mb-6 relative mt-8 md:mt-0 transition-all duration-500 ${isOnline ? 'cursor-pointer group-hover:scale-105 overflow-hidden group/avatar animate-hover:scale-110 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7' : 'opacity-80'}`}
           >
             {currentAvatar ? (
               <div className="w-full h-full bg-zinc-50 p-2">
@@ -125,11 +178,13 @@ export default function Profile() {
               </div>
             )}
             
-            <div className="absolute inset-0 bg-brandDark/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity backdrop-blur-[2px]">
-              <Camera size={28} className="text-white" />
-            </div>
+            {isOnline && (
+              <div className="absolute inset-0 bg-brandDark/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity backdrop-blur-[2px]">
+                <Camera size={28} className="text-white" />
+              </div>
+            )}
 
-            {!userData?.zipCode && <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 border-[3px] border-white rounded-full animate-pulse z-10" title="Missing Zip Code"></span>}
+            {!userData?.zipCode && isOnline && <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 border-[3px] border-white rounded-full animate-pulse z-10" title="Missing Zip Code"></span>}
           </div>
 
           {/* Name */}
@@ -144,7 +199,20 @@ export default function Profile() {
               ) : (
                 <>
                   <h1 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight">{userData?.name || 'Guardian'}</h1>
-                  <button onClick={() => { setEditNameValue(userData?.name || ''); setIsEditingName(true); }} className="text-zinc-400 hover:text-brandGold transition-colors bg-zinc-50 p-2 rounded-full border border-zinc-200 shadow-sm animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7" title="Edit Name"><Edit2 size={16} /></button>
+                  <button 
+                    onClick={() => {
+                      if (isOnline) {
+                        setEditNameValue(userData?.name || ''); 
+                        setIsEditingName(true);
+                      } else {
+                        setProfileError("Cannot edit name while offline.");
+                      }
+                    }} 
+                    className={`transition-colors bg-zinc-50 p-2 rounded-full border border-zinc-200 shadow-sm ${isOnline ? 'text-zinc-400 hover:text-brandGold animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7' : 'text-zinc-300 cursor-not-allowed opacity-50'}`} 
+                    title="Edit Name"
+                  >
+                    <Edit2 size={16} />
+                  </button>
                 </>
               )}
             </div>
@@ -168,12 +236,23 @@ export default function Profile() {
             ) : (
               <div className="flex justify-center">
                 <button
-                  onClick={() => { setEditZipValue(userData?.zipCode || ''); setIsEditingZip(true); }}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all shadow-sm hover:shadow-md relative animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${userData?.zipCode ? 'bg-white border border-zinc-200 text-brandDark hover:-translate-y-0.5' : 'bg-red-50 border border-red-200 text-red-600 hover:-translate-y-0.5'}`}
+                  onClick={() => {
+                    if (isOnline) {
+                      setEditZipValue(userData?.zipCode || ''); 
+                      setIsEditingZip(true);
+                    } else {
+                      setProfileError("Cannot edit Zip Code while offline.");
+                    }
+                  }}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all shadow-sm relative ${
+                    !isOnline ? 'bg-zinc-100 border border-zinc-200 text-zinc-400 cursor-not-allowed opacity-70' :
+                    userData?.zipCode ? 'bg-white border border-zinc-200 text-brandDark hover:-translate-y-0.5 hover:shadow-md animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7' : 
+                    'bg-red-50 border border-red-200 text-red-600 hover:-translate-y-0.5 hover:shadow-md animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7'
+                  }`}
                 >
                   {userData?.zipCode ? <span className="text-lg">{userData.zipCode}</span> : <span>Setup Zip Code Now</span>}
                   <Edit2 size={16} />
-                  {!userData?.zipCode && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>}
+                  {!userData?.zipCode && isOnline && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>}
                 </button>
               </div>
             )}
@@ -184,12 +263,12 @@ export default function Profile() {
         </div>
 
         {/* ── SECTION 3: Backup & Restore ── delay-200 */}
-        <div className="animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-200">
+        <div className={`animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-200 ${!isOnline ? 'opacity-50 pointer-events-none' : ''}`}>
            <BackupRestore />
         </div>
 
         {/* AVATAR PICKER MODAL */}
-        {showAvatarModal && (
+        {showAvatarModal && isOnline && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md overflow-y-auto">
             <div className="animate-initial:opacity-0 animate-initial:scale-90 animate-enter:opacity-100 animate-enter:scale-100 animate-spring animate-stiffness-220 animate-damping-7">
               <AvatarPicker 
