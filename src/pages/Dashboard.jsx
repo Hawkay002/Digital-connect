@@ -14,7 +14,9 @@ import {
 import { avatars } from '../components/ui/avatar-picker';
 import { mw } from 'motionwind-react';
 
-// ─── QR Style Presets ────────────────────────────────────────────────────────
+// 🌟 FULL OFFLINE ARCHITECTURE: Import dynamic storage functions
+import { saveToCache, getFromCache } from '../utils/offlineStorage';
+
 const QR_STYLES = {
   obsidian:  { name: 'Classic Obsidian',   fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200',   hexBorder: '#e4e4e7' },
   bubblegum: { name: 'Bubblegum Pink',     fg: '#db2777', bg: '#fdf2f8', border: 'border-pink-200',   hexBorder: '#fbcfe8' },
@@ -24,7 +26,6 @@ const QR_STYLES = {
   sunshine:  { name: 'Sunshine Orange',   fg: '#d97706', bg: '#fffbeb', border: 'border-amber-200',  hexBorder: '#fde68a' },
 };
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 const getTime = (ts) => ts?.toDate ? ts.toDate().getTime() : new Date(ts || 0).getTime();
 
 const getComputedAge = (profile) => {
@@ -50,10 +51,9 @@ const CARD_DELAYS = [
 ];
 const cardDelay = (i) => CARD_DELAYS[Math.min(i, CARD_DELAYS.length - 1)];
 
-// ─── Profile Card Component (Memoized) ───────────────────────────────────────
 const ProfileCard = React.memo(({ 
   profile, idx, setBroadcastModalProfile, setLostModalProfile, 
-  setFoundModalProfile, toggleProfileStatus, setQrModalProfile, setProfileToDelete 
+  setFoundModalProfile, toggleProfileStatus, setQrModalProfile, setProfileToDelete, isOnline
 }) => {
   const ageInfo = getComputedAge(profile);
   
@@ -71,18 +71,19 @@ const ProfileCard = React.memo(({
 
         <div className="absolute top-4 right-4 flex gap-2 z-30">
           <mw.button
-            disabled={!profile.isLost || profile.kinAlertActive}
+            disabled={!profile.isLost || profile.kinAlertActive || !isOnline}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBroadcastModalProfile(profile); }}
             className={`p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7 ${
-              profile.kinAlertActive ? 'bg-emerald-500 text-white cursor-default' : profile.isLost ? 'bg-amber-500 text-white hover:bg-amber-400' : 'bg-white/50 text-zinc-500 cursor-not-allowed'
+              !isOnline ? 'bg-zinc-800/50 text-zinc-500 cursor-not-allowed' : profile.kinAlertActive ? 'bg-emerald-500 text-white cursor-default' : profile.isLost ? 'bg-amber-500 text-white hover:bg-amber-400' : 'bg-white/50 text-zinc-500 cursor-not-allowed'
             }`}
           >
             <Megaphone size={18} />
           </mw.button>
           <mw.button
+            disabled={!isOnline}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); profile.isLost ? setFoundModalProfile(profile) : setLostModalProfile(profile); }}
             className={`p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7 ${
-              profile.isLost ? 'bg-red-600 text-white animate-pulse hover:bg-red-500' : 'bg-white/80 text-zinc-600 hover:text-red-600 hover:bg-white'
+              !isOnline ? 'bg-zinc-800/50 text-zinc-500 cursor-not-allowed' : profile.isLost ? 'bg-red-600 text-white animate-pulse hover:bg-red-500' : 'bg-white/80 text-zinc-600 hover:text-red-600 hover:bg-white'
             }`}
           >
             <Siren size={18} />
@@ -100,16 +101,17 @@ const ProfileCard = React.memo(({
 
       <div className="p-5 flex-1 flex flex-col justify-end">
         <div className="flex flex-wrap gap-2.5">
-          <Link to={`/id/${profile.id}`} target="_blank" className="flex-1 group" onClick={(e) => e.stopPropagation()}>
+          <Link to={`/id/${profile.id}`} className="flex-1 group" onClick={(e) => e.stopPropagation()}>
             <mw.div className="w-full h-full flex items-center justify-center space-x-2 bg-zinc-50 border border-zinc-200 group-hover:bg-white text-brandDark py-3 rounded-2xl font-bold text-sm shadow-sm transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
-              <Eye size={16} /><span>View</span>
+              <Eye size={16} /><span>View Vault</span>
             </mw.div>
           </Link>
 
           <mw.button
+            disabled={!isOnline}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleProfileStatus(profile.id, profile.isActive); }}
             className={`flex items-center justify-center p-3 rounded-2xl shadow-sm transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7 ${
-              profile.isActive === false ? 'bg-emerald-50 border border-emerald-100 text-emerald-600 hover:bg-emerald-100' : 'bg-red-50 border border-red-100 text-red-600 hover:bg-red-100'
+              !isOnline ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed' : profile.isActive === false ? 'bg-emerald-50 border border-emerald-100 text-emerald-600 hover:bg-emerald-100' : 'bg-red-50 border border-red-100 text-red-600 hover:bg-red-100'
             }`}
           >
             {profile.isActive === false ? <Eye size={18} /> : <EyeOff size={18} />}
@@ -121,15 +123,16 @@ const ProfileCard = React.memo(({
             <Smartphone size={18} />
           </mw.button>
           
-          <Link to={`/edit/${profile.id}`} className="group" onClick={(e) => e.stopPropagation()}>
-            <mw.div className="bg-blue-50 border border-blue-100 text-blue-600 group-hover:bg-blue-100 p-3 rounded-2xl shadow-sm transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7">
+          <Link to={`/edit/${profile.id}`} className="group" onClick={(e) => { if(!isOnline) e.preventDefault(); e.stopPropagation(); }}>
+            <mw.div className={`p-3 rounded-2xl shadow-sm transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7 ${!isOnline ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed' : 'bg-blue-50 border border-blue-100 text-blue-600 group-hover:bg-blue-100'}`}>
               <Edit size={18} />
             </mw.div>
           </Link>
           
           <mw.button
+            disabled={!isOnline}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProfileToDelete({ id: profile.id, imageUrl: profile.imageUrl }); }}
-            className="bg-zinc-50 border border-zinc-200 text-zinc-500 hover:bg-zinc-100 p-3 rounded-2xl shadow-sm transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"
+            className={`p-3 rounded-2xl shadow-sm transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7 ${!isOnline ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed' : 'bg-zinc-50 border border-zinc-200 text-zinc-500 hover:bg-zinc-100'}`}
           >
             <Trash2 size={18} />
           </mw.button>
@@ -139,7 +142,6 @@ const ProfileCard = React.memo(({
   );
 });
 
-// ─── Component ───────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const [profiles,     setProfiles]     = useState([]);
   const [scans,        setScans]        = useState([]);
@@ -167,8 +169,9 @@ export default function Dashboard() {
   const [userZipCode,  setUserZipCode]  = useState('');
   const [userAvatarId, setUserAvatarId] = useState(null);
 
-  // Auto-hide FAB state
   const [isFabHidden, setIsFabHidden] = useState(false);
+
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   const isInitialScansLoad = useRef(true);
   const isInitialSysLoad   = useRef(true);
@@ -176,7 +179,17 @@ export default function Dashboard() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  // Handle clicking outside to bring FAB back
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   useEffect(() => {
     const handleDocumentClick = (e) => {
       const notifArea = document.getElementById('notif-wrapper');
@@ -201,6 +214,31 @@ export default function Dashboard() {
 
     const setupListeners = async () => {
       try {
+        // 🌟 FULL OFFLINE ARCHITECTURE: The Local Hard Drive Interceptor
+        if (!isOnline) {
+          const cachedProfiles = await getFromCache('profiles');
+          const cachedScans    = await getFromCache('scans');
+          const cachedSys      = await getFromCache('systemMessages');
+          const cachedAlerts   = await getFromCache('activeAlerts');
+          const cachedUser     = await getFromCache('userData');
+
+          setProfiles(cachedProfiles);
+          setScans(cachedScans);
+          setSystemMessages(cachedSys);
+          setAllActiveAlerts(cachedAlerts);
+
+          // Restore user settings if we cached them previously
+          if (cachedUser.length > 0) {
+            setUserZipCode(cachedUser[0].zipCode || '');
+            setUserAvatarId(cachedUser[0].avatarId || null);
+            setUserFamilyId(cachedUser[0].familyId || currentUser.uid);
+          }
+          
+          setLoading(false);
+          return; // Stop here, do not attempt to contact Firebase
+        }
+
+        // 🌟 ONLINE ENGINE: Fetch from Firebase & silently backup to IndexedDB
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userDoc    = await getDoc(userDocRef);
         let currentFamilyId = currentUser.uid;
@@ -210,6 +248,9 @@ export default function Dashboard() {
           setUserZipCode(data.zipCode   || '');
           setUserAvatarId(data.avatarId || null);
           currentFamilyId = data.familyId || currentUser.uid;
+          
+          // Backup User Data
+          saveToCache('userData', [{ id: currentUser.uid, ...data }]);
         } else {
           await setDoc(userDocRef, { email: currentUser.email, familyId: currentUser.uid }, { merge: true });
         }
@@ -222,6 +263,7 @@ export default function Dashboard() {
             const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             list.sort((a, b) => getTime(b.createdAt) - getTime(a.createdAt));
             setProfiles(list);
+            saveToCache('profiles', list); // Backup Profiles
           }
         );
 
@@ -236,6 +278,7 @@ export default function Dashboard() {
             const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             list.sort((a, b) => getTime(b.timestamp) - getTime(a.timestamp));
             setScans(list);
+            saveToCache('scans', list); // Backup Scans
             isInitialScansLoad.current = false;
           }
         );
@@ -249,21 +292,28 @@ export default function Dashboard() {
           const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
           list.sort((a, b) => getTime(b.timestamp) - getTime(a.timestamp));
           setSystemMessages(list);
+          saveToCache('systemMessages', list); // Backup System Messages
           isInitialSysLoad.current = false;
         });
 
+        unsubAlerts = onSnapshot(
+          query(collection(db, 'profiles'), where('kinAlertActive', '==', true)),
+          (snap) => {
+            const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setAllActiveAlerts(list);
+            saveToCache('activeAlerts', list); // Backup Active Alerts
+          }
+        );
+
+        // Invites do not need to be cached offline
         unsubInvite = onSnapshot(doc(db, 'invites', currentUser.email.toLowerCase()), (snap) => {
           if (snap.exists() && snap.data().status === 'pending') setPendingInvite({ id: snap.id, ...snap.data() });
           else setPendingInvite(null);
         });
 
-        unsubAlerts = onSnapshot(
-          query(collection(db, 'profiles'), where('kinAlertActive', '==', true)),
-          (snap) => setAllActiveAlerts(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-        );
-
         setLoading(false);
       } catch (err) {
+        console.error("Setup Listeners Error:", err);
         setLoading(false);
       }
     };
@@ -276,7 +326,7 @@ export default function Dashboard() {
       if (unsubInvite)   unsubInvite();
       if (unsubAlerts)   unsubAlerts();
     };
-  }, [currentUser]);
+  }, [currentUser, isOnline]);
 
   useEffect(() => {
     if (scans.length > 0) {
@@ -460,9 +510,15 @@ export default function Dashboard() {
   return (
     <div className="min-h-[100dvh] bg-[#fafafa] p-4 md:p-8 relative pb-32 selection:bg-brandGold selection:text-white">
 
-      {/* CSS Block to seamlessly hide the FAB based on focus state */}
+      {/* 🌟 OFFLINE DANGER BANNER */}
+      {!isOnline && (
+        <div className="fixed top-0 left-0 right-0 z-[200] bg-amber-500 text-amber-950 py-3 px-4 font-bold text-sm shadow-md flex items-center justify-center gap-2 animate-in slide-in-from-top-4">
+          <AlertTriangle size={18} />
+          You are offline. Showing cached Medical Vault.
+        </div>
+      )}
+
       <style>{`
-        /* If anything inside the notif-wrapper receives focus, seamlessly hide the FAB */
         body:has(#notif-wrapper:focus-within) #fab-tray {
           opacity: 0;
           pointer-events: none;
@@ -473,10 +529,8 @@ export default function Dashboard() {
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-brandGold/10 via-emerald-400/5 to-transparent rounded-full blur-[100px] pointer-events-none z-0" />
 
-      {/* NOTE: Removed the z-index from max-w-5xl to break the stacking context trap! */}
-      <div className="max-w-5xl mx-auto relative pt-4">
+      <div className={`max-w-5xl mx-auto relative pt-4 ${!isOnline ? 'mt-8' : ''}`}>
 
-        {/* ── SECTION 1: Header ── delay-0 ───────────────────────────────── */}
         <div className="relative z-[20] animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-0">
           <mw.div className="flex justify-between items-center gap-4 mb-8 bg-white/80 backdrop-blur-xl p-5 md:px-8 md:py-6 rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
             <div className="flex items-center space-x-4 w-full">
@@ -489,27 +543,22 @@ export default function Dashboard() {
           </mw.div>
         </div>
 
-        {/* ── SECTION 2: Action Buttons (NotificationCenter) ── delay-100 ── */}
         <div 
           id="notif-wrapper" 
-          onClick={() => setIsFabHidden(true)} 
-          className="relative z-[60] w-full mb-10 flex justify-between gap-4 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-100
-          [&>div]:flex [&>div]:w-full [&>div]:justify-between [&>div]:gap-4
-          [&_button]:transition-transform [&_button]:duration-[400ms] [&_button]:ease-[cubic-bezier(0.34,1.56,0.64,1)] [&_button]:will-change-transform
-          hover:[&_button]:scale-[1.05] active:[&_button]:scale-[0.95]"
+          onClick={() => { if(isOnline) setIsFabHidden(true); }} 
+          className={`relative z-[60] w-full mb-10 flex justify-between gap-4 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-100 ${!isOnline ? 'opacity-50 pointer-events-none' : ''}`}
         >
           <NotificationCenter 
-  scans={scans} 
-  systemMessages={systemMessages} 
-  pendingInvite={pendingInvite} 
-  currentUser={currentUser} 
-  showMessage={showMessage}
-  profiles={profiles} // 🌟 ADD THIS LINE
-/>
+            scans={scans} 
+            systemMessages={systemMessages} 
+            pendingInvite={pendingInvite} 
+            currentUser={currentUser} 
+            showMessage={showMessage}
+            profiles={profiles} 
+          />
         </div>
 
-        {/* ── SECTION 3: Local alert marquee (conditional) ── delay-150 ──── */}
-        {localAlerts.length > 0 && (
+        {localAlerts.length > 0 && isOnline && (
           <div className="relative z-[20] animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-150">
             <div className="mb-10">
               <style>{`
@@ -540,7 +589,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── SECTION 4: Search (conditional) ── delay-200 ─────────────── */}
         {profiles.length > 0 && (
           <div className="relative z-[20] animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-200">
             <mw.div className="mb-8 relative group animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
@@ -556,7 +604,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ── SECTION 5: Profile Grid ── delay-300 ─────────────────────── */}
         <div className="relative z-[20] max-h-[60vh] overflow-y-auto pb-40 pr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {profiles.length === 0 ? (
             <div className="text-center bg-white/50 backdrop-blur-md p-16 rounded-[3rem] border-2 border-dashed border-zinc-300 shadow-sm animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-300">
@@ -581,6 +628,7 @@ export default function Dashboard() {
                   toggleProfileStatus={toggleProfileStatus}
                   setQrModalProfile={setQrModalProfile}
                   setProfileToDelete={setProfileToDelete}
+                  isOnline={isOnline} 
                 />
               ))}
             </div>
@@ -588,10 +636,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Bottom fade (z-[30]) ────────────────────────────────────────── */}
       <div className="fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/80 to-transparent pointer-events-none z-[30]" />
 
-      {/* ── FAB Tray (z-[40]) auto-hides gracefully using React state AND CSS :has() selectors ── */}
       <div 
         id="fab-tray" 
         className={`fixed bottom-8 left-0 right-0 w-full flex justify-center z-[40] pointer-events-none transition-all duration-[400ms] ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
@@ -600,33 +646,32 @@ export default function Dashboard() {
       >
         <div className="w-max bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2.5rem] px-6 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex items-center justify-between gap-8 pointer-events-auto">
           
-          <Link to="/settings" className="w-12 h-12 text-zinc-400 hover:text-brandDark group relative z-10">
+          <Link to="/settings" onClick={(e) => { if(!isOnline) e.preventDefault(); }} className={`w-12 h-12 group relative z-10 ${!isOnline ? 'text-zinc-300 cursor-not-allowed' : 'text-zinc-400 hover:text-brandDark'}`}>
             <mw.div className="w-full h-full flex items-center justify-center transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7">
-              <Settings size={28} className="group-hover:rotate-45 transition-transform duration-500" />
+              <Settings size={28} className={isOnline ? "group-hover:rotate-45 transition-transform duration-500" : ""} />
             </mw.div>
           </Link>
 
-          <Link to="/create" className="shrink-0 relative z-10 group">
-            <mw.div className="w-16 h-16 bg-brandDark text-white rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(24,24,27,0.4)] border-[6px] border-[#fafafa] -mt-12 group-hover:bg-brandAccent animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7">
-              <Plus size={32} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" />
+          <Link to="/create" onClick={(e) => { if(!isOnline) e.preventDefault(); }} className={`shrink-0 relative z-10 group ${!isOnline ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <mw.div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(24,24,27,0.4)] border-[6px] border-[#fafafa] -mt-12 animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7 ${isOnline ? 'bg-brandDark text-white group-hover:bg-brandAccent' : 'bg-zinc-400 text-zinc-200'}`}>
+              <Plus size={32} strokeWidth={3} className={isOnline ? "group-hover:rotate-90 transition-transform duration-300" : ""} />
             </mw.div>
           </Link>
 
-          <Link to="/profile" className="w-12 h-12 text-zinc-400 hover:text-brandDark group relative z-10">
+          <Link to="/profile" onClick={(e) => { if(!isOnline) e.preventDefault(); }} className={`w-12 h-12 group relative z-10 ${!isOnline ? 'text-zinc-300 cursor-not-allowed' : 'text-zinc-400 hover:text-brandDark'}`}>
             <mw.div className="w-full h-full flex items-center justify-center transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7">
               {currentAvatar ? (
-                <div className="w-7 h-7 group-hover:scale-110 transition-transform duration-300">{currentAvatar.svg}</div>
+                <div className={`w-7 h-7 transition-transform duration-300 ${isOnline ? 'group-hover:scale-110' : 'opacity-50'}`}>{currentAvatar.svg}</div>
               ) : (
-                <User size={28} className="group-hover:scale-110 transition-transform duration-300" />
+                <User size={28} className={`transition-transform duration-300 ${isOnline ? 'group-hover:scale-110' : ''}`} />
               )}
-              {!userZipCode && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse z-10" />}
+              {!userZipCode && isOnline && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse z-10" />}
             </mw.div>
           </Link>
 
         </div>
       </div>
 
-      {/* ── QR Modal ─────────────────────────────────────────────────────── */}
       {qrModalProfile && (
         <div className="fixed inset-0 z-[100] bg-zinc-950/90 backdrop-blur-xl overflow-y-auto flex p-4 md:p-8 animate-in fade-in duration-200">
           <mw.button
@@ -644,14 +689,14 @@ export default function Dashboard() {
               <div className="flex flex-row items-center gap-3 w-full">
                 <mw.button
                   onClick={() => handleAddToWallet(qrModalProfile)}
-                  disabled={generatingWallet}
+                  disabled={generatingWallet || !isOnline}
                   className="flex-1 relative flex items-center justify-center space-x-2 h-[46px] px-4 rounded-full border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 shadow-md disabled:opacity-50 text-white font-bold text-sm transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"
                 >
                   {generatingWallet ? <Loader2 className="animate-spin text-white" size={20} /> : <><GoogleWalletIcon /><span>Add to Google Wallet</span></>}
                 </mw.button>
                 <mw.button
                   onClick={() => downloadFullPass(qrModalProfile)}
-                  disabled={downloading}
+                  disabled={downloading || !isOnline}
                   className="flex-1 flex items-center justify-center space-x-2 bg-brandGold text-brandDark h-[46px] rounded-full font-bold shadow-[0_0_20px_rgba(251,191,36,0.3)] hover:shadow-[0_0_30px_rgba(251,191,36,0.5)] disabled:opacity-50 text-sm transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"
                 >
                   {downloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
@@ -709,7 +754,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Mark as Found Modal ───────────────────────────────────────────── */}
       {foundModalProfile && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
           <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-initial:opacity-0 animate-initial:scale-90 animate-enter:opacity-100 animate-enter:scale-100 animate-spring animate-stiffness-220 animate-damping-7">
@@ -726,7 +770,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Mark as Lost Modal ────────────────────────────────────────────── */}
       {lostModalProfile && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
           <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-initial:opacity-0 animate-initial:scale-90 animate-enter:opacity-100 animate-enter:scale-100 animate-spring animate-stiffness-220 animate-damping-7">
@@ -743,7 +786,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Broadcast Alert Modal ─────────────────────────────────────────── */}
       {broadcastModalProfile && (
         <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
           <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-initial:opacity-0 animate-initial:scale-90 animate-enter:opacity-100 animate-enter:scale-100 animate-spring animate-stiffness-220 animate-damping-7">
@@ -760,7 +802,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Delete Profile Modal ──────────────────────────────────────────── */}
       {profileToDelete && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
           <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-initial:opacity-0 animate-initial:scale-90 animate-enter:opacity-100 animate-enter:scale-100 animate-spring animate-stiffness-220 animate-damping-7">
@@ -777,8 +818,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Local Community Alert Modal ───────────────────────────────────── */}
-      {activeAlertToDisplay && (
+      {activeAlertToDisplay && isOnline && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-red-950/80 backdrop-blur-md">
           <div className="bg-white rounded-[3rem] p-8 max-w-sm w-full text-center shadow-2xl border border-red-500/20 relative overflow-hidden animate-initial:opacity-0 animate-initial:scale-90 animate-enter:opacity-100 animate-enter:scale-100 animate-spring animate-stiffness-220 animate-damping-7">
             <div className="w-24 h-24 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner animate-pulse">
@@ -797,8 +837,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Found Popup Modal ─────────────────────────────────────────────── */}
-      {activeFoundPopupToDisplay && (
+      {activeFoundPopupToDisplay && isOnline && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-emerald-950/80 backdrop-blur-md">
           <div className="bg-white rounded-[3rem] p-8 max-w-sm w-full text-center shadow-2xl border border-emerald-500/20 relative overflow-hidden animate-initial:opacity-0 animate-initial:scale-90 animate-enter:opacity-100 animate-enter:scale-100 animate-spring animate-stiffness-220 animate-damping-7">
             <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
@@ -812,7 +851,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ── Custom Alert Modal ────────────────────────────────────────────── */}
       {customAlert.isOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
           <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-initial:opacity-0 animate-initial:scale-90 animate-enter:opacity-100 animate-enter:scale-100 animate-spring animate-stiffness-220 animate-damping-7">
