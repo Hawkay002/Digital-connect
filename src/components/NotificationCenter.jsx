@@ -7,21 +7,30 @@ import {
   Eye, CheckCircle2, Siren, AlertOctagon, Loader2, List, Map as MapIcon
 } from 'lucide-react';
 
-// 🌟 NEW: Leaflet Map Imports
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// 🌟 NEW: Fix Leaflet's default icon rendering bug natively via CDN
-const customMarkerIcon = new L.Icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
+// 🌟 FIXED: Bulletproof CSS for the map pin image
+const createProfileMarker = (imageUrl, name) => {
+  const initial = name ? name.charAt(0).toUpperCase() : '?';
+  const hasImage = imageUrl && !imageUrl.includes('placehold.co');
+  
+  const innerContent = hasImage
+    ? `<img src="${imageUrl}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid #ef4444; background: white; display: block;" />`
+    : `<div style="width: 100%; height: 100%; border-radius: 50%; border: 3px solid #ef4444; background: white; display: flex; align-items: center; justify-content: center; color: #ef4444; font-weight: 800; font-size: 18px; font-family: sans-serif;">${initial}</div>`;
+
+  return new L.divIcon({
+    className: 'bg-transparent border-none',
+    html: `<div style="position: relative; width: 48px; height: 48px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); transition: transform 0.2s; cursor: pointer;">
+             ${innerContent}
+             <div style="position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid #ef4444;"></div>
+           </div>`,
+    iconSize: [48, 56],
+    iconAnchor: [24, 56],
+    popupAnchor: [0, -56]
+  });
+};
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const getTime = (ts) => ts?.toDate ? ts.toDate().getTime() : new Date(ts || 0).getTime();
@@ -41,7 +50,6 @@ const renderFormattedTextDark = (text) => {
   });
 };
 
-// 🌟 NEW: Helper to extract Coordinates from old Google Maps Links
 const extractCoords = (scan) => {
   if (scan.lat && scan.lng) return { lat: scan.lat, lng: scan.lng };
   if (scan.googleMapsLink) {
@@ -57,27 +65,22 @@ const SPRING_SM  = 'transition-colors animate-hover:scale-110 animate-tap:scale-
 const MODAL_CARD = 'animate-initial:opacity-0 animate-initial:scale-90 animate-enter:opacity-100 animate-enter:scale-100 animate-spring animate-stiffness-220 animate-damping-7';
 
 // ─── Component ───────────────────────────────────────────────────────────────
-export default function NotificationCenter({ scans, systemMessages, pendingInvite, currentUser, showMessage }) {
+export default function NotificationCenter({ scans, systemMessages, pendingInvite, currentUser, showMessage, profiles = [] }) {
 
-  // ── Panel / tab state ────────────────────────────────────────────────────
   const [showNotifCenter, setShowNotifCenter]   = useState(false);
   const [notifTab,        setNotifTab]          = useState('personal');
-  const [viewMode,        setViewMode]          = useState('list'); // 🌟 NEW: 'list' or 'map'
+  const [viewMode,        setViewMode]          = useState('list'); 
 
-  // ── Push permission state ────────────────────────────────────────────────
   const [isEnablingPush,    setIsEnablingPush]   = useState(false);
   const [showSoftAskModal,  setShowSoftAskModal] = useState(false);
 
-  // ── Read-state ───────────────────────────────────────────────────────────
   const [lastViewedPersonal, setLastViewedPersonal] = useState(null);
   const [lastViewedSystem,   setLastViewedSystem]   = useState(null);
 
-  // ── Scan deletion state ──────────────────────────────────────────────────
   const [selectedScans,       setSelectedScans]       = useState([]);
   const [scanToDelete,        setScanToDelete]         = useState(null);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
 
-  // ── Open panel from URL param ────────────────────────────────────────────
   useEffect(() => {
     if (window.location.hash.includes('view=notifications')) {
       setShowNotifCenter(true);
@@ -85,7 +88,6 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
     }
   }, []);
 
-  // ── Load initial last-viewed timestamps from Firestore ───────────────────
   useEffect(() => {
     if (!currentUser) return;
     (async () => {
@@ -100,12 +102,10 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
     })();
   }, [currentUser]);
 
-  // ── Keep selectedScans in sync when scans update ─────────────────────────
   useEffect(() => {
     setSelectedScans(prev => prev.filter(id => scans.some(s => s.id === id)));
   }, [scans]);
 
-  // ── Mark as read when panel / tab is open ────────────────────────────────
   useEffect(() => {
     const markAsRead = async () => {
       if (!currentUser || !showNotifCenter) return;
@@ -127,7 +127,6 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
     markAsRead();
   }, [showNotifCenter, notifTab, scans, systemMessages, currentUser, lastViewedPersonal, lastViewedSystem]);
 
-  // ── Derived counts & Map Data ────────────────────────────────────────────
   const unreadPersonalCount = lastViewedPersonal
     ? scans.filter(s => getTime(s.timestamp) > new Date(lastViewedPersonal).getTime()).length
     : scans.length;
@@ -136,11 +135,9 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
     : systemMessages.length;
   const hasAnyUnread = unreadPersonalCount > 0 || unreadSystemCount > 0 || pendingInvite;
 
-  // 🌟 NEW: Extract scans that have physical GPS coordinates for the map
   const geoScans = scans.map(scan => ({ ...scan, coords: extractCoords(scan) })).filter(scan => scan.coords !== null);
-  const mapCenter = geoScans.length > 0 ? [geoScans[0].coords.lat, geoScans[0].coords.lng] : [39.8283, -98.5795]; // Default to USA if empty
+  const mapCenter = geoScans.length > 0 ? [geoScans[0].coords.lat, geoScans[0].coords.lng] : [39.8283, -98.5795]; 
 
-  // ── Grouped scans for the panel ──────────────────────────────────────────
   const groupedScans = [];
   scans.forEach(scan => {
     const dateObj   = new Date(getTime(scan.timestamp));
@@ -154,7 +151,6 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
     group.items.push(scan);
   });
 
-  // ── Push-notification handlers ───────────────────────────────────────────
   const handleEnableAlertsClick = () => {
     if (!('Notification' in window)) {
       showMessage('Not Supported', 'Your browser does not support notifications.', 'error');
@@ -185,7 +181,6 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
     finally { setIsEnablingPush(false); }
   };
 
-  // ── Invite handlers ──────────────────────────────────────────────────────
   const handleAcceptInvite = async () => {
     if (!pendingInvite) return;
     try {
@@ -209,7 +204,6 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
     } catch (e) { console.error(e); }
   };
 
-  // ── Scan deletion handlers ────────────────────────────────────────────────
   const toggleScanSelection = (id) =>
     setSelectedScans(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
@@ -232,10 +226,8 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
     } catch { showMessage('Error', 'Failed to delete selected notifications.', 'error'); }
   };
 
-  // ────────────────────────────────────────────────────────────────────────
   return (
     <>
-      {/* ── Enable Alerts button ─────────────────────────────────────────── */}
       <button
         onClick={handleEnableAlertsClick}
         disabled={isEnablingPush}
@@ -245,7 +237,6 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
         <span>Enable Alerts</span>
       </button>
 
-      {/* ── Notifications button ─────────────────────────────────────────── */}
       <button
         onClick={() => setShowNotifCenter(true)}
         className={`flex-1 flex items-center justify-center space-x-2 bg-white/80 backdrop-blur-md text-brandDark border border-zinc-200/80 p-4 md:py-5 rounded-[2rem] font-bold shadow-sm relative ${SPRING}`}
@@ -257,12 +248,10 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
         )}
       </button>
 
-      {/* ── Notification Panel ───────────────────────────────────────────── */}
       {showNotifCenter && (
         <div className="fixed inset-0 z-[100] flex justify-end bg-zinc-950/40 backdrop-blur-sm overflow-hidden">
           <div className="bg-white w-full max-w-md h-full shadow-[auto_0_40px_rgba(0,0,0,0.2)] flex flex-col animate-in slide-in-from-right duration-300 relative border-l border-zinc-200/50">
 
-            {/* Panel header */}
             <div className="p-6 md:p-8 pb-4 border-b border-zinc-100 flex justify-between items-center bg-white shrink-0">
               <h2 className="text-3xl font-extrabold text-brandDark tracking-tight">Updates</h2>
               <button
@@ -273,7 +262,6 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
               </button>
             </div>
 
-            {/* Tabs */}
             <div className="flex border-b border-zinc-200 shrink-0 px-4 pt-2 bg-white">
               <button
                 onClick={() => setNotifTab('personal')}
@@ -295,7 +283,6 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
               </button>
             </div>
 
-            {/* 🌟 NEW: Toolbar with Bulk Select & Map Toggle */}
             {notifTab === 'personal' && scans.length > 0 && (
               <div className="bg-white px-6 py-4 border-b border-zinc-100 flex justify-between items-center shrink-0">
                 <div className="flex items-center gap-4">
@@ -333,10 +320,8 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
               </div>
             )}
 
-            {/* Panel body */}
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-zinc-50 flex flex-col">
 
-              {/* Pending invite card (Always visible at top if present) */}
               {pendingInvite && (
                 <div className="bg-brandGold/5 p-6 rounded-[2rem] border border-brandGold/20 mb-6 shadow-sm relative overflow-hidden group shrink-0">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-brandGold/10 rounded-full blur-2xl pointer-events-none group-hover:bg-brandGold/20 transition-colors" />
@@ -353,42 +338,67 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
                 </div>
               )}
 
-              {/* 🌟 NEW: Personal Scans Map View */}
               {notifTab === 'personal' && viewMode === 'map' && (
                  <div className="flex-1 w-full rounded-[2rem] overflow-hidden border border-zinc-200 shadow-inner relative z-0 min-h-[400px] animate-in fade-in zoom-in-95 duration-500">
                     {geoScans.length === 0 ? (
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-100 text-center p-6 z-10">
                         <MapPin size={32} className="text-zinc-300 mb-4" />
                         <h3 className="font-extrabold text-brandDark mb-2">No GPS Data</h3>
-                        <p className="text-xs text-zinc-500 font-medium">None of your recent scans included active GPS location sharing.</p>
+                        <p className="text-xs text-zinc-500 font-medium max-w-[250px]">None of your recent scans included active GPS location sharing.</p>
                       </div>
                     ) : (
-                      <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }} className="z-0">
-                        {/* 🌟 FIXED: Ultra-detailed Google Maps engine for street-level landmarks */}
-<TileLayer
-  url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
-  attribution="&copy; Google Maps"
-  maxZoom={20}
-/>
-                        {geoScans.map(scan => (
-                          <Marker key={scan.id} position={[scan.coords.lat, scan.coords.lng]} icon={customMarkerIcon}>
-                            <Popup className="font-sans">
-                               <div className="font-bold text-brandDark text-sm">{scan.profileName}</div>
-                               <div className="text-xs text-zinc-500">{new Date(getTime(scan.timestamp)).toLocaleString()}</div>
-                               {scan.googleMapsLink && (
-                                 <a href={scan.googleMapsLink} target="_blank" rel="noreferrer" className="block mt-2 text-[10px] text-blue-500 font-bold hover:underline">
-                                   Open in Maps
-                                 </a>
-                               )}
-                            </Popup>
-                          </Marker>
-                        ))}
-                      </MapContainer>
+                      <>
+                        <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }} className="z-0">
+                          {/* 🌟 FIXED: Ultra-detailed Google Maps engine for street-level landmarks */}
+                          <TileLayer
+                            url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+                            attribution="&copy; Google Maps"
+                            maxZoom={20}
+                          />
+                          {geoScans.map(scan => {
+                            // 🌟 FIXED: Ultra-aggressive profile matching
+                            const matchedProfile = profiles?.find(p => 
+                              (scan.profileId && p.id === scan.profileId) || 
+                              (scan.profileName && p.name === scan.profileName) ||
+                              (scan.profileName && scan.profileName.includes(p.name))
+                            );
+                            
+                            const imageUrl = scan.imageUrl || matchedProfile?.imageUrl;
+
+                            return (
+                              <Marker 
+                                key={scan.id} 
+                                position={[scan.coords.lat, scan.coords.lng]} 
+                                icon={createProfileMarker(imageUrl, scan.profileName || '?')}
+                              >
+                                <Popup className="font-sans">
+                                   <div className="font-bold text-brandDark text-sm">{scan.profileName}</div>
+                                   <div className="text-xs text-zinc-500">{new Date(getTime(scan.timestamp)).toLocaleString()}</div>
+                                   {scan.googleMapsLink && (
+                                     <a href={scan.googleMapsLink} target="_blank" rel="noreferrer" className="block mt-2 text-[10px] text-blue-500 font-bold hover:underline">
+                                       Open in Maps
+                                     </a>
+                                   )}
+                                </Popup>
+                              </Marker>
+                            );
+                          })}
+                        </MapContainer>
+                        
+                        {/* 🌟 FIXED: Floating Badge for Passive Scans */}
+                        {scans.length - geoScans.length > 0 && (
+                          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] bg-white/95 backdrop-blur-md border border-zinc-200 shadow-lg px-5 py-2.5 rounded-full flex items-center gap-2 animate-in slide-in-from-bottom-4">
+                             <Info size={16} className="text-brandGold" />
+                             <span className="text-xs font-bold text-zinc-600 whitespace-nowrap">
+                               <strong className="text-brandDark">{scans.length - geoScans.length}</strong> updates without exact GPS hidden
+                             </span>
+                          </div>
+                        )}
+                      </>
                     )}
                  </div>
               )}
 
-              {/* Personal scans List View */}
               {notifTab === 'personal' && viewMode === 'list' && (
                 groupedScans.length === 0 ? (
                   <div className="text-center mt-20">
@@ -441,7 +451,6 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
                               </div>
                             );
 
-                            // Default scan
                             return (
                               <div key={scan.id} className="bg-white p-4 sm:p-5 rounded-[2rem] shadow-sm border border-zinc-200 relative group transition-shadow hover:shadow-md flex items-start gap-3">
                                 <input type="checkbox" checked={selectedScans.includes(scan.id)} onChange={() => toggleScanSelection(scan.id)} className="w-5 h-5 mt-1 rounded border-zinc-300 text-brandDark focus:ring-brandDark cursor-pointer shrink-0 z-20" />
@@ -507,7 +516,6 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
         </div>
       )}
 
-      {/* ── Soft Ask Modal ───────────────────────────────────────────────── */}
       {showSoftAskModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
           <div className={`bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 ${MODAL_CARD}`}>
@@ -524,7 +532,6 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
         </div>
       )}
 
-      {/* ── Delete Single Scan Modal ─────────────────────────────────────── */}
       {scanToDelete && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
           <div className={`bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 ${MODAL_CARD}`}>
@@ -541,7 +548,6 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
         </div>
       )}
 
-      {/* ── Bulk Delete Modal ────────────────────────────────────────────── */}
       {showBulkDeleteModal && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
           <div className={`bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 ${MODAL_CARD}`}>
