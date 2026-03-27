@@ -3,12 +3,15 @@ import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc, onSnapshot } from 'firebase/firestore'; 
 import { useNavigate } from 'react-router-dom';
-import { LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, AlertOctagon, X, Trash2, UserMinus, Share2, LifeBuoy, Info, ChevronDown, Check, Smartphone, Download, Send, User, Clock, History, Link as LinkIcon, Timer, CalendarDays, CheckSquare, Square, ShieldAlert, Plus, Phone, ScanFace, Lock, Unlock, FingerprintPattern } from 'lucide-react'; 
+import { LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, AlertOctagon, X, Trash2, UserMinus, Share2, LifeBuoy, Info, ChevronDown, Check, Smartphone, Download, Send, User, Clock, History, Link as LinkIcon, Timer, CalendarDays, CheckSquare, Square, ShieldAlert, Plus, Phone, ScanFace, Lock, Unlock, FingerprintPattern, AlertTriangle } from 'lucide-react'; 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { WhatsappIcon, TelegramIcon } from "@hugeicons/core-free-icons";
 import { sortedCountryCodes } from '../data/countryCodes'; 
 import { avatars } from '../components/ui/avatar-picker';
 import { mw } from 'motionwind-react';
+
+// 🌟 FULL OFFLINE ARCHITECTURE: Import dynamic storage functions
+import { saveToCache, getFromCache } from '../utils/offlineStorage';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -67,6 +70,20 @@ export default function Settings() {
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const [isLockEnabled, setIsLockEnabled] = useState(localStorage.getItem('kintag_app_lock_enabled') === 'true');
 
+  // 🌟 NEW: Network Status Monitor
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date().getTime()), 60000);
     return () => clearInterval(interval);
@@ -100,12 +117,32 @@ export default function Settings() {
 
     const setupListeners = async () => {
       try {
+        // 🌟 FULL OFFLINE ARCHITECTURE: Load from cache when offline
+        if (!isOnline) {
+          const cachedUser = await getFromCache('userData');
+          if (cachedUser && cachedUser.length > 0) {
+            setUserData(cachedUser[0]);
+            activeFamilyId = cachedUser[0].familyId || auth.currentUser.uid;
+          } else {
+            setUserData({ name: 'Offline User', familyId: auth.currentUser.uid });
+          }
+          
+          const cachedProfiles = await getFromCache('profiles');
+          setProfiles(cachedProfiles || []);
+          
+          setLoading(false);
+          return; // Stop here, skip Firebase completely
+        }
+
+        // 🌟 ONLINE ENGINE: Fetch from Firebase
         const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
 
         if (userDoc.exists()) {
           const data = userDoc.data();
           activeFamilyId = data.familyId || auth.currentUser.uid;
           setUserData({ ...data, familyId: activeFamilyId });
+          // Backup User Data
+          saveToCache('userData', [{ id: auth.currentUser.uid, ...data, familyId: activeFamilyId }]);
         } else {
           setUserData({ name: '', familyId: activeFamilyId });
         }
@@ -127,7 +164,9 @@ export default function Settings() {
             fetchedProfiles = legacySnaps.docs.map(d => ({ id: d.id, ...d.data() }));
           }
 
-          setProfiles(fetchedProfiles.filter(p => p.isActive !== false));
+          const activeProfiles = fetchedProfiles.filter(p => p.isActive !== false);
+          setProfiles(activeProfiles);
+          saveToCache('profiles', activeProfiles); // Backup Profiles
         }, (err) => console.error("Profiles fetch error", err));
 
         // 3. Live Care Sessions Listener
@@ -157,7 +196,7 @@ export default function Settings() {
       if (unsubCare) unsubCare();
       if (unsubTickets) unsubTickets();
     };
-  }, []);
+  }, [isOnline]); // 🌟 Re-run on network status change
 
   // --- App Lock Toggle Logic ---
   const toggleAppLock = async () => {
@@ -207,6 +246,7 @@ export default function Settings() {
 
   const handleCreateCareSession = async (e) => {
     e.preventDefault();
+    if (!isOnline) return alert("Cannot create a session while offline.");
     if (careForm.selectedProfiles.length === 0) return alert("Please select at least one profile.");
     if (careForm.days === 0 && careForm.hours === 0 && careForm.minutes === 0) return alert("Please set a valid duration.");
 
@@ -240,6 +280,7 @@ export default function Settings() {
   };
 
   const handleEndCareSession = async (session) => {
+    if (!isOnline) return alert("You must be online to end this session.");
     try {
       await updateDoc(doc(db, "care_sessions", session.id), { status: 'history', endedAt: new Date().toISOString() });
     } catch (err) {
@@ -248,6 +289,7 @@ export default function Settings() {
   };
 
   const addTimeToSession = async (sessionId, additionalMs) => {
+    if (!isOnline) return alert("You must be online to add time.");
     try {
       const sessionToUpdate = careSessions.find(s => s.id === sessionId);
       if (!sessionToUpdate) return;
@@ -265,6 +307,7 @@ export default function Settings() {
   };
 
   const deleteSelectedHistory = async () => {
+    if (!isOnline) return alert("You must be online to delete history.");
     if (historySelection.length === 0) return;
     try {
       for (const id of historySelection) await deleteDoc(doc(db, "care_sessions", id));
@@ -273,6 +316,7 @@ export default function Settings() {
   };
 
   const deleteAllHistory = async () => {
+    if (!isOnline) return alert("You must be online to clear history.");
     const historyIds = careSessions.filter(s => s.status === 'history' || new Date(s.expiresAt).getTime() < now).map(s => s.id);
     if (historyIds.length === 0) return;
     try {
@@ -284,6 +328,7 @@ export default function Settings() {
   // --- Family & Invite Logic ---
   const handleInvite = async (e) => {
     e.preventDefault();
+    if (!isOnline) return;
     setInviteError('');
     setInviteSuccess('');
     
@@ -336,7 +381,7 @@ export default function Settings() {
   };
 
   const confirmRemoveGuardian = async () => {
-    if (!guardianToRemove) return;
+    if (!guardianToRemove || !isOnline) return;
     setInviteError(''); setInviteSuccess('');
     try {
       await updateDoc(doc(db, "users", guardianToRemove.id), { familyId: guardianToRemove.id });
@@ -358,7 +403,7 @@ export default function Settings() {
 
   // --- Support Tickets Logic ---
   const openSupport = () => {
-    if (supportTickets.length > 0) return;
+    if (supportTickets.length > 0 || !isOnline) return;
     const sId = 'SUP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
     setSupportForm({
       supportId: sId,
@@ -383,6 +428,7 @@ export default function Settings() {
 
   const handleSupportSubmit = async (e) => {
     e.preventDefault();
+    if (!isOnline) return;
     setSupportLoading(true);
     setSupportError('');
     setSupportMessage('');
@@ -423,6 +469,7 @@ export default function Settings() {
   };
 
   const handleResolveTicket = async (ticket) => {
+    if (!isOnline) return;
     setResolvingTicketId(ticket.id);
     try {
       const res = await fetch('/api/resolve-ticket', {
@@ -442,6 +489,7 @@ export default function Settings() {
 
   // --- General App Logic ---
   const handleLogout = async () => { 
+    if(!isOnline) return alert("You must be online to log out securely.");
     await signOut(auth); 
     navigate('/login'); 
   };
@@ -466,7 +514,7 @@ export default function Settings() {
   };
 
   const handleDeleteAccount = async () => {
-    if (deleteInput !== deleteConfirmationPhrase) return;
+    if (deleteInput !== deleteConfirmationPhrase || !isOnline) return;
     setIsDeleting(true);
     setDeleteError('');
 
@@ -498,11 +546,20 @@ export default function Settings() {
 
   return (
     <div className="min-h-[100dvh] bg-[#fafafa] p-4 md:p-8 relative pb-24 selection:bg-brandGold selection:text-white">
+      
+      {/* 🌟 OFFLINE DANGER BANNER */}
+      {!isOnline && (
+        <div className="fixed top-0 left-0 right-0 z-[200] bg-amber-500 text-amber-950 py-3 px-4 font-bold text-sm shadow-md flex items-center justify-center gap-2 animate-in slide-in-from-top-4">
+          <AlertTriangle size={18} />
+          You are offline. Administrative settings are disabled.
+        </div>
+      )}
+
       {/* Premium Background Elements */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-brandGold/10 via-emerald-400/5 to-transparent rounded-full blur-[100px] pointer-events-none z-0"></div>
 
-      <div className="max-w-2xl mx-auto relative z-10 pt-4">
+      <div className={`max-w-2xl mx-auto relative z-10 pt-4 ${!isOnline ? 'mt-8' : ''}`}>
         
         {/* ── SECTION 1: Header Actions ── delay-0 */}
         <div className="flex justify-between items-center mb-8 animate-initial:opacity-0 animate-initial:y-10 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-0">
@@ -524,7 +581,8 @@ export default function Settings() {
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center bg-red-50 border border-red-100 text-red-600 hover:bg-red-100 p-2.5 rounded-full transition-colors duration-300 shadow-sm hover:shadow-md animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"
+              disabled={!isOnline}
+              className={`flex items-center p-2.5 rounded-full transition-colors duration-300 shadow-sm animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7 ${isOnline ? 'bg-red-50 border border-red-100 text-red-600 hover:bg-red-100 hover:shadow-md' : 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed opacity-50'}`}
               title="Log Out Securely"
             >
               <LogOut size={18} className="shrink-0" />
@@ -533,7 +591,7 @@ export default function Settings() {
         </div>
 
         {/* ── SECTION 2: Caretaker Mode ── delay-100 */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-100">
+        <div className={`bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-100 ${!isOnline ? 'opacity-70' : ''}`}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 border border-indigo-100 shadow-sm shrink-0">
@@ -542,8 +600,9 @@ export default function Settings() {
               <h2 className="text-2xl md:text-3xl font-extrabold text-brandDark tracking-tight">Caretaker Mode</h2>
             </div>
             <button
+              disabled={!isOnline}
               onClick={() => { setCareForm({ name: '', countryCode: '+1', countryIso: 'us', phone: '', selectedProfiles: [], days: 0, hours: 0, minutes: 0 }); setShowCareModal(true); }}
-              className="w-10 h-10 bg-brandDark text-white rounded-full flex items-center justify-center hover:bg-brandAccent transition-colors shadow-md shrink-0 animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"
+              className={`w-10 h-10 rounded-full flex items-center justify-center shadow-md shrink-0 animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7 ${isOnline ? 'bg-brandDark text-white hover:bg-brandAccent transition-colors' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}
             >
               <Plus size={20} />
             </button>
@@ -570,7 +629,7 @@ export default function Settings() {
               {activeCareSessions.length === 0 ? (
                 <div className="text-center py-8 bg-zinc-50 rounded-2xl border border-dashed border-zinc-300">
                   <Timer size={32} className="text-zinc-300 mx-auto mb-2" />
-                  <p className="text-zinc-500 font-bold text-sm">No active babysitters.</p>
+                  <p className="text-zinc-500 font-bold text-sm">{!isOnline ? 'Not available offline.' : 'No active babysitters.'}</p>
                 </div>
               ) : (
                 activeCareSessions.map(session => {
@@ -588,13 +647,13 @@ export default function Settings() {
                       </div>
                       
                       <div className="flex flex-wrap items-center gap-2 w-full md:w-auto shrink-0">
-                        <button onClick={() => addTimeToSession(session.id, 3600000)} className="flex-1 md:flex-none px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-200 font-bold rounded-xl transition-colors shadow-sm text-xs flex justify-center items-center gap-1 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7" title="Add 1 Hour">
+                        <button disabled={!isOnline} onClick={() => addTimeToSession(session.id, 3600000)} className="flex-1 md:flex-none px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-200 disabled:opacity-50 font-bold rounded-xl transition-colors shadow-sm text-xs flex justify-center items-center gap-1 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7" title="Add 1 Hour">
                           <Plus size={14}/> 1 Hr
                         </button>
-                        <button onClick={() => { setGeneratedCareLink(`${window.location.origin}/#/care/${session.id}`); setShowCareModal(false); }} className="flex-1 md:flex-none px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 font-bold rounded-xl transition-colors shadow-sm text-xs flex justify-center items-center gap-1 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
+                        <button disabled={!isOnline} onClick={() => { setGeneratedCareLink(`${window.location.origin}/#/care/${session.id}`); setShowCareModal(false); }} className="flex-1 md:flex-none px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 disabled:opacity-50 border border-indigo-200 font-bold rounded-xl transition-colors shadow-sm text-xs flex justify-center items-center gap-1 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
                           <Share2 size={14}/> Share
                         </button>
-                        <button onClick={() => handleEndCareSession(session)} className="w-full md:w-auto px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold rounded-xl transition-colors shadow-sm text-xs text-center animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
+                        <button disabled={!isOnline} onClick={() => handleEndCareSession(session)} className="w-full md:w-auto px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 border disabled:opacity-50 border-red-200 font-bold rounded-xl transition-colors shadow-sm text-xs text-center animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
                           End Access
                         </button>
                       </div>
@@ -607,7 +666,7 @@ export default function Settings() {
 
           {careTab === 'history' && (
             <div className="space-y-4">
-              {historyCareSessions.length > 0 && (
+              {historyCareSessions.length > 0 && isOnline && (
                 <div className="flex justify-between items-center mb-2 px-1">
                   <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">{historySelection.length} Selected</p>
                   <div className="flex gap-2">
@@ -620,7 +679,7 @@ export default function Settings() {
               {historyCareSessions.length === 0 ? (
                 <div className="text-center py-8 bg-zinc-50 rounded-2xl border border-dashed border-zinc-300">
                   <History size={32} className="text-zinc-300 mx-auto mb-2" />
-                  <p className="text-zinc-500 font-bold text-sm">No past sessions.</p>
+                  <p className="text-zinc-500 font-bold text-sm">{!isOnline ? 'Not available offline.' : 'No past sessions.'}</p>
                 </div>
               ) : (
                 historyCareSessions.map(session => {
@@ -638,11 +697,12 @@ export default function Settings() {
                             <a href={`tel:${session.countryCode || ''}${session.phone}`} onClick={e => e.stopPropagation()} className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7">
                               <Phone size={14} />
                             </a>
-                            <button onClick={(e) => {
+                            <button disabled={!isOnline} onClick={(e) => {
                               e.stopPropagation();
+                              if(!isOnline) return;
                               setCareForm({ name: session.name, countryCode: session.countryCode || '+1', countryIso: session.countryIso || 'us', phone: session.phone, selectedProfiles: session.selectedProfiles || [], days: 0, hours: 0, minutes: 0 }); 
                               setShowCareModal(true); 
-                            }} className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-1 text-xs font-bold animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7">
+                            }} className="p-1.5 bg-indigo-50 disabled:opacity-50 disabled:hover:bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-1 text-xs font-bold animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7">
                               <History size={14} /> Re-book
                             </button>
                           </div>
@@ -660,7 +720,7 @@ export default function Settings() {
         </div>
 
         {/* ── SECTION 3: Family Sharing ── delay-200 */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-200">
+        <div className={`bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-200 ${!isOnline ? 'opacity-70' : ''}`}>
           <div className="flex items-center gap-3 mb-3">
             <div className="w-12 h-12 bg-brandGold/10 rounded-2xl flex items-center justify-center text-brandGold border border-brandGold/20 shadow-sm">
               <Users size={24} />
@@ -680,10 +740,10 @@ export default function Settings() {
             <form onSubmit={handleInvite} className="flex flex-col sm:flex-row gap-3 mb-10 p-2 bg-zinc-50 border border-zinc-200 rounded-[2rem] shadow-inner">
               <div className="flex-1 flex items-center pl-4 gap-2">
                 <Mail size={18} className="text-zinc-400" />
-                <input type="email" placeholder="Enter guardian's email..." value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required className="w-full py-3 bg-transparent outline-none font-medium text-brandDark placeholder:text-zinc-400" />
+                <input type="email" placeholder="Enter guardian's email..." disabled={!isOnline} value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required className="w-full py-3 bg-transparent outline-none font-medium text-brandDark placeholder:text-zinc-400 disabled:opacity-50" />
               </div>
-              <button type="submit" disabled={inviteLoading} className="bg-brandDark text-white px-8 py-4 rounded-full font-bold hover:bg-brandAccent transition-colors shadow-md disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
-                {inviteLoading ? <Loader2 size={18} className="animate-spin"/> : 'Send Invite'}
+              <button type="submit" disabled={inviteLoading || !isOnline} className="bg-brandDark text-white px-8 py-4 rounded-full font-bold hover:bg-brandAccent transition-colors shadow-md disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
+                {inviteLoading ? <Loader2 size={18} className="animate-spin"/> : (!isOnline ? 'Offline' : 'Send Invite')}
               </button>
             </form>
           )}
@@ -732,7 +792,7 @@ export default function Settings() {
                 
                 <div className="absolute top-3 right-3 flex items-center">
                   {auth.currentUser?.uid === currentFamilyId ? (
-                    <button onClick={() => setGuardianToRemove(member)} className="text-red-500 bg-red-50 border border-red-100 hover:bg-red-100 p-2 sm:p-2.5 rounded-xl transition-colors shadow-sm shrink-0 animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7" title="Remove Guardian">
+                    <button disabled={!isOnline} onClick={() => setGuardianToRemove(member)} className="text-red-500 disabled:opacity-50 disabled:hover:bg-red-50 bg-red-50 border border-red-100 hover:bg-red-100 p-2 sm:p-2.5 rounded-xl transition-colors shadow-sm shrink-0 animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7" title="Remove Guardian">
                       <Trash2 size={16} />
                     </button>
                   ) : (
@@ -765,7 +825,7 @@ export default function Settings() {
         )}
 
         {/* ── SECTION 5: Help & Support ── delay-300 */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 flex flex-col sm:flex-row items-center justify-between transition-all hover:shadow-[0_8px_40px_rgb(0,0,0,0.1)] gap-6 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-300">
+        <div className={`bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 flex flex-col sm:flex-row items-center justify-between transition-all hover:shadow-[0_8px_40px_rgb(0,0,0,0.1)] gap-6 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-300 ${!isOnline ? 'opacity-70' : ''}`}>
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
             <div className="w-16 h-16 bg-blue-50/80 border border-blue-100 text-blue-500 rounded-2xl flex items-center justify-center shrink-0 shadow-sm">
               <LifeBuoy size={32} />
@@ -777,14 +837,14 @@ export default function Settings() {
           </div>
           <mw.button 
             onClick={openSupport} 
-            disabled={supportTickets.length > 0}
+            disabled={supportTickets.length > 0 || !isOnline}
             className={`w-full sm:w-auto px-8 py-4 rounded-full font-bold shadow-md transition-colors shrink-0 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${
-              supportTickets.length > 0 
+              supportTickets.length > 0 || !isOnline
                 ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed' 
                 : 'bg-white text-brandDark border border-zinc-200 hover:bg-zinc-50 hover:shadow-lg hover:-translate-y-0.5'
             }`}
           >
-            {supportTickets.length > 0 ? 'Ticket Active (1/1)' : 'Contact Support'}
+            {!isOnline ? 'Offline' : (supportTickets.length > 0 ? 'Ticket Active (1/1)' : 'Contact Support')}
           </mw.button>
         </div>
 
@@ -817,9 +877,9 @@ export default function Settings() {
                       <p className="text-sm text-brandDark font-medium bg-white p-5 rounded-2xl border border-zinc-200 mb-6 whitespace-pre-wrap leading-relaxed shadow-sm max-h-48 overflow-y-auto">
                         "{ticket.message}"
                       </p>
-                      <button onClick={() => handleResolveTicket(ticket)} disabled={resolvingTicketId === ticket.id} className="w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-md hover:bg-emerald-600 hover:shadow-lg hover:-translate-y-0.5 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
+                      <button disabled={!isOnline || resolvingTicketId === ticket.id} onClick={() => handleResolveTicket(ticket)} className="w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-md hover:bg-emerald-600 hover:shadow-lg hover:-translate-y-0.5 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
                         {resolvingTicketId === ticket.id ? <Loader2 size={18} className="animate-spin"/> : <CheckCircle2 size={18} />}
-                        {resolvingTicketId === ticket.id ? 'Resolving...' : 'Mark as Resolved'}
+                        {!isOnline ? 'Offline' : (resolvingTicketId === ticket.id ? 'Resolving...' : 'Mark as Resolved')}
                       </button>
                     </div>
                   </div>
@@ -856,7 +916,7 @@ export default function Settings() {
         )}
 
         {/* ── SECTION 7: Danger Zone ── delay-500 */}
-        <div className="animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-500">
+        <div className={`animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-500 ${!isOnline ? 'opacity-70' : ''}`}>
           <div className="flex items-center justify-center mb-8 relative">
             <div className="w-full h-px bg-zinc-200"></div>
             <span className="absolute bg-[#fafafa] px-4 text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">Danger Zone</span>
@@ -873,8 +933,8 @@ export default function Settings() {
             <p className="text-red-900/60 font-medium mb-8 leading-relaxed text-sm md:text-base relative z-10">
               Permanently delete your account, all profiles, and all scan history. This action is instantaneous and cannot be undone.
             </p>
-            <button onClick={() => setShowDeleteZone(true)} className="bg-white border border-red-200 text-red-600 font-bold px-8 py-4 rounded-full hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors shadow-sm hover:shadow-md relative z-10 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
-              Delete Account
+            <button disabled={!isOnline} onClick={() => setShowDeleteZone(true)} className="bg-white border disabled:opacity-50 border-red-200 text-red-600 font-bold px-8 py-4 rounded-full hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors shadow-sm hover:shadow-md relative z-10 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
+              {isOnline ? 'Delete Account' : 'Disabled Offline'}
             </button>
           </div>
         </div>
@@ -882,7 +942,7 @@ export default function Settings() {
         {/* ── MODALS ── */}
 
         {/* Caretaker Create Modal */}
-        {showCareModal && !generatedCareLink && (
+        {showCareModal && !generatedCareLink && isOnline && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md overflow-y-auto">
             <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 max-w-md w-full shadow-2xl border border-white/20 my-8 animate-initial:opacity-0 animate-initial:scale-90 animate-enter:opacity-100 animate-enter:scale-100 animate-spring animate-stiffness-220 animate-damping-7">
               <div className="flex justify-between items-center mb-6">
@@ -973,7 +1033,7 @@ export default function Settings() {
         )}
 
         {/* Support Modal */}
-        {showSupportModal && (
+        {showSupportModal && isOnline && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md overflow-y-auto">
             <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 max-w-md w-full shadow-2xl border border-white/20 my-8 animate-initial:opacity-0 animate-initial:scale-90 animate-enter:opacity-100 animate-enter:scale-100 animate-spring animate-stiffness-220 animate-damping-7">
               <div className="flex justify-between items-center mb-8">
@@ -1033,7 +1093,7 @@ export default function Settings() {
         )}
 
         {/* Remove Guardian Confirm Modal */}
-        {guardianToRemove && (
+        {guardianToRemove && isOnline && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
             <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-initial:opacity-0 animate-initial:scale-90 animate-enter:opacity-100 animate-enter:scale-100 animate-spring animate-stiffness-220 animate-damping-7">
               <div className="w-20 h-20 bg-red-50 border border-red-100 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner"><UserMinus size={36} /></div>
@@ -1062,7 +1122,7 @@ export default function Settings() {
         )}
 
         {/* Delete Account Modal */}
-        {showDeleteZone && (
+        {showDeleteZone && isOnline && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
             <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-10 max-w-md w-full text-center shadow-2xl border border-white/20 relative animate-initial:opacity-0 animate-initial:scale-90 animate-enter:opacity-100 animate-enter:scale-100 animate-spring animate-stiffness-220 animate-damping-7">
               <button onClick={() => { setShowDeleteZone(false); setDeleteError(''); setDeleteInput(''); }} className="absolute top-6 right-6 text-zinc-400 hover:text-brandDark bg-zinc-50 hover:bg-zinc-100 p-2.5 rounded-full transition-colors border border-zinc-200 shadow-sm animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"><X size={20} /></button>
