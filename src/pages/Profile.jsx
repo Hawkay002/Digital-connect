@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, ArrowLeft, CheckCircle2, Edit2, X, MapPin, Camera, AlertTriangle } from 'lucide-react'; 
 import { AvatarPicker, avatars } from '../components/ui/avatar-picker'; 
 import BackupRestore from '../components/BackupRestore'; 
+import { mw } from 'motionwind-react';
 
 // 🌟 FULL OFFLINE ARCHITECTURE: Import dynamic storage functions
 import { saveToCache, getFromCache } from '../utils/offlineStorage';
@@ -150,7 +151,7 @@ export default function Profile() {
         <div className="mb-8 animate-initial:opacity-0 animate-initial:y-10 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-0">
           <button
             onClick={() => navigate('/dashboard')}
-            className="group flex items-center space-x-2 bg-white/60 backdrop-blur-md border border-zinc-200 text-zinc-600 px-5 py-2.5 rounded-full font-bold shadow-sm hover:shadow-md hover:bg-white transition-all animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"
+            className="group flex items-center space-x-2 bg-white/60 backdrop-blur-md border border-zinc-200 text-zinc-600 px-5 py-2.5 rounded-full font-bold shadow-sm hover:shadow-md hover:bg-white transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"
           >
             <ArrowLeft size={18} className="transform group-hover:-translate-x-1 transition-transform" />
             <span>Back to Dashboard</span>
@@ -166,7 +167,7 @@ export default function Profile() {
               if (isOnline) setShowAvatarModal(true);
               else setProfileError("Cannot change avatar while offline.");
             }}
-            className={`w-28 h-28 bg-white border-[4px] border-white shadow-xl text-zinc-400 rounded-[2rem] flex items-center justify-center mx-auto mb-6 relative mt-8 md:mt-0 transition-all duration-500 ${isOnline ? 'cursor-pointer group-hover:scale-105 overflow-hidden group/avatar animate-hover:scale-110 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7' : 'opacity-80'}`}
+            className={`w-28 h-28 bg-white border-[4px] border-white shadow-xl text-zinc-400 rounded-[2rem] flex items-center justify-center mx-auto mb-6 relative mt-8 md:mt-0 transition-colors duration-500 ${isOnline ? 'cursor-pointer group-hover:scale-105 overflow-hidden group/avatar animate-hover:scale-110 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7' : 'opacity-80'}`}
           >
             {currentAvatar ? (
               <div className="w-full h-full bg-zinc-50 p-2">
@@ -193,8 +194,8 @@ export default function Profile() {
               {isEditingName ? (
                 <div className="flex items-center gap-2 bg-zinc-50 p-1.5 rounded-full border border-zinc-200 shadow-sm">
                   <input type="text" defaultValue={userData?.name || ''} onChange={(e) => setEditNameValue(e.target.value)} className="w-40 px-4 py-2 bg-transparent outline-none font-bold text-center text-brandDark" autoFocus/>
-                  <button onClick={handleSaveName} className="bg-brandDark text-white px-4 py-2 rounded-full font-bold text-sm hover:bg-brandAccent transition-all shadow-sm animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">Save</button>
-                  <button onClick={() => setIsEditingName(false)} className="text-zinc-400 hover:text-zinc-600 bg-white p-2 rounded-full border border-zinc-200 transition-all shadow-sm animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"><X size={16}/></button>
+                  <button onClick={handleSaveName} className="bg-brandDark text-white px-4 py-2 rounded-full font-bold text-sm hover:bg-brandAccent transition-colors shadow-sm animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">Save</button>
+                  <button onClick={() => setIsEditingName(false)} className="text-zinc-400 hover:text-zinc-600 bg-white p-2 rounded-full border border-zinc-200 transition-colors shadow-sm animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"><X size={16}/></button>
                 </div>
               ) : (
                 <>
@@ -230,8 +231,8 @@ export default function Profile() {
             {isEditingZip ? (
               <div className="flex items-center gap-2 bg-white p-1.5 rounded-full border border-zinc-200 shadow-sm">
                 <input type="text" placeholder="Enter Zip" defaultValue={userData?.zipCode || ''} onChange={(e) => setEditZipValue(e.target.value)} className="w-full px-4 py-2 bg-transparent outline-none font-bold text-center" autoFocus/>
-                <button onClick={handleSaveZipCode} className="bg-brandDark text-white px-5 py-2 rounded-full font-bold text-sm hover:bg-brandAccent transition-all shadow-sm animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">Save</button>
-                <button onClick={() => setIsEditingZip(false)} className="text-zinc-400 hover:text-zinc-600 bg-zinc-50 p-2 rounded-full border border-zinc-200 transition-all shadow-sm animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"><X size={16}/></button>
+                <button onClick={handleSaveZipCode} className="bg-brandDark text-white px-5 py-2 rounded-full font-bold text-sm hover:bg-brandAccent transition-colors shadow-sm animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">Save</button>
+                <button onClick={() => setIsEditingZip(false)} className="text-zinc-400 hover:text-zinc-600 bg-zinc-50 p-2 rounded-full border border-zinc-200 transition-colors shadow-sm animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"><X size={16}/></button>
               </div>
             ) : (
               <div className="flex justify-center">
@@ -244,7 +245,7 @@ export default function Profile() {
                       setProfileError("Cannot edit Zip Code while offline.");
                     }
                   }}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all shadow-sm relative ${
+                  className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-colors shadow-sm relative ${
                     !isOnline ? 'bg-zinc-100 border border-zinc-200 text-zinc-400 cursor-not-allowed opacity-70' :
                     userData?.zipCode ? 'bg-white border border-zinc-200 text-brandDark hover:-translate-y-0.5 hover:shadow-md animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7' : 
                     'bg-red-50 border border-red-200 text-red-600 hover:-translate-y-0.5 hover:shadow-md animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7'
@@ -263,9 +264,9 @@ export default function Profile() {
         </div>
 
         {/* ── SECTION 3: Backup & Restore ── delay-200 */}
-        <div className={`animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-200 ${!isOnline ? 'opacity-50 pointer-events-none' : ''}`}>
+        <mw.div className={`animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-200 ${!isOnline ? 'opacity-50 pointer-events-none' : ''}`}>
            <BackupRestore />
-        </div>
+        </mw.div>
 
         {/* AVATAR PICKER MODAL */}
         {showAvatarModal && isOnline && (
