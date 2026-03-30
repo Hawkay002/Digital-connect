@@ -7,7 +7,9 @@ import { Eye, EyeOff, CheckCircle2, Circle, Loader2, Mail, ArrowRight, ArrowLeft
 import ReCAPTCHA from "react-google-recaptcha";
 import { motion, AnimatePresence } from "motion/react";
 import { mw } from 'motionwind-react';
-import { InputOtp } from '@heroui/react';
+
+// 🌟 HEROUI V3 IMPORT
+import { InputOTP } from '@heroui/react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const RESEND_COOLDOWN_SECS = 90; // 1 min 30 sec
@@ -151,7 +153,6 @@ export default function Signup() {
 
   // ── OTP handlers ───────────────────────────────────────────────────────────
 
-  // Initial send — also starts the cooldown so the resend button is gated from the start
   const handleSendOtp = async () => {
     setError('');
     setResendError('');
@@ -160,7 +161,6 @@ export default function Signup() {
       const res = await fetch('/api/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // pass expiresInMins so the backend stores expiresAt = now + 10min
         body: JSON.stringify({ email: email.toLowerCase(), expiresInMins: 10 })
       });
       const data = await res.json();
@@ -178,7 +178,6 @@ export default function Signup() {
     }
   };
 
-  // Resend — deletes old OTP on the backend and creates a fresh one with a new expiry
   const handleResendOtp = async () => {
     if (resendCooldown > 0 || resendCount >= MAX_RESENDS) return;
     setOtpError('');
@@ -188,13 +187,11 @@ export default function Signup() {
       const res = await fetch('/api/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // resend:true tells the backend to delete the existing OTP before creating new one
         body: JSON.stringify({ email: email.toLowerCase(), resend: true, expiresInMins: 10 })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to resend code.");
 
-      // Clear previous entries
       setOtpCode('');
       setOtpError('');
 
@@ -455,7 +452,6 @@ export default function Signup() {
                 {showOtpInput && !isEmailVerified && (
                   <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-200 shadow-inner animate-in fade-in slide-in-from-top-4 space-y-4">
 
-                    {/* Header */}
                     <div className="text-center">
                       <p className="text-sm font-bold text-brandDark mb-0.5">Enter verification code</p>
                       <p className="text-xs text-zinc-500 font-medium">
@@ -470,17 +466,28 @@ export default function Signup() {
                       </p>
                     )}
 
-                    {/* 🌟 FIXED: Simple v2 InputOtp component without slots */}
+                    {/* 🌟 HEROUI V3 OTP COMPONENT WITH GROUPS & SLOTS */}
                     <div className="flex justify-center">
-                      <InputOtp
-                        length={6}
+                      <InputOTP
+                        maxLength={6}
                         value={otpCode}
                         onValueChange={setOtpCode}
                         size="lg"
-                      />
+                      >
+                        <InputOTP.Group>
+                          <InputOTP.Slot index={0} />
+                          <InputOTP.Slot index={1} />
+                          <InputOTP.Slot index={2} />
+                        </InputOTP.Group>
+                        <InputOTP.Separator />
+                        <InputOTP.Group>
+                          <InputOTP.Slot index={3} />
+                          <InputOTP.Slot index={4} />
+                          <InputOTP.Slot index={5} />
+                        </InputOTP.Group>
+                      </InputOTP>
                     </div>
 
-                    {/* Verify button */}
                     <button
                       type="button"
                       onClick={handleVerifyOtp}
@@ -512,7 +519,6 @@ export default function Signup() {
                         )}
                       </div>
                     ) : (
-                      /* Max resends reached */
                       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
                         <p className="text-xs text-amber-700 font-bold leading-relaxed">
                           No more resend attempts. Use <span className="text-brandDark">Continue with Google</span> below or check your spam folder.
@@ -526,7 +532,7 @@ export default function Signup() {
                   </div>
                 )}
 
-                {/* ── Google button — always visible when email isn't verified ── */}
+                {/* ── Google button ── */}
                 {!isEmailVerified && (
                   <div className="animate-in fade-in duration-300">
                     <div className="relative flex items-center justify-center w-full my-2">
