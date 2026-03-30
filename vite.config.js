@@ -1,12 +1,14 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite'; // NEW TAILWIND V4 PLUGIN
+import { VitePWA } from 'vite-plugin-pwa';
 import { motionwind } from 'motionwind-react/vite'
 
 export default defineConfig({
   plugins: [
     motionwind(), // ⚡ Must come BEFORE react() so it transforms source first
     react(),
+    tailwindcss(),
     VitePWA({
       registerType: 'prompt', // Tells it to use the manual Update Toast
       includeAssets: ['kintag-logo.png', 'apple-touch-icon.png', 'favicon.ico'], 
