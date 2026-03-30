@@ -7,7 +7,7 @@ import { Eye, EyeOff, CheckCircle2, Circle, Loader2, Mail, ArrowRight, ArrowLeft
 import ReCAPTCHA from "react-google-recaptcha";
 import { motion, AnimatePresence } from "motion/react";
 import { mw } from 'motionwind-react';
-import { InputOTP } from '@heroui/react';
+import { InputOtp } from '@heroui/react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const RESEND_COOLDOWN_SECS = 90; // 1 min 30 sec
