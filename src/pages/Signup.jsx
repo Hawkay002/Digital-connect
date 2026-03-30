@@ -43,7 +43,7 @@ export default function Signup() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [otpError, setOtpError] = useState('');
-  const [otpCode, setOtpCode] = useState(''); // single string, managed by HeroUI InputOTP
+  const [otpCode, setOtpCode] = useState(''); 
 
   // ── Resend state ───────────────────────────────────────────────────────────
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -470,26 +470,14 @@ export default function Signup() {
                       </p>
                     )}
 
-                    {/* OTP slots — HeroUI grouped design */}
+                    {/* 🌟 FIXED: Simple v2 InputOtp component without slots */}
                     <div className="flex justify-center">
-                      <InputOTP
-                        maxLength={6}
+                      <InputOtp
+                        length={6}
                         value={otpCode}
                         onValueChange={setOtpCode}
                         size="lg"
-                      >
-                        <InputOTP.Group>
-                          <InputOTP.Slot index={0} />
-                          <InputOTP.Slot index={1} />
-                          <InputOTP.Slot index={2} />
-                        </InputOTP.Group>
-                        <InputOTP.Separator />
-                        <InputOTP.Group>
-                          <InputOTP.Slot index={3} />
-                          <InputOTP.Slot index={4} />
-                          <InputOTP.Slot index={5} />
-                        </InputOTP.Group>
-                      </InputOTP>
+                      />
                     </div>
 
                     {/* Verify button */}
