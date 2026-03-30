@@ -1,7 +1,6 @@
 import { HashRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { useEffect } from 'react';
-import { HeroUIProvider } from '@heroui/react';
 
 import Home from './pages/Home'; 
 import Dashboard from './pages/Dashboard';
@@ -73,13 +72,11 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <HeroUIProvider>
-      <AuthProvider>
-        <Router>
-          <UpdateToast />
-          <AppRoutes />
-        </Router>
-      </AuthProvider>
-    </HeroUIProvider>
+    <AuthProvider>
+      <Router>
+        <UpdateToast />
+        <AppRoutes />
+      </Router>
+    </AuthProvider>
   );
 }
