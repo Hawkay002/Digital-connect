@@ -8,24 +8,24 @@ const rateLimitMap = new Map();
 const LIMIT_WINDOW_MS = 60 * 1000; 
 const MAX_REQUESTS = 10; 
 
-// Memory cleanup to prevent Vercel crashes
-if (!global.rateLimitInterval) {
-  global.rateLimitInterval = setInterval(() => rateLimitMap.clear(), 10 * 60 * 1000);
-}
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+  
+  if (!process.env.GEMINI_API_KEY) {
+    console.error("CRITICAL: GEMINI_API_KEY is missing from environment.");
+    return res.status(500).json({ error: "API Key Configuration Error" });
+  }
 
   try {
-    // 1. Rate Limiting Logic
     const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown_ip';
     const currentTime = Date.now();
 
+    // Rate Limiting Shield
     if (rateLimitMap.has(ip)) {
       const userRequests = rateLimitMap.get(ip);
-      const recentRequests = userRequests.filter(timestamp => currentTime - timestamp < LIMIT_WINDOW_MS);
+      const recentRequests = userRequests.filter(ts => currentTime - ts < LIMIT_WINDOW_MS);
       if (recentRequests.length >= MAX_REQUESTS) {
-        return res.status(429).json({ error: "I'm receiving too many messages right now. Please wait a minute." });
+        return res.status(429).json({ error: "Rate limit reached. Try again in 60s." });
       }
       recentRequests.push(currentTime);
       rateLimitMap.set(ip, recentRequests);
@@ -35,10 +35,10 @@ export default async function handler(req, res) {
 
     const { messages, voicePreference, isAudioRequest, textToSpeak } = req.body; 
 
-    // 2. Handle Audio Generation (TTS)
+    // ─── AUDIO REQUESTS (Gemini 2.5 TTS) ───
     if (isAudioRequest) {
       const voiceName = voicePreference === 'male' ? 'Puck' : 'Kore';
-      const ttsUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${process.env.GEMINI_API_KEY}`;
+      const ttsUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${process.env.GEMINI_API_KEY}`;
       
       const ttsResponse = await fetch(ttsUrl, {
         method: 'POST',
@@ -47,42 +47,34 @@ export default async function handler(req, res) {
           contents: [{ parts: [{ text: textToSpeak }] }],
           generationConfig: {
             responseModalities: ["AUDIO"],
-            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } }
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } }
           }
         })
       });
 
-      if (!ttsResponse.ok) {
-         if (ttsResponse.status === 429) throw new Error('QUOTA_EXCEEDED');
-         throw new Error('TTS_FAILED');
-      }
-
       const ttsData = await ttsResponse.json();
-      const audioBase64 = ttsData.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      return res.status(200).json({ audioBase64 });
+      if (!ttsResponse.ok) throw new Error(ttsData.error?.message || "Voice Gen Failed");
+      return res.status(200).json({ audioBase64: ttsData.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data });
     }
 
-    // 3. Handle Text Generation (Using Stable 1.5-Flash)
-    let kintagKnowledge = "You are a helpful assistant for KinTag. Keep answers under 3 sentences.";
+    // ─── TEXT REQUESTS (Gemini 2.5 Flash) ───
+    let kintagKnowledge = "You are KinBot, a helpful assistant for KinTag.";
     try {
-      const brainPath = path.join(process.cwd(), 'kintag-brain.md');
-      kintagKnowledge = fs.readFileSync(brainPath, 'utf8');
-    } catch (err) { }
+      kintagKnowledge = fs.readFileSync(path.join(process.cwd(), 'kintag-brain.md'), 'utf8');
+    } catch (err) { console.error("Knowledge base file not found."); }
 
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash-002', 
+      model: 'gemini-2.5-flash', 
       systemInstruction: kintagKnowledge 
     });
 
-    let formattedHistory = messages.slice(0, -1).map(msg => ({
-      role: msg.role === 'ai' ? 'model' : 'user',
-      parts: [{ text: msg.content }]
-    }));
-
-    // Ensure history starts with 'user'
-    while (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
-      formattedHistory.shift();
-    }
+    // Format history and remove the hardcoded welcome message
+    const formattedHistory = messages.slice(0, -1)
+      .filter(msg => msg.id !== 'welcome') 
+      .map(msg => ({
+        role: msg.role === 'ai' ? 'model' : 'user',
+        parts: [{ text: msg.content }]
+      }));
 
     const chat = model.startChat({ history: formattedHistory });
     const result = await chat.sendMessage(messages[messages.length - 1].content);
@@ -90,9 +82,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ reply: result.response.text() });
 
   } catch (error) {
-    if (error.message === 'QUOTA_EXCEEDED' || error.status === 429) {
-      return res.status(429).json({ error: "Daily limits reached for this key. Try again in 24 hours or use a different key." });
-    }
-    return res.status(500).json({ error: 'Internal connection error.' });
+    console.error("Backend Error:", error);
+    return res.status(500).json({ error: error.message || 'Internal connection error' });
   }
 }
