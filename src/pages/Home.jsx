@@ -638,7 +638,7 @@ export default function Home() {
         </ScrollReveal>
       </section>
 
-      <footer className="bg-[#fafafa] py-12 border-t border-zinc-200 text-center">
+      <footer className="bg-[#fafafa] pt-12 pb-32 border-t border-zinc-200 text-center">
         <div className="flex items-center justify-center space-x-2 mb-4 opacity-40 hover:opacity-100 transition-opacity">
           <img src="/kintag-logo.png" alt="Logo" className="w-6 h-6 rounded-md grayscale" />
           <span className="font-extrabold text-brandDark tracking-tight">KinTag</span>
