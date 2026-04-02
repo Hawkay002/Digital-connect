@@ -30,56 +30,35 @@ const stackFeatures = [
 ];
 
 // Returns 'low' | 'mid' | 'high'
-// 'low' requires BOTH signals to be weak simultaneously —
-// a 4GB phone with 8 cores is mid/high, not low.
 function getDeviceTier() {
   if (typeof window === 'undefined') return 'mid';
-  const mem = navigator.deviceMemory;     // capped at 8 by spec
+  const mem = navigator.deviceMemory;     
   const cores = navigator.hardwareConcurrency;
 
-  // High-end: max RAM cap (flagship) OR many cores
   if (mem !== undefined && mem >= 8) return 'high';
   if (cores !== undefined && cores > 6) return 'high';
 
-  // Low-end: BOTH signals must confirm it — avoids false positives
-  // where a capable phone happens to report low on one metric
   const memLow = mem !== undefined && mem < 4;
   const coresLow = cores !== undefined && cores <= 4;
   if (memLow && coresLow) return 'low';
 
-  // Everything else (4GB + 8 cores, unknown APIs, etc.) → mid
   return 'mid';
 }
 
 export default function Home() {
   const { currentUser } = useAuth();
   const [showGithubTooltip, setShowGithubTooltip] = useState(false);
-
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://api.landinghero.ai/public/assistant-widget.js';
-    script.setAttribute('data-project-id', 'doDD9hHSjRELFtHZAkka');
-    script.async = true;
-    document.body.appendChild(script);
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [deviceTier] = useState(() => getDeviceTier());
 
-  // FIX: Wrap scroll handler in useCallback so it doesn't get re-created on
-  // every render. The previous version captured `isScrolled` from closure,
-  // causing a new listener reference on every render and unnecessary work.
   const handleScroll = useCallback(() => {
     const scrolled = window.scrollY > 20;
-    // Use functional updater to avoid stale closure on isScrolled
     setIsScrolled(prev => {
       if (prev !== scrolled) return scrolled;
       return prev;
     });
-  }, []); // no deps — functional updater means we don't need isScrolled here
+  }, []); 
 
   useEffect(() => {
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -154,9 +133,6 @@ export default function Home() {
       <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-4 pointer-events-none">
         <div
           className={`pointer-events-auto w-full max-w-5xl transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isScrolled ? 'translate-y-0 scale-100' : 'translate-y-2 scale-[1.01]'}`}
-          // FIX: will-change: transform tells the browser to keep this element
-          // on its own GPU layer. Without this, every scroll tick that changes
-          // isScrolled causes a full-page repaint to apply the transform.
           style={{ willChange: 'transform' }}
         >
           <GlassSurface width="100%" borderRadius={40}>
@@ -198,8 +174,6 @@ export default function Home() {
           <div
             className="aspect-square opacity-80 shrink-0 [mask-image:linear-gradient(to_bottom,black_0%,black_50%,transparent_100%)]"
             style={{
-              // low-end  → original safe size, no edge bleed
-              // mid/high → 120vw so globe touches both screen edges
               width: deviceTier === 'low'
                 ? 'min(100vw, 800px)'
                 : 'clamp(100vw, 120vw, 900px)',
@@ -638,7 +612,8 @@ export default function Home() {
         </ScrollReveal>
       </section>
 
-      <footer className="bg-[#fafafa] pt-12 pb-32 border-t border-zinc-200 text-center">
+      {/* 🌟 NEW: Increased bottom padding from pb-32 to pb-48 so widget doesn't block copyright */}
+      <footer className="bg-[#fafafa] pt-12 pb-48 border-t border-zinc-200 text-center">
         <div className="flex items-center justify-center space-x-2 mb-4 opacity-40 hover:opacity-100 transition-opacity">
           <img src="/kintag-logo.png" alt="Logo" className="w-6 h-6 rounded-md grayscale" />
           <span className="font-extrabold text-brandDark tracking-tight">KinTag</span>
@@ -649,12 +624,6 @@ export default function Home() {
   );
 }
 
-// FIX: Removed `blur-[4px]` from the hidden state.
-// CSS blur (filter: blur) forces the browser to create a new compositing layer
-// and re-run a Gaussian blur pass on EVERY frame during the reveal animation.
-// On low-end phones this is the single biggest cause of the freeze because
-// it blocks the main thread while the GPU catches up.
-// The reveal still looks great with just opacity + translateY — no visual loss.
 function ScrollReveal({ children, delay = 0, className = "" }) {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef(null);
@@ -683,13 +652,8 @@ function ScrollReveal({ children, delay = 0, className = "" }) {
       ref={ref} 
       style={{
         transitionDelay: `${delay}ms`,
-        // FIX: will-change: transform + opacity tells the browser to pre-promote
-        // this element to its own GPU layer BEFORE the animation starts,
-        // preventing the "stutter on first appear" on high-end phones.
         willChange: isVisible ? 'auto' : 'transform, opacity',
       }}
-      // REMOVED: blur-[4px] from the hidden state — this was the freeze cause.
-      // KEPT: opacity and translateY which are GPU-composited for free.
       className={`transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
       } ${className}`}
