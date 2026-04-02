@@ -7,7 +7,7 @@ export default function AIWidget() {
   
   // Chat State
   const [messages, setMessages] = useState([
-    { id: 'welcome', role: 'ai', content: "Hi there! Welcome to KinTag. I'm here to help you get started with our digital safety platform for your family, pets, or loved ones.\n\nAre you looking to learn more about how it works, or would you like help getting set up?" }
+    { id: 'welcome', role: 'ai', content: "Hi there! I'm KinBot, Welcome to KinTag. I'm here to help you get started with our digital safety platform for your family, pets, or loved ones.\n\nAre you looking to learn more about how it works, or would you like help getting set up?" }
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
