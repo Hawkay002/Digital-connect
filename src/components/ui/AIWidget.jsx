@@ -16,24 +16,19 @@ export default function AIWidget() {
   const [isListening, setIsListening] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [voicePreference, setVoicePreference] = useState('female'); 
-  const [voices, setVoices] = useState([]);
+  const [speakingMessageId, setSpeakingMessageId] = useState(null);
+  const audioContextRef = useRef(null);
   
   // UX Popups
   const [hasAgreedToAudio, setHasAgreedToAudio] = useState(false);
   const [showAudioPopup, setShowAudioPopup] = useState(false);
   const [pendingText, setPendingText] = useState('');
 
-  // Karaoke Highlighting State
-  const [speakingMessageId, setSpeakingMessageId] = useState(null);
-  const [highlightCharIndex, setHighlightCharIndex] = useState(-1);
-
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
 
-  // 1. Check LocalStorage & Network on Mount
   useEffect(() => {
     setHasAgreedToAudio(localStorage.getItem('kintag_audio_agreed') === 'true');
-
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
@@ -44,25 +39,12 @@ export default function AIWidget() {
     };
   }, []);
 
-  // Scroll to bottom on new message
   useEffect(() => {
     if (messagesEndRef.current && isOpen) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, isOpen]);
+  }, [messages, isOpen, speakingMessageId]);
 
-  // 2. Load Premium Browser Voices
-  useEffect(() => {
-    const loadVoices = () => {
-      setVoices(window.speechSynthesis.getVoices());
-    };
-    loadVoices();
-    if (window.speechSynthesis.onvoiceschanged !== undefined) {
-      window.speechSynthesis.onvoiceschanged = loadVoices;
-    }
-  }, []);
-
-  // 3. Dialect Sanitizer
   const sanitizeTranscript = (text) => {
     let clean = text;
     clean = clean.replace(/king\s?tag/gi, 'KinTag');
@@ -71,39 +53,56 @@ export default function AIWidget() {
     return clean;
   };
 
-  // 4. Voice Output (TTS) with Karaoke Highlighting
-  const speakText = (text, messageId) => {
-    if (!audioEnabled || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel(); 
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.05; // Slightly faster for natural feel
-
-    let selectedVoice;
-    if (voicePreference === 'female') {
-      selectedVoice = voices.find(v => v.name.includes('Samantha') || v.name.includes('Google US English') || v.name.includes('Female'));
-    } else {
-      selectedVoice = voices.find(v => v.name.includes('Alex') || v.name.includes('Daniel') || v.name.includes('Male'));
+  // 🌟 NEW: The Gemini Cloud Audio Player
+  const stopAudio = () => {
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
     }
-    if (selectedVoice) utterance.voice = selectedVoice;
-
-    // Trigger UI highlight on word boundaries
-    utterance.onboundary = (event) => {
-      if (event.name === 'word') {
-        setHighlightCharIndex(event.charIndex);
-      }
-    };
-
-    utterance.onstart = () => setSpeakingMessageId(messageId);
-    utterance.onend = () => {
-      setSpeakingMessageId(null);
-      setHighlightCharIndex(-1);
-    };
-
-    window.speechSynthesis.speak(utterance);
+    setSpeakingMessageId(null);
   };
 
-  // 5. Voice Input (STT) with Auto-Send
+  const playGeminiAudio = async (base64Audio, messageId) => {
+    if (!audioEnabled || !base64Audio) return;
+    stopAudio();
+
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      audioContextRef.current = audioCtx;
+
+      // Decode Base64 to Binary
+      const binaryString = window.atob(base64Audio);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      // Convert 16-bit PCM to Float32 Array for Web Audio API
+      const dataView = new DataView(bytes.buffer);
+      const floatArray = new Float32Array(bytes.length / 2);
+      for (let i = 0; i < floatArray.length; i++) {
+        const int16 = dataView.getInt16(i * 2, true); 
+        floatArray[i] = int16 / 32768.0;
+      }
+      
+      // Load into Audio Buffer (Gemini returns 24000 Hz)
+      const buffer = audioCtx.createBuffer(1, floatArray.length, 24000);
+      buffer.getChannelData(0).set(floatArray);
+      
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioCtx.destination);
+      
+      setSpeakingMessageId(messageId);
+      source.onended = () => setSpeakingMessageId(null);
+      source.start();
+
+    } catch (err) {
+      console.error("Audio playback error:", err);
+      setSpeakingMessageId(null);
+    }
+  };
+
   const startListening = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       alert("Your browser does not support voice input.");
@@ -113,13 +112,13 @@ export default function AIWidget() {
     setIsOpen(true);
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognitionRef.current = new SpeechRecognition();
-    recognitionRef.current.continuous = false; // Stops automatically when user stops talking
+    recognitionRef.current.continuous = false; 
     recognitionRef.current.interimResults = true; 
     recognitionRef.current.lang = 'en-US';
 
     recognitionRef.current.onstart = () => {
       setIsListening(true);
-      window.speechSynthesis.cancel(); 
+      stopAudio(); 
     };
 
     let finalTranscript = '';
@@ -137,11 +136,10 @@ export default function AIWidget() {
 
     recognitionRef.current.onend = () => {
       setIsListening(false);
-      // If the 1.5s silence triggers onend, auto-send the final transcript!
       if (finalTranscript.trim()) {
         const cleanText = sanitizeTranscript(finalTranscript);
         setInputText('');
-        handleSendMessage(cleanText, true); // true = bypass warning popup
+        handleSendMessage(cleanText, true); 
       }
     };
 
@@ -156,12 +154,10 @@ export default function AIWidget() {
     }
   };
 
-  // 6. Send Message Logic
   const handleSendMessage = async (textOverride = null, fromVoice = false) => {
     const textToSend = textOverride || sanitizeTranscript(inputText);
     if (!textToSend.trim() || !isOnline) return;
 
-    // Trigger one-time audio warning if typing
     if (!fromVoice && !hasAgreedToAudio) {
       setPendingText(textToSend);
       setShowAudioPopup(true);
@@ -172,8 +168,7 @@ export default function AIWidget() {
   };
 
   const executeSend = async (text) => {
-    window.speechSynthesis.cancel(); 
-    setSpeakingMessageId(null);
+    stopAudio(); 
     setIsOpen(true);
 
     const userMsg = { id: Date.now().toString(), role: 'user', content: text };
@@ -182,11 +177,13 @@ export default function AIWidget() {
     setIsLoading(true);
 
     try {
-      // Calls your Vercel /api/chat endpoint
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, userMsg] }),
+        body: JSON.stringify({ 
+          messages: [...messages, userMsg],
+          voicePreference: voicePreference // 🌟 SENDING THE TOGGLE TO THE BACKEND
+        }),
       });
 
       const data = await response.json();
@@ -195,7 +192,9 @@ export default function AIWidget() {
       const aiMsgId = (Date.now() + 1).toString();
       setMessages(prev => [...prev, { id: aiMsgId, role: 'ai', content: data.reply }]);
       
-      speakText(data.reply, aiMsgId);
+      if (data.audioBase64) {
+        playGeminiAudio(data.audioBase64, aiMsgId);
+      }
 
     } catch (error) {
       setMessages(prev => [...prev, { id: Date.now().toString(), role: 'ai', content: "Sorry, I'm offline or having trouble connecting right now." }]);
@@ -209,24 +208,6 @@ export default function AIWidget() {
     setHasAgreedToAudio(true);
     setShowAudioPopup(false);
     executeSend(pendingText);
-  };
-
-  // Highlight Karaoake text
-  const renderHighlightedText = (text, messageId) => {
-    if (messageId !== speakingMessageId || highlightCharIndex === -1) return text;
-
-    const before = text.slice(0, highlightCharIndex);
-    const currentMatch = text.slice(highlightCharIndex).match(/^\S+/);
-    const current = currentMatch ? currentMatch[0] : '';
-    const after = text.slice(highlightCharIndex + current.length);
-
-    return (
-      <span className="whitespace-pre-wrap">
-        {before}
-        <span className="text-white font-extrabold bg-white/20 rounded px-1 py-0.5 transition-all duration-75">{current}</span>
-        {after}
-      </span>
-    );
   };
 
   return (
@@ -253,24 +234,27 @@ export default function AIWidget() {
         </div>
       )}
 
-      {/* ── THE CHAT BOX (Design 4) ── */}
+      {/* ── THE CHAT BOX ── */}
       {isOpen && (
         <div className="bg-[#1c1c1e] rounded-[2rem] w-full mb-4 shadow-[0_20px_60px_rgba(0,0,0,0.4)] border border-zinc-800/80 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-300 pointer-events-auto relative">
           
-          <button onClick={() => setIsOpen(false)} className="absolute top-4 right-4 bg-zinc-800 p-1.5 rounded-full text-zinc-400 hover:text-white transition-colors z-10">
+          <button onClick={() => { setIsOpen(false); stopAudio(); }} className="absolute top-4 right-4 bg-zinc-800 p-1.5 rounded-full text-zinc-400 hover:text-white transition-colors z-10">
             <X size={16} />
           </button>
 
           <div className="flex items-center justify-between px-5 pt-5 pb-2">
              <select 
                 value={voicePreference} 
-                onChange={(e) => setVoicePreference(e.target.value)}
+                onChange={(e) => {
+                  setVoicePreference(e.target.value);
+                  stopAudio();
+                }}
                 className="bg-zinc-800 border border-zinc-700 text-[10px] uppercase font-bold tracking-wider text-zinc-300 rounded-lg px-2 py-1 outline-none appearance-none cursor-pointer hover:bg-zinc-700 transition-colors"
               >
                 <option value="female">Female Voice</option>
                 <option value="male">Male Voice</option>
               </select>
-              <button onClick={() => { setAudioEnabled(!audioEnabled); window.speechSynthesis.cancel(); }} className="mr-8 text-zinc-400 hover:text-white transition-colors">
+              <button onClick={() => { setAudioEnabled(!audioEnabled); stopAudio(); }} className="mr-8 text-zinc-400 hover:text-white transition-colors">
                 {audioEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
               </button>
           </div>
@@ -284,8 +268,8 @@ export default function AIWidget() {
             
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`p-4 rounded-2xl max-w-[85%] text-[15px] leading-relaxed font-medium ${msg.role === 'user' ? 'bg-[#2c2c2e] text-white' : 'bg-[#2c2c2e] text-zinc-300'}`}>
-                  {msg.role === 'ai' ? renderHighlightedText(msg.content, msg.id) : msg.content}
+                <div className={`p-4 rounded-2xl max-w-[85%] text-[15px] leading-relaxed font-medium transition-all duration-500 ${msg.role === 'user' ? 'bg-[#2c2c2e] text-white' : 'bg-[#2c2c2e] text-zinc-300'} ${msg.id === speakingMessageId ? 'ring-1 ring-brandGold/50 shadow-[0_0_15px_rgba(205,164,52,0.15)] bg-[#353538] text-white' : ''}`}>
+                  {msg.content}
                 </div>
               </div>
             ))}
@@ -299,7 +283,7 @@ export default function AIWidget() {
                 </div>
               </div>
             )}
-            <div ref={messagesEndRef} className="h-6" /> {/* Spacing above footer */}
+            <div ref={messagesEndRef} className="h-6" /> 
           </div>
 
           <div className="bg-[#1c1c1e] border-t border-zinc-800/80 py-2.5 text-center shrink-0">
@@ -308,11 +292,10 @@ export default function AIWidget() {
         </div>
       )}
 
-      {/* ── THE PILL INPUT (Designs 1, 2, & 3) ── */}
+      {/* ── THE PILL INPUT ── */}
       <div className="h-16 w-full bg-zinc-900 rounded-full flex items-center p-1.5 shadow-[0_10px_40px_rgba(0,0,0,0.3)] border border-zinc-800 pointer-events-auto transition-all duration-300">
         
         {isListening ? (
-          // LISTENING STATE (Design 3)
           <>
             <div className="flex-1 h-full bg-white rounded-full flex items-center pl-2 pr-5 justify-between">
               <div className="flex items-center gap-3">
@@ -324,7 +307,6 @@ export default function AIWidget() {
                   {inputText || "Listening..."}
                 </span>
               </div>
-              {/* Fake Audio Wave Animation */}
               <div className="flex items-center gap-1 shrink-0">
                 <div className="w-1 h-3 bg-zinc-400 rounded-full animate-[bounce_1s_infinite]"></div>
                 <div className="w-1 h-5 bg-zinc-600 rounded-full animate-[bounce_1s_infinite_0.2s]"></div>
@@ -337,7 +319,6 @@ export default function AIWidget() {
             </button>
           </>
         ) : (
-          // IDLE/TYPING STATE (Design 1 & 2)
           <>
             <button onClick={startListening} disabled={!isOnline} className="w-14 h-full flex items-center justify-center text-zinc-400 hover:text-white transition-colors disabled:opacity-50 shrink-0">
               <Mic size={20} />
