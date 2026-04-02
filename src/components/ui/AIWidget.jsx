@@ -5,21 +5,18 @@ export default function AIWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
-  // Chat State
   const [messages, setMessages] = useState([
     { id: 'welcome', role: 'ai', content: "Hi there! I'm KinBot, Welcome to KinTag. I'm here to help you get started with our digital safety platform for your family, pets, or loved ones.\n\nAre you looking to learn more about how it works, or would you like help getting set up?" }
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Voice & Audio State
   const [isListening, setIsListening] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [voicePreference, setVoicePreference] = useState('female'); 
   const [speakingMessageId, setSpeakingMessageId] = useState(null);
   const audioContextRef = useRef(null);
   
-  // UX Popups
   const [hasAgreedToAudio, setHasAgreedToAudio] = useState(false);
   const [showAudioPopup, setShowAudioPopup] = useState(false);
   const [pendingText, setPendingText] = useState('');
@@ -53,7 +50,6 @@ export default function AIWidget() {
     return clean;
   };
 
-  // 🌟 NEW: The Gemini Cloud Audio Player
   const stopAudio = () => {
     if (audioContextRef.current) {
       audioContextRef.current.close();
@@ -70,14 +66,12 @@ export default function AIWidget() {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       audioContextRef.current = audioCtx;
 
-      // Decode Base64 to Binary
       const binaryString = window.atob(base64Audio);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
       
-      // Convert 16-bit PCM to Float32 Array for Web Audio API
       const dataView = new DataView(bytes.buffer);
       const floatArray = new Float32Array(bytes.length / 2);
       for (let i = 0; i < floatArray.length; i++) {
@@ -85,7 +79,6 @@ export default function AIWidget() {
         floatArray[i] = int16 / 32768.0;
       }
       
-      // Load into Audio Buffer (Gemini returns 24000 Hz)
       const buffer = audioCtx.createBuffer(1, floatArray.length, 24000);
       buffer.getChannelData(0).set(floatArray);
       
@@ -182,12 +175,14 @@ export default function AIWidget() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           messages: [...messages, userMsg],
-          voicePreference: voicePreference // 🌟 SENDING THE TOGGLE TO THE BACKEND
+          voicePreference: voicePreference 
         }),
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
+      
+      // 🌟 THE FIX: If there is an error, throw the exact message we wrote in the backend
+      if (!response.ok) throw new Error(data.error || "Connection error");
 
       const aiMsgId = (Date.now() + 1).toString();
       setMessages(prev => [...prev, { id: aiMsgId, role: 'ai', content: data.reply }]);
@@ -197,7 +192,12 @@ export default function AIWidget() {
       }
 
     } catch (error) {
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'ai', content: "Sorry, I'm offline or having trouble connecting right now." }]);
+      // 🌟 THE FIX: Display the graceful error message in the chat bubble
+      setMessages(prev => [...prev, { 
+        id: Date.now().toString(), 
+        role: 'ai', 
+        content: error.message 
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -213,7 +213,6 @@ export default function AIWidget() {
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-[100] flex flex-col items-center pointer-events-none">
       
-      {/* ── AUDIO WARNING POPUP ── */}
       {showAudioPopup && (
         <div className="absolute bottom-[80px] w-full bg-[#1c1c1e] border border-zinc-700 shadow-2xl rounded-3xl p-5 pointer-events-auto animate-in fade-in zoom-in-95 duration-200 z-50">
           <div className="flex gap-3 mb-4">
@@ -234,7 +233,6 @@ export default function AIWidget() {
         </div>
       )}
 
-      {/* ── THE CHAT BOX ── */}
       {isOpen && (
         <div className="bg-[#1c1c1e] rounded-[2rem] w-full mb-4 shadow-[0_20px_60px_rgba(0,0,0,0.4)] border border-zinc-800/80 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-300 pointer-events-auto relative">
           
@@ -287,7 +285,7 @@ export default function AIWidget() {
           </div>
 
           <div className="bg-[#1c1c1e] border-t border-zinc-800/80 py-2.5 text-center shrink-0">
-             <p className="text-[11px] text-zinc-500 font-medium tracking-wide">Powered by <strong className="text-zinc-300 font-bold">KinBot AI</strong></p>
+             <p className="text-[11px] text-zinc-500 font-medium tracking-wide">Powered by <strong className="text-zinc-300 font-bold">KinBot.AI</strong></p>
           </div>
         </div>
       )}
