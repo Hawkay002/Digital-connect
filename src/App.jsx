@@ -14,12 +14,14 @@ import Profile from './pages/Profile';
 import Changelog from './pages/Changelog';
 import UpdateToast from './components/UpdateToast';
 import Settings from './pages/Settings';
-import CareView from './pages/CareView'; // 🌟 NEW: Imported the Caretaker View
-import AppLock from './components/AppLock'; // 🌟 NEW: Imported the Biometric App Lock
+import CareView from './pages/CareView'; 
+import AppLock from './components/AppLock'; 
+
+// 🌟 NEW: Import the AI Widget
+import AIWidget from './components/ui/AIWidget';
 
 let isAuthRefresh = window.location.hash.includes('/login') || window.location.hash.includes('/signup');
 
-// 🌟 UPDATED: AppLock wraps the children so every protected route gets biometric security
 const ProtectedRoute = ({ children }) => {
   const { currentUser } = useAuth();
   if (!currentUser) return <Navigate to="/login" replace />;
@@ -43,30 +45,33 @@ function AppRoutes() {
   }, [navigate]);
 
   return (
-    <Routes>
-      {/* --- PUBLIC ROUTES --- */}
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
-      <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" replace /> : <Signup />} />
-      <Route path="/id/:profileId" element={<PublicCard />} />
-      <Route path="/changelog" element={<Changelog />} /> 
-      
-      {/* 🌟 NEW: Babysitter / Caretaker Link (MUST be public so they don't have to log in) */}
-      <Route path="/care/:sessionId" element={<CareView />} />
-      
-      {/* --- PROTECTED ROUTES --- */}
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/create" element={<ProtectedRoute><CreateCard /></ProtectedRoute>} />
-      <Route path="/edit/:profileId" element={<ProtectedRoute><EditCard /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-      <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-      
-      {/* 🌟 MOVED & PROTECTED: Settings is now safely guarded behind authentication */}
-      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-      
-      {/* --- CATCH-ALL (Must stay at the very bottom!) --- */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <Routes>
+        {/* --- PUBLIC ROUTES --- */}
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
+        <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" replace /> : <Signup />} />
+        <Route path="/id/:profileId" element={<PublicCard />} />
+        <Route path="/changelog" element={<Changelog />} /> 
+        
+        {/* --- PUBLIC CARETAKER LINK --- */}
+        <Route path="/care/:sessionId" element={<CareView />} />
+        
+        {/* --- PROTECTED ROUTES --- */}
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/create" element={<ProtectedRoute><CreateCard /></ProtectedRoute>} />
+        <Route path="/edit/:profileId" element={<ProtectedRoute><EditCard /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        
+        {/* --- CATCH-ALL --- */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+
+      {/* 🌟 NEW: Conditionally render the AI Widget ONLY on the homepage */}
+      {location.pathname === '/' && <AIWidget />}
+    </>
   );
 }
 
