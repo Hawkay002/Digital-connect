@@ -5,9 +5,10 @@ import { Mic, ArrowRight, X, Volume2, VolumeX, Loader2, Power, Copy, Check } fro
 import { HugeiconsIcon } from "@hugeicons/react";
 import { WhatsappIcon, TelegramIcon } from "@hugeicons/core-free-icons";
 
-// 🛑 REPLACE THESE WITH YOUR ACTUAL PROFILE LINKS
+// 🛑 REPLACE THESE WITH YOUR ACTUAL PROFILE LINKS & IMAGE
 const MY_WHATSAPP_LINK = "https://wa.me/918777845713"; 
 const MY_TELEGRAM_LINK = "https://t.me/X_o_x_o_002";
+const AI_PROFILE_IMAGE = "/avatar.png"; // <-- PASTE YOUR IMAGE URL OR PATH HERE
 
 const WELCOME_MESSAGE = { id: 'welcome', role: 'ai', content: "Hi! I'm KinBot, welcome to KinTag. How can I help you today?" };
 
@@ -24,7 +25,7 @@ export default function AIWidget() {
   const [speakingMessageId, setSpeakingMessageId] = useState(null);
   const [audioLoadingId, setAudioLoadingId] = useState(null);
   const [audioErrorId, setAudioErrorId] = useState(null);
-  const [copiedId, setCopiedId] = useState(null); // Tracks which message was copied
+  const [copiedId, setCopiedId] = useState(null);
   
   const audioContextRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -36,7 +37,7 @@ export default function AIWidget() {
   const handleCopy = (text, id) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000); // Reset checkmark after 2s
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   // ─── CHAT LOGGING ENGINE ───
@@ -64,7 +65,7 @@ export default function AIWidget() {
     hasExportedRef.current = false; 
   };
 
-  // ─── LISTENERS (Network, Unload, & Timers) ───
+  // ─── LISTENERS ───
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -212,7 +213,7 @@ export default function AIWidget() {
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-[100] flex flex-col items-center pointer-events-none">
       
-      {/* ── CHAT WINDOW (Added smooth fade-in and slide-up animation) ── */}
+      {/* ── CHAT WINDOW ── */}
       {isOpen && (
         <div className="bg-[#1c1c1e] rounded-[2rem] w-full mb-4 shadow-2xl border border-zinc-800 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-24 duration-500 ease-out pointer-events-auto">
           
@@ -240,30 +241,80 @@ export default function AIWidget() {
             )}
             
             {messages.map((msg) => {
+              const isAI = msg.role === 'ai';
               const textContent = msg.content.toLowerCase();
               const mentionsWhatsApp = textContent.includes('whatsapp');
               const mentionsTelegram = textContent.includes('telegram');
 
               return (
-                <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`relative group max-w-[85%] w-full ${msg.role === 'ai' ? 'mb-5' : ''}`}>
-                    
-                    {/* Added pt-8 so text doesn't overlap with the top-corner copy buttons */}
-                    <div className={`relative p-4 pt-8 rounded-2xl text-[15px] leading-relaxed transition-all whitespace-pre-wrap ${msg.role === 'user' ? 'bg-[#2c2c2e] text-white rounded-br-sm ml-auto w-fit' : 'bg-[#2c2c2e] text-zinc-300 rounded-bl-sm'} ${msg.id === speakingMessageId ? 'ring-2 ring-brandGold shadow-[0_0_15px_rgba(205,164,52,0.15)] text-white bg-[#353538]' : ''}`}>
+                <div key={msg.id} className={`flex ${!isAI ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`relative max-w-[85%] w-full`}>
+                    <div className={`p-4 rounded-2xl transition-all ${!isAI ? 'bg-[#2c2c2e] text-white rounded-br-sm ml-auto w-fit' : 'bg-[#2c2c2e] text-zinc-300 rounded-bl-sm'} ${msg.id === speakingMessageId ? 'ring-2 ring-brandGold shadow-[0_0_15px_rgba(205,164,52,0.15)] text-white bg-[#353538]' : ''}`}>
                       
-                      {/* 🌟 ALWAYS VISIBLE COPY BUTTONS */}
-                      <button 
-                        onClick={() => handleCopy(msg.content, msg.id)}
-                        className={`absolute top-2 ${msg.role === 'ai' ? 'right-2' : 'left-2'} p-1 rounded-md hover:bg-zinc-700/50 text-zinc-500 hover:text-zinc-300 transition-colors flex items-center justify-center`}
-                        title="Copy message"
-                      >
-                        {copiedId === msg.id ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                      </button>
+                      {/* ─── BUBBLE HEADER ROW ─── */}
+                      <div className="flex items-center justify-between mb-3 border-b border-zinc-700/50 pb-2">
+                        
+                        {isAI ? (
+                          // AI Header Left: Custom Profile Image, Name, Speaker
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full border border-zinc-700 overflow-hidden bg-zinc-800 flex items-center justify-center shrink-0">
+                              <img src={AI_PROFILE_IMAGE} alt="KinBot" className="w-full h-full object-cover" />
+                            </div>
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">KinBot AI</span>
+                            
+                            {/* SPEAKER BUTTON */}
+                            {msg.id !== 'welcome' && msg.id !== 'err' && (
+                              <button 
+                                onClick={() => msg.id === speakingMessageId ? stopAudio() : fetchAudio(msg.content, msg.id)} 
+                                disabled={audioLoadingId === msg.id} 
+                                className={`ml-1 p-1 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white transition-colors flex items-center justify-center ${msg.id === speakingMessageId ? 'text-brandGold border-brandGold/30' : ''}`}
+                                title="Read Aloud"
+                              >
+                                {audioLoadingId === msg.id ? <Loader2 size={12} className="animate-spin text-brandGold" /> : msg.id === speakingMessageId ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                              </button>
+                            )}
+                            {audioErrorId === msg.id && <span className="text-[9px] text-zinc-400 font-medium bg-zinc-800 px-1 py-0.5 rounded border border-zinc-700">Local</span>}
+                          </div>
+                        ) : (
+                          // USER Header Left: Copy Button
+                          <div>
+                            <button 
+                              onClick={() => handleCopy(msg.content, msg.id)}
+                              className="p-1 rounded-md hover:bg-zinc-700/50 text-zinc-500 hover:text-zinc-300 transition-colors flex items-center justify-center"
+                              title="Copy message"
+                            >
+                              {copiedId === msg.id ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                            </button>
+                          </div>
+                        )}
 
-                      {msg.content}
+                        {isAI ? (
+                          // AI Header Right: Copy Button
+                          <div>
+                            <button 
+                              onClick={() => handleCopy(msg.content, msg.id)}
+                              className="p-1 rounded-md hover:bg-zinc-700/50 text-zinc-500 hover:text-zinc-300 transition-colors flex items-center justify-center"
+                              title="Copy message"
+                            >
+                              {copiedId === msg.id ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                            </button>
+                          </div>
+                        ) : (
+                          // USER Header Right: Name
+                          <div className="flex items-center">
+                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">You</span>
+                          </div>
+                        )}
+
+                      </div>
+
+                      {/* ─── BUBBLE CONTENT ─── */}
+                      <div className="text-[15px] leading-relaxed whitespace-pre-wrap">
+                        {msg.content}
+                      </div>
                       
-                      {/* HUGEICONS SMART BUTTONS */}
-                      {msg.role === 'ai' && (mentionsWhatsApp || mentionsTelegram) && (
+                      {/* ─── SMART BUTTONS INJECTION ─── */}
+                      {isAI && (mentionsWhatsApp || mentionsTelegram) && (
                         <div className="flex flex-row gap-2 mt-4 pt-4 border-t border-zinc-700/50 w-full">
                           {mentionsWhatsApp && (
                             <a href={MY_WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-1.5 bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 border border-[#25D366]/30 py-2 px-2 rounded-xl text-[11px] font-bold transition-colors min-w-0">
@@ -280,16 +331,6 @@ export default function AIWidget() {
                         </div>
                       )}
                     </div>
-                    
-                    {/* HOVER SPEAKER BUTTON */}
-                    {msg.role === 'ai' && msg.id !== 'welcome' && msg.id !== 'err' && (
-                      <div className="absolute -bottom-6 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 z-20">
-                        <button onClick={() => msg.id === speakingMessageId ? stopAudio() : fetchAudio(msg.content, msg.id)} disabled={audioLoadingId === msg.id} className={`p-1.5 bg-zinc-800 border border-zinc-700 rounded-full text-zinc-400 hover:text-white transition-colors flex items-center justify-center ${msg.id === speakingMessageId ? 'text-brandGold border-brandGold/30' : ''}`}>
-                          {audioLoadingId === msg.id ? <Loader2 size={12} className="animate-spin text-brandGold" /> : msg.id === speakingMessageId ? <VolumeX size={12} /> : <Volume2 size={12} />}
-                        </button>
-                        {audioErrorId === msg.id && <span className="text-[10px] text-zinc-400 font-medium bg-zinc-800 px-2 py-0.5 rounded border border-zinc-700">Local Voice</span>}
-                      </div>
-                    )}
                   </div>
                 </div>
               );
@@ -307,6 +348,7 @@ export default function AIWidget() {
             <div ref={messagesEndRef} className="h-4" />
           </div>
           
+          {/* PRIVACY CONSENT FOOTER */}
           <div className="bg-[#1c1c1e] border-t border-zinc-800/80 py-2.5 px-4 flex flex-col gap-1 text-center shrink-0">
              <p className="text-[11px] text-zinc-500 font-medium tracking-wide">Powered by <strong className="text-zinc-300 font-bold">KinBot AI</strong></p>
              <p className="text-[9px] text-zinc-600 leading-tight">By using this bot you're consenting to let us use your chat data to improve this AI.</p>
@@ -314,7 +356,7 @@ export default function AIWidget() {
         </div>
       )}
 
-      {/* ── INPUT PILL (Added smooth inner transitions) ── */}
+      {/* ── INPUT PILL ── */}
       <div className="h-16 w-full bg-zinc-900 rounded-full flex items-center p-1.5 shadow-[0_10px_40px_rgba(0,0,0,0.3)] border border-zinc-800 pointer-events-auto relative overflow-hidden transition-all duration-300">
         
         {/* Voice Mode Wrapper */}
