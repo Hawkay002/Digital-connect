@@ -257,7 +257,7 @@ export default function AIWidget() {
                         {isAI ? (
                           // AI Header Left: Custom Profile Image, Name, Speaker
                           <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 rounded-full border border-zinc-700 overflow-hidden bg-zinc-800 flex items-center justify-center shrink-0">
+                            <div className="w-8 h-8 rounded-full border border-zinc-700 overflow-hidden bg-zinc-800 flex items-center justify-center shrink-0">
                               <img src={AI_PROFILE_IMAGE} alt="KinBot" className="w-full h-full object-cover" />
                             </div>
                             <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">KinBot AI</span>
