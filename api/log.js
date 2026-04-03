@@ -3,7 +3,6 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
   const { messages, reason } = req.body;
-  // Using the new _AI specific environment variables
   const botToken = process.env.TELEGRAM_BOT_TOKEN_AI;
   const chatId = process.env.TELEGRAM_CHAT_ID_AI;
 
@@ -11,10 +10,23 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: false, reason: 'Skipped' });
   }
 
-  let formattedText = `🚨 *New KinBot Chat Log*\n_Trigger: ${reason}_\n\n`;
+  // 🌟 FIX: Bulletproof HTML Escaper
+  // This prevents special characters from breaking the Telegram log formatting
+  const escapeHtml = (text) => {
+    if (!text) return '';
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  };
+
+  // 🌟 FIX: Switch to HTML Formatting instead of Markdown
+  let formattedText = `🚨 <b>New KinBot Chat Log</b>\n<i>Trigger: ${escapeHtml(reason)}</i>\n\n`;
+  
   messages.forEach(msg => {
     const role = msg.role === 'ai' ? '🤖 KinBot' : '👤 User';
-    formattedText += `*${role}:* ${msg.content}\n\n`;
+    // Now it safely wraps the raw text without eating underscores
+    formattedText += `<b>${role}:</b> ${escapeHtml(msg.content)}\n\n`;
   });
 
   try {
@@ -25,11 +37,16 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         chat_id: chatId,
         text: formattedText,
-        parse_mode: 'Markdown'
+        parse_mode: 'HTML' // <--- Changed from 'Markdown' to 'HTML'
       })
     });
 
-    if (!response.ok) throw new Error('Telegram API failed');
+    if (!response.ok) {
+      const errData = await response.json();
+      console.error("Telegram API Error:", errData);
+      throw new Error('Telegram API failed');
+    }
+    
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error("Log error:", error);
